@@ -1,0 +1,11 @@
+{
+  "auth": {
+    "title": "Турнирный хаб",
+    "email": "Email",
+    "password": "Пароль",
+    "login": "Войти",
+    "register": "Регистрация",
+    "logout": "Выйти",
+    "loginWithGoogle": "Войти через Google"
+  }
+}

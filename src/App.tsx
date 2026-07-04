@@ -1,4 +1,7 @@
+import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
+import { LanguageSwitcher } from './components/LanguageSwitcher.tsx'
+import './i18n'
 
 // Simulated API response shape.
 interface Greeting {
@@ -20,6 +23,7 @@ function fetchGreeting(): Promise<Greeting> {
 }
 
 function App() {
+  const { t } = useTranslation()
   const { data, isLoading, isError } = useQuery({
     queryKey: ['greeting'],
     queryFn: fetchGreeting,
@@ -28,12 +32,53 @@ function App() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-50 to-slate-200 p-6 text-slate-800">
       <section className="w-full max-w-md rounded-2xl bg-white p-8 shadow-xl">
-        <h1 className="mb-2 text-2xl font-bold tracking-tight">
-          TanStack Query Demo
-        </h1>
-        <p className="mb-6 text-sm text-slate-500">
-          A simple test page to verify Tailwind CSS and TanStack Query setup.
-        </p>
+        <div className="mb-6 flex items-center justify-between">
+          <h1 className="text-2xl font-bold tracking-tight">
+            {t('auth.title')}
+          </h1>
+          <LanguageSwitcher />
+        </div>
+
+        <div className="mb-6 space-y-3 rounded-xl border border-slate-100 bg-slate-50 p-4">
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700">
+              {t('auth.email')}
+            </label>
+            <input
+              type="email"
+              placeholder={t('auth.email')}
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700">
+              {t('auth.password')}
+            </label>
+            <input
+              type="password"
+              placeholder={t('auth.password')}
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
+            />
+          </div>
+          <button
+            type="button"
+            className="w-full rounded-lg bg-indigo-600 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-700"
+          >
+            {t('auth.login')}
+          </button>
+          <button
+            type="button"
+            className="w-full rounded-lg border border-slate-300 bg-white py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100"
+          >
+            {t('auth.register')}
+          </button>
+          <button
+            type="button"
+            className="w-full rounded-lg bg-red-50 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-100"
+          >
+            {t('auth.loginWithGoogle')}
+          </button>
+        </div>
 
         <div className="rounded-xl border border-slate-100 bg-slate-50 p-6">
           {isLoading && (

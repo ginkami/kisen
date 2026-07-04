@@ -6,6 +6,13 @@ vi.mock('@tanstack/react-query', () => ({
   useQuery: vi.fn(),
 }))
 
+vi.mock('react-i18next', () => ({
+  useTranslation: () => ({
+    t: (key: string) => key,
+    i18n: { language: 'ru', changeLanguage: vi.fn() },
+  }),
+}))
+
 import { useQuery } from '@tanstack/react-query'
 
 function mockedUseQuery() {
@@ -22,6 +29,7 @@ describe('App', () => {
 
     render(<App />)
 
+    expect(screen.getByText('auth.title')).toBeInTheDocument()
     expect(screen.getByText('Loading...')).toBeInTheDocument()
   })
 
@@ -37,6 +45,7 @@ describe('App', () => {
 
     render(<App />)
 
+    expect(screen.getByText('auth.title')).toBeInTheDocument()
     expect(screen.getByText('Hello, Vitest!')).toBeInTheDocument()
     expect(
       screen.getByText('Testing React with Vitest is great.')
@@ -52,6 +61,7 @@ describe('App', () => {
 
     render(<App />)
 
+    expect(screen.getByText('auth.title')).toBeInTheDocument()
     expect(screen.getByText('Something went wrong.')).toBeInTheDocument()
   })
 })
