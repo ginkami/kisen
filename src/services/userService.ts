@@ -71,7 +71,7 @@ export async function createUser(input: CreateUserInput): Promise<User> {
   } = {
     id: input.id,
     email: input.email,
-    role: input.role ?? 'manager',
+    role: input.role ?? 'user',
     auth: {
       passwordHash: input.passwordHash ?? null,
       providers: input.providers ?? [],

@@ -77,7 +77,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       return createUser({
         id: fbUser.uid,
         email: fbUser.email ?? '',
-        role: 'manager',
+        role: 'user',
         passwordHash: null,
         providers: fbUser.providerData.map((p) => ({
           provider: p.providerId,
@@ -116,7 +116,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const created = await createUser({
         id: uuidv7(),
         email: fbUser.email ?? credentials.email,
-        role: 'manager',
+        role: 'user',
         passwordHash: null,
         providers: fbUser.providerData.map((p) => ({
           provider: p.providerId,
