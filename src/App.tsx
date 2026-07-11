@@ -1,33 +1,36 @@
-import { useTranslation } from 'react-i18next'
-import { LanguageSwitcher } from './components/LanguageSwitcher.tsx'
-import { AuthForm } from './components/AuthForm.tsx'
-import { UserProfile } from './components/UserProfile.tsx'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { Layout } from './components/Layout.tsx'
+import { HomePage } from './pages/HomePage.tsx'
+import { LoginPage } from './pages/LoginPage.tsx'
+import { TournamentPage } from './pages/TournamentPage.tsx'
 import { useAuth } from './context/AuthContext.tsx'
 import './i18n'
 
-function App() {
-  const { t } = useTranslation()
+function LoginRoute() {
   const { isAuthenticated, isLoading } = useAuth()
 
-  return (
-    <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-50 to-slate-200 p-6 text-slate-800">
-      <section className="w-full max-w-md rounded-2xl bg-white p-8 shadow-xl">
-        <div className="mb-6 flex items-center justify-between">
-          <h1 className="text-2xl font-bold tracking-tight">
-            {t('auth.title')}
-          </h1>
-          <LanguageSwitcher />
-        </div>
+  if (isLoading) {
+    return (
+      <div className="flex min-h-[50vh] items-center justify-center">
+        <p className="text-center font-medium text-indigo-600">Loading...</p>
+      </div>
+    )
+  }
 
-        {isLoading ? (
-          <p className="text-center font-medium text-indigo-600">Loading...</p>
-        ) : isAuthenticated ? (
-          <UserProfile />
-        ) : (
-          <AuthForm />
-        )}
-      </section>
-    </main>
+  return isAuthenticated ? <Navigate to="/" replace /> : <LoginPage />
+}
+
+function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Layout />}>
+          <Route index element={<HomePage />} />
+          <Route path="login" element={<LoginRoute />} />
+          <Route path="tournaments/:slug" element={<TournamentPage />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
   )
 }
 
