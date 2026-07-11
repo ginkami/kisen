@@ -20,7 +20,9 @@
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
     "react-i18next": "^17.0.8",
-    "uuidv7": "^1.2.1"
+    "react-router-dom": "^7.18.1",
+    "uuidv7": "^1.2.1",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
