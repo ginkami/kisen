@@ -1,18 +1,118 @@
-rules_version='2'
+rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /{document=**} {
-      // This rule allows anyone with your database reference to view, edit,
-      // and delete all data in your database. It is useful for getting
-      // started, but it is configured to expire after 30 days because it
-      // leaves your app open to attackers. At that time, all client
-      // requests to your database will be denied.
-      //
-      // Make sure to write security rules for your app before that time, or
-      // else all client requests to your database will be denied until you
-      // update your rules.
-      allow read, write: if request.time < timestamp.date(2026, 8, 8);
+    // ---------- Helpers ----------
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function currentUserId() {
+      return request.auth.uid;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && request.auth.token.admin == true;
+    }
+
+    function isOwner(createdBy) {
+      return isAuthenticated() && createdBy == currentUserId();
+    }
+
+    function isManagerOf(associationId) {
+      return isAuthenticated()
+        && associationId != null
+        && currentUserId() in get(/databases/$(database)/documents/associations/$(associationId)).data.managers;
+    }
+
+    function hasManagerAccess(resource) {
+      let associationId = resource.data.hostAssociation;
+      return isManagerOf(associationId);
+    }
+
+    function hasPlayerManagerAccess(resource) {
+      let associationId = resource.data.primaryAssociation;
+      return isManagerOf(associationId);
+    }
+
+    // ---------- Users ----------
+    match /users/{userId} {
+      allow read: if isAuthenticated() && (currentUserId() == userId || isAdmin());
+      allow write: if isAdmin();
+    }
+
+    // ---------- Associations ----------
+    match /associations/{associationId} {
+      allow read: if true;
+      allow create: if isAdmin();
+      allow update: if isAdmin() || isManagerOf(associationId);
+      allow delete: if isAdmin();
+    }
+
+    // ---------- Players ----------
+    match /players/{playerId} {
+      allow read: if true;
+
+      // Creation: admin OR manager of the association set as primaryAssociation.
+      allow create: if isAdmin()
+        || (
+          isAuthenticated()
+          && request.resource.data.primaryAssociation != null
+          && isManagerOf(request.resource.data.primaryAssociation)
+        );
+
+      // Update: owner, admin, or manager of the player's primaryAssociation.
+      allow update: if isAdmin()
+        || isOwner(resource.data.createdBy)
+        || hasPlayerManagerAccess(resource);
+
+      // Delete: admin OR manager of the player's primaryAssociation.
+      allow delete: if isAdmin() || hasPlayerManagerAccess(resource);
+    }
+
+    // ---------- Tournaments ----------
+    match /tournaments/{tournamentId} {
+      function canReadTournament() {
+        return resource.data.status != 'draft'
+          || isOwner(resource.data.createdBy)
+          || isAdmin()
+          || isManagerOf(resource.data.hostAssociation);
+      }
+
+      allow read: if canReadTournament();
+
+      allow create: if isAuthenticated()
+        && (
+          request.resource.data.hostAssociation == null
+          || isManagerOf(request.resource.data.hostAssociation)
+        );
+
+      allow update: if isAdmin()
+        || isOwner(resource.data.createdBy)
+        || isManagerOf(resource.data.hostAssociation);
+
+      allow delete: if isAdmin()
+        || isOwner(resource.data.createdBy)
+        || isManagerOf(resource.data.hostAssociation);
+    }
+
+    // ---------- Events ----------
+    match /events/{eventId} {
+      allow read: if true;
+
+      allow create: if isAuthenticated()
+        && (
+          request.resource.data.hostAssociation == null
+          || isManagerOf(request.resource.data.hostAssociation)
+        );
+
+      allow update: if isAdmin()
+        || isOwner(resource.data.createdBy)
+        || isManagerOf(resource.data.hostAssociation);
+
+      allow delete: if isAdmin()
+        || isOwner(resource.data.createdBy)
+        || isManagerOf(resource.data.hostAssociation);
     }
   }
 }
