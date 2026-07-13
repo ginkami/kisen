@@ -4,8 +4,13 @@ import { LanguageSwitcher } from './LanguageSwitcher.tsx'
 import { useAuth } from '../context/AuthContext.tsx'
 
 export function Layout() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const { isAuthenticated, isLoading, user, logout } = useAuth()
+
+  const displayName = user
+    ? user.locales[i18n.language as keyof typeof user.locales]?.displayName ||
+      user.email
+    : ''
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-200 text-slate-800">
@@ -20,7 +25,7 @@ export function Layout() {
               <span className="text-sm text-slate-500">Loading...</span>
             ) : isAuthenticated ? (
               <div className="flex items-center gap-3">
-                <span className="text-sm text-slate-700">{user?.email}</span>
+                <span className="text-sm text-slate-700">{displayName}</span>
                 <button
                   type="button"
                   onClick={() => void logout()}

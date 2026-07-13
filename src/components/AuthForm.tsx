@@ -8,6 +8,7 @@ export function AuthForm() {
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [displayName, setDisplayName] = useState('')
   const [isRegistering, setIsRegistering] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -19,7 +20,7 @@ export function AuthForm() {
 
     try {
       if (isRegistering) {
-        await signUp({ email, password })
+        await signUp({ email, password, displayName })
       } else {
         await signIn({ email, password })
       }
@@ -50,6 +51,26 @@ export function AuthForm() {
 
       {error && (
         <p className="rounded-lg bg-red-50 p-2 text-sm text-red-600">{error}</p>
+      )}
+
+      {isRegistering && (
+        <div>
+          <label
+            htmlFor="displayName"
+            className="mb-1 block text-sm font-medium text-slate-700"
+          >
+            {t('auth.displayName')}
+          </label>
+          <input
+            id="displayName"
+            type="text"
+            value={displayName}
+            onChange={(e) => setDisplayName(e.target.value)}
+            required={isRegistering}
+            placeholder={t('auth.displayName')}
+            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
+          />
+        </div>
       )}
 
       <div>

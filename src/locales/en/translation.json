@@ -2,6 +2,7 @@
   "auth": {
     "title": "Tournament Hub",
     "email": "Email",
+    "displayName": "Display name",
     "password": "Password",
     "login": "Log in",
     "register": "Sign up",

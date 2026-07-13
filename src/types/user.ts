@@ -15,6 +15,7 @@ export interface UserAuth {
 export interface UserLocale {
   familyName: string
   givenName: string
+  displayName: string
 }
 
 export interface UserLocales {

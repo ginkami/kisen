@@ -2,6 +2,7 @@
   "auth": {
     "title": "Турнирный хаб",
     "email": "Email",
+    "displayName": "Как к вам обращаться",
     "password": "Пароль",
     "login": "Войти",
     "register": "Регистрация",

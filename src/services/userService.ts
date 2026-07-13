@@ -56,8 +56,16 @@ export async function createUser(input: CreateUserInput): Promise<User> {
   const now = serverTimestamp()
 
   const fallbackLocales: UserLocales = {
-    ru: { familyName: 'Placeholder', givenName: 'Placeholder' },
-    en: { familyName: 'Placeholder', givenName: 'Placeholder' },
+    ru: {
+      familyName: 'Placeholder',
+      givenName: 'Placeholder',
+      displayName: 'Placeholder',
+    },
+    en: {
+      familyName: 'Placeholder',
+      givenName: 'Placeholder',
+      displayName: 'Placeholder',
+    },
   }
 
   const mergedLocales: UserLocales = {

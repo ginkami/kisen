@@ -21,12 +21,16 @@ import { createUser, getUserById } from '../services/userService.ts'
 import { uuidv7 } from 'uuidv7'
 import type { User } from '../types/user.ts'
 
+export interface SignUpInput extends AuthCredentials {
+  displayName: string
+}
+
 interface AuthContextValue {
   firebaseUser: FirebaseUser | null
   user: User | null | undefined
   isLoading: boolean
   isAuthenticated: boolean
-  signUp: (credentials: AuthCredentials) => Promise<void>
+  signUp: (input: SignUpInput) => Promise<void>
   signIn: (credentials: AuthCredentials) => Promise<void>
   signInGoogle: () => Promise<void>
   logout: () => Promise<void>
@@ -86,8 +90,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         emailVerified: fbUser.emailVerified,
         isActive: true,
         locales: {
-          ru: { familyName, givenName },
-          en: { familyName, givenName },
+          ru: { familyName, givenName, displayName: givenName },
+          en: { familyName, givenName, displayName: givenName },
         },
       })
     },
@@ -105,17 +109,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
   })
 
   const signUp = useCallback(
-    async (credentials: AuthCredentials) => {
-      const credential = await signUpWithEmail(credentials)
+    async (input: SignUpInput) => {
+      const credential = await signUpWithEmail(input)
       const fbUser = credential.user
 
-      const displayName = fbUser.displayName ?? ''
+      const displayName = input.displayName.trim()
       const [givenName = 'Placeholder', familyName = 'Placeholder'] =
         displayName.split(' ')
 
       const created = await createUser({
         id: uuidv7(),
-        email: fbUser.email ?? credentials.email,
+        email: fbUser.email ?? input.email,
         role: 'user',
         passwordHash: null,
         providers: fbUser.providerData.map((p) => ({
@@ -125,8 +129,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         emailVerified: fbUser.emailVerified,
         isActive: true,
         locales: {
-          ru: { familyName, givenName },
-          en: { familyName, givenName },
+          ru: { familyName, givenName, displayName },
+          en: { familyName, givenName, displayName },
         },
       })
 
