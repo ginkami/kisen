@@ -43,76 +43,60 @@ export function AuthForm() {
   return (
     <form
       onSubmit={handleSubmit}
-      className="mb-6 space-y-3 rounded-xl border border-slate-100 bg-slate-50 p-4"
+      className="card bg-base-200 mb-6 space-y-3 p-4 shadow"
     >
-      <h2 className="text-lg font-semibold text-slate-800">
+      <h2 className="card-title">
         {isRegistering ? t('auth.register') : t('auth.login')}
       </h2>
 
       {error && (
-        <p className="rounded-lg bg-red-50 p-2 text-sm text-red-600">{error}</p>
+        <div className="alert alert-error alert-soft text-sm">
+          <span>{error}</span>
+        </div>
       )}
 
       {isRegistering && (
-        <div>
-          <label
-            htmlFor="displayName"
-            className="mb-1 block text-sm font-medium text-slate-700"
-          >
-            {t('auth.displayName')}
-          </label>
+        <label className="floating-label">
+          <span>{t('auth.displayName')}</span>
           <input
-            id="displayName"
             type="text"
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
             required={isRegistering}
             placeholder={t('auth.displayName')}
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
+            className="input input-bordered w-full"
           />
-        </div>
+        </label>
       )}
 
-      <div>
-        <label
-          htmlFor="email"
-          className="mb-1 block text-sm font-medium text-slate-700"
-        >
-          {t('auth.email')}
-        </label>
+      <label className="floating-label">
+        <span>{t('auth.email')}</span>
         <input
-          id="email"
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
           placeholder={t('auth.email')}
-          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
+          className="input input-bordered w-full"
         />
-      </div>
+      </label>
 
-      <div>
-        <label
-          htmlFor="password"
-          className="mb-1 block text-sm font-medium text-slate-700"
-        >
-          {t('auth.password')}
-        </label>
+      <label className="floating-label">
+        <span>{t('auth.password')}</span>
         <input
-          id="password"
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
           placeholder={t('auth.password')}
-          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
+          className="input input-bordered w-full"
         />
-      </div>
+      </label>
 
       <button
         type="submit"
         disabled={isSubmitting}
-        className="w-full rounded-lg bg-indigo-600 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-700 disabled:opacity-50"
+        className="btn btn-primary w-full"
       >
         {isRegistering ? t('auth.register') : t('auth.login')}
       </button>
@@ -120,7 +104,7 @@ export function AuthForm() {
       <button
         type="button"
         onClick={handleGoogle}
-        className="w-full rounded-lg bg-red-50 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-100"
+        className="btn btn-outline btn-error w-full"
       >
         {t('auth.loginWithGoogle')}
       </button>
@@ -128,7 +112,7 @@ export function AuthForm() {
       <button
         type="button"
         onClick={() => setIsRegistering((prev) => !prev)}
-        className="w-full text-sm text-slate-500 underline transition-colors hover:text-slate-700"
+        className="btn btn-link w-full"
       >
         {isRegistering ? t('auth.login') : t('auth.register')}
       </button>

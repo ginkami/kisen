@@ -7,6 +7,28 @@
     "login": "Войти",
     "register": "Регистрация",
     "logout": "Выйти",
-    "loginWithGoogle": "Войти через Google"
+    "loginWithGoogle": "Войти через Google",
+    "profile": "Профиль"
+  },
+  "admin": {
+    "title": "Управление",
+    "tournaments": "Турниры",
+    "events": "Мероприятия",
+    "associations": "Ассоциации",
+    "tournamentsPlaceholder": "Здесь будет список и управление турнирами.",
+    "eventsPlaceholder": "Здесь будет список и управление мероприятиями.",
+    "associationsPlaceholder": "Здесь будет список и управление ассоциациями."
+  },
+  "profile": {
+    "title": "Профиль",
+    "placeholder": "Здесь будет форма редактирования профиля."
+  },
+  "tournament": {
+    "new": "Новый турнир",
+    "newTitle": "Новый турнир",
+    "formPlaceholder": "Здесь будет форма создания и редактирования турнира."
+  },
+  "common": {
+    "close": "Закрыть"
   }
 }

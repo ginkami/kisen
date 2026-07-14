@@ -3,6 +3,8 @@ import { Layout } from './components/Layout.tsx'
 import { HomePage } from './pages/HomePage.tsx'
 import { LoginPage } from './pages/LoginPage.tsx'
 import { TournamentPage } from './pages/TournamentPage.tsx'
+import { TournamentEditPage } from './pages/TournamentEditPage.tsx'
+import { ProfilePage } from './pages/ProfilePage.tsx'
 import { useAuth } from './context/AuthContext.tsx'
 import './i18n'
 
@@ -12,7 +14,7 @@ function LoginRoute() {
   if (isLoading) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
-        <p className="text-center font-medium text-indigo-600">Loading...</p>
+        <span className="loading loading-spinner loading-lg text-primary" />
       </div>
     )
   }
@@ -27,6 +29,8 @@ function App() {
         <Route path="/" element={<Layout />}>
           <Route index element={<HomePage />} />
           <Route path="login" element={<LoginRoute />} />
+          <Route path="profile" element={<ProfilePage />} />
+          <Route path="tournaments/new" element={<TournamentEditPage />} />
           <Route path="tournaments/:slug" element={<TournamentPage />} />
         </Route>
       </Routes>

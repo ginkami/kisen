@@ -2,6 +2,23 @@
 
 @import "tailwindcss";
 
+@theme {
+  --font-sans: "PT Sans", sans-serif;
+  --font-serif: "PT Serif", serif;
+  --font-mono: "PT Mono", monospace;
+}
+
+@layer base {
+  html, body {
+    /* Tailwind по умолчанию применяет --font-sans к body. 
+       Если базовый шрифт должен отличаться от font-sans, задаем его явно: */
+    font-family: "PT Sans", sans-serif;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: "PT Sans Narrow", sans-serif;
+  }
+}
+
 @plugin "daisyui" {
   themes: autumn --default;
 }
@@ -11,18 +28,15 @@
   default: true;
   prefersdark: false;
   color-scheme: "light";
-  --font-sans: "PT Sans Narrow", sans-serif;
-  --font-serif: "PT Serif", serif;
-  --font-mono: "PT Mono", monospace;
-   --color-base-100: #efefef;
+  --color-base-100: #efefef;
   --color-base-200: oklch(89.107% 0 0);
   --color-base-300: oklch(82.4% 0 0);
   --color-base-content: oklch(19.162% 0 0);
   --color-primary: oklch(12.95% 0.003 55.34);
   --color-primary-content: #efefef;
-  --color-secondary: oklch(61.676% 0.169 23.865);
+  --color-secondary: oklch(76.71% 0.111 76.54);
   --color-secondary-content: oklch(12.95% 0.003 55.34) ;
-  --color-accent: oklch(76.71% 0.111 76.54);
+  --color-accent: oklch(61.676% 0.169 23.865);
   --color-accent-content: oklch(12.95% 0.003 55.34) ;
   --color-neutral: #594d46;
   --color-neutral-content: oklch(90.873% 0.007 51.902);
@@ -42,4 +56,24 @@
   --border: 1px;
   --depth: 1;
   --noise: 0;
+}
+
+@layer base {
+  button:not(:disabled), [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+}
+
+.logo {
+  font-family: "PT Mono", monospace;
+  font-weight: 400;
+  font-style: normal;
+  font-size: 1.5rem;
+}
+.logo b {
+  color: #f62a00;
+  margin-right: .05rem;
+}
+.newt-btn {
+  font-size: 1.0rem;
 }

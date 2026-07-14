@@ -13,6 +13,7 @@
     "test:run": "vitest run"
   },
   "dependencies": {
+    "@heroicons/react": "^2.2.0",
     "@tanstack/react-query": "^5.101.1",
     "firebase": "^12.15.0",
     "i18next": "^26.3.4",

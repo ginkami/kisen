@@ -1,53 +1,96 @@
-import { Outlet, Link } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, Outlet, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import {
+  ArrowRightEndOnRectangleIcon,
+  TrophyIcon,
+} from '@heroicons/react/24/outline'
 import { LanguageSwitcher } from './LanguageSwitcher.tsx'
+import { UserMenu } from './UserMenu.tsx'
+import { NewTournamentButton } from './NewTournamentButton.tsx'
+import { AdminDrawer } from './AdminDrawer.tsx'
 import { useAuth } from '../context/AuthContext.tsx'
 
-export function Layout() {
-  const { t, i18n } = useTranslation()
-  const { isAuthenticated, isLoading, user, logout } = useAuth()
+const ADMIN_AUTO_OPEN_PATHS = ['/tournaments/new']
 
-  const displayName = user
-    ? user.locales[i18n.language as keyof typeof user.locales]?.displayName ||
-      user.email
-    : ''
+function shouldAutoOpenAdmin(pathname: string) {
+  return ADMIN_AUTO_OPEN_PATHS.includes(pathname)
+}
+
+export function Layout() {
+  const { t } = useTranslation()
+  const { isAuthenticated, isLoading } = useAuth()
+  const { pathname } = useLocation()
+
+  const [isAdminOpen, setIsAdminOpen] = useState(false)
+
+  useEffect(() => {
+    if (
+      isAuthenticated &&
+      shouldAutoOpenAdmin(pathname) &&
+      window.matchMedia('(min-width: 1024px)').matches
+    ) {
+      setIsAdminOpen(true)
+    }
+  }, [isAuthenticated, pathname])
+
+  const openAdmin = () => setIsAdminOpen(true)
+  const closeAdmin = () => setIsAdminOpen(false)
+  const toggleAdmin = () => setIsAdminOpen((prev) => !prev)
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-200 text-slate-800">
-      <header className="bg-white shadow-sm">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
-          <Link to="/" className="text-xl font-bold tracking-tight">
-            shogi·world
+    <div className="flex min-h-screen flex-col">
+      <header className="navbar bg-primary text-primary-content">
+        <div className="navbar-start">
+          <Link to="/" className="logo">
+            shogi<b>·</b>world
           </Link>
-          <div className="flex items-center gap-4">
-            <LanguageSwitcher />
-            {isLoading ? (
-              <span className="text-sm text-slate-500">Loading...</span>
-            ) : isAuthenticated ? (
-              <div className="flex items-center gap-3">
-                <span className="text-sm text-slate-700">{displayName}</span>
-                <button
-                  type="button"
-                  onClick={() => void logout()}
-                  className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100"
-                >
-                  {t('auth.logout')}
-                </button>
-              </div>
-            ) : (
-              <Link
-                to="/login"
-                className="rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-indigo-700"
-              >
-                {t('auth.login')}
-              </Link>
-            )}
-          </div>
+        </div>
+
+        <div className="navbar-end gap-2">
+          <NewTournamentButton />
+          <LanguageSwitcher />
+
+          {isLoading ? (
+            <span className="loading loading-spinner loading-sm text-primary-content" />
+          ) : isAuthenticated ? (
+            <UserMenu onOpenAdmin={openAdmin} />
+          ) : (
+            <Link
+              to="/login"
+              className="btn btn-secondary btn-sm"
+            >
+              <ArrowRightEndOnRectangleIcon className="h-4 w-4" />
+              <span className="hidden sm:inline">{t('auth.login')}</span>
+            </Link>
+          )}
         </div>
       </header>
-      <main className="mx-auto max-w-5xl px-6 py-8">
-        <Outlet />
-      </main>
+
+      <div className="relative flex flex-1">
+        <main
+          className={[
+            'flex-1 bg-base-100 p-4 transition-all duration-300 ease-in-out',
+            isAdminOpen ? 'lg:mr-0' : '',
+          ].join(' ')}
+        >
+          <Outlet />
+        </main>
+
+        <AdminDrawer isOpen={isAdminOpen} onClose={closeAdmin} />
+      </div>
+
+      {/* Sticky admin tab */}
+      {isAuthenticated && !isAdminOpen && (
+        <button
+          type="button"
+          onClick={toggleAdmin}
+          className="fixed right-0 top-1/2 z-40 -translate-y-1/2 rounded-l-box bg-secondary p-3 text-secondary-content shadow-lg"
+          aria-label={t('admin.title')}
+        >
+          <TrophyIcon className="h-6 w-6" />
+        </button>
+      )}
     </div>
   )
 }
