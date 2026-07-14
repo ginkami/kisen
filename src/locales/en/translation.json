@@ -40,9 +40,73 @@
       "finished": "Finished",
       "canceled": "Canceled",
       "proposed_for_removing": "Pending removal"
+    },
+    "edit": {
+      "basicInfo": "Basic information",
+      "settings": "Settings",
+      "schedule": {
+        "title": "Schedule"
+      },
+      "slug": "URL slug",
+      "title": "Title",
+      "description": "Description",
+      "location": "City / region",
+      "venue": "Venue",
+      "online": "Online tournament",
+      "country": "Country",
+      "noCountry": "— not selected —",
+      "saveDraft": "Save draft",
+      "publish": "Publish",
+      "publishConfirm": "Publish the tournament? It will become visible to everyone.",
+      "delete": "Delete",
+      "deleteConfirm": "Delete the tournament? This action cannot be undone.",
+      "errors": {
+        "load": "Failed to load tournament.",
+        "save": "Failed to save tournament.",
+        "publish": "Failed to publish tournament. Please check required fields.",
+        "delete": "Failed to delete tournament."
+      },
+      "timeControl": {
+        "type": "Time control type",
+        "mainTime": "Main time (min)",
+        "increment": "Increment (sec)",
+        "byoyomiTime": "Byoyomi (sec)",
+        "byoyomiPeriods": "Byoyomi periods",
+        "canadianTime": "Canadian clock (sec)",
+        "canadianMoves": "Moves per clock"
+      },
+      "tieBreaks": {
+        "title": "Tie-breaks",
+        "add": "Add"
+      },
+      "rounds": {
+        "number": "Round",
+        "date": "Date and time",
+        "add": "Add round",
+        "remove": "Remove"
+      }
+    },
+    "timeControl": {
+      "absolute": "Absolute",
+      "fischer": "Fischer",
+      "bronstein": "Bronstein",
+      "delay": "Delay",
+      "byoyomi": "Byoyomi",
+      "canadian": "Canadian"
+    },
+    "tieBreak": {
+      "points": "Points",
+      "buchholz": "Buchholz",
+      "buchholz_cut": "Buchholz cut",
+      "buchholz_median": "Median Buchholz",
+      "buchholz_plus": "Buchholz+",
+      "sonneborn_berger": "Sonneborn-Berger",
+      "direct_encounter": "Direct encounter",
+      "wins_count": "Wins count"
     }
   },
   "common": {
-    "close": "Close"
+    "close": "Close",
+    "remove": "Remove"
   }
 }

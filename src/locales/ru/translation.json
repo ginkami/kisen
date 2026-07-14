@@ -40,9 +40,73 @@
       "finished": "Завершён",
       "canceled": "Отменён",
       "proposed_for_removing": "На удаление"
+    },
+    "edit": {
+      "basicInfo": "Основная информация",
+      "settings": "Настройки",
+      "schedule": {
+        "title": "Расписание"
+      },
+      "slug": "URL-идентификатор (slug)",
+      "title": "Название",
+      "description": "Описание",
+      "location": "Город / регион",
+      "venue": "Место проведения",
+      "online": "Онлайн-турнир",
+      "country": "Страна",
+      "noCountry": "— не выбрана —",
+      "saveDraft": "Сохранить черновик",
+      "publish": "Опубликовать",
+      "publishConfirm": "Опубликовать турнир? После публикации он станет виден всем.",
+      "delete": "Удалить",
+      "deleteConfirm": "Удалить турнир? Это действие нельзя отменить.",
+      "errors": {
+        "load": "Не удалось загрузить турнир.",
+        "save": "Не удалось сохранить турнир.",
+        "publish": "Не удалось опубликовать турнир. Проверьте обязательные поля.",
+        "delete": "Не удалось удалить турнир."
+      },
+      "timeControl": {
+        "type": "Тип контроля времени",
+        "mainTime": "Основное время (мин)",
+        "increment": "Прибавка (сек)",
+        "byoyomiTime": "Бёёми (сек)",
+        "byoyomiPeriods": "Периоды бёёми",
+        "canadianTime": "Канадский отсчёт (сек)",
+        "canadianMoves": "Ходов за отсчёт"
+      },
+      "tieBreaks": {
+        "title": "Тай-брейки",
+        "add": "Добавить"
+      },
+      "rounds": {
+        "number": "Тур",
+        "date": "Дата и время",
+        "add": "Добавить тур",
+        "remove": "Удалить"
+      }
+    },
+    "timeControl": {
+      "absolute": "Абсолютный",
+      "fischer": "Фишер",
+      "bronstein": "Бронштейн",
+      "delay": "Задержка",
+      "byoyomi": "Бёёми",
+      "canadian": "Канадский"
+    },
+    "tieBreak": {
+      "points": "Очки",
+      "buchholz": "Бухгольц",
+      "buchholz_cut": "Бухгольц с отсечкой",
+      "buchholz_median": "Медианный Бухгольц",
+      "buchholz_plus": "Бухгольц+",
+      "sonneborn_berger": "Зоннеборн-Бергер",
+      "direct_encounter": "Личная встреча",
+      "wins_count": "Количество побед"
     }
   },
   "common": {
-    "close": "Закрыть"
+    "close": "Закрыть",
+    "remove": "Удалить"
   }
 }

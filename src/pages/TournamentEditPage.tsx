@@ -1,12 +1,8 @@
-import { useTranslation } from 'react-i18next'
+import { useParams } from 'react-router-dom'
+import { TournamentEditForm } from '../components/tournament/TournamentEditForm.tsx'
 
 export function TournamentEditPage() {
-  const { t } = useTranslation()
+  const { id } = useParams<{ id: string }>()
 
-  return (
-    <div className="space-y-4">
-      <h1 className="text-2xl font-bold">{t('tournament.newTitle')}</h1>
-      <p className="opacity-70">{t('tournament.formPlaceholder')}</p>
-    </div>
-  )
+  return <TournamentEditForm tournamentId={id} />
 }
