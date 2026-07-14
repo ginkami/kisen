@@ -17,7 +17,13 @@
     "associations": "Ассоциации",
     "tournamentsPlaceholder": "Здесь будет список и управление турнирами.",
     "eventsPlaceholder": "Здесь будет список и управление мероприятиями.",
-    "associationsPlaceholder": "Здесь будет список и управление ассоциациями."
+    "associationsPlaceholder": "Здесь будет список и управление ассоциациями.",
+    "selectMonth": "Выбрать месяц",
+    "loadError": "Не удалось загрузить турниры.",
+    "noTournamentsForMonth": "В этом месяце нет турниров.",
+    "untitledTournament": "Без названия",
+    "noDate": "Без даты",
+    "unsavedChangesConfirm": "Есть несохранённые изменения. Покинуть страницу?"
   },
   "profile": {
     "title": "Профиль",
@@ -26,7 +32,15 @@
   "tournament": {
     "new": "Новый турнир",
     "newTitle": "Новый турнир",
-    "formPlaceholder": "Здесь будет форма создания и редактирования турнира."
+    "formPlaceholder": "Здесь будет форма создания и редактирования турнира.",
+    "status": {
+      "draft": "Черновик",
+      "upcoming": "Скоро",
+      "ongoing": "Идёт",
+      "finished": "Завершён",
+      "canceled": "Отменён",
+      "proposed_for_removing": "На удаление"
+    }
   },
   "common": {
     "close": "Закрыть"

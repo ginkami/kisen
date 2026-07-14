@@ -11,13 +11,10 @@ import {
   orderBy,
 } from 'firebase/firestore'
 import { db } from './firebaseConfig.ts'
-import type { Tournament } from '../domain/tournament.ts'
-import type {
-  ListTournamentsFilters,
-  TournamentRepository,
-} from './repository.ts'
+import type { Event } from '../domain/event.ts'
+import type { EventRepository, ListEventsFilters } from './repository.ts'
 
-const COLLECTION_NAME = 'tournaments'
+const COLLECTION_NAME = 'events'
 
 function datesToTimestamps(value: unknown): unknown {
   if (value instanceof Date) {
@@ -49,20 +46,34 @@ function timestampsToDates(value: unknown): unknown {
   return value
 }
 
-function toFirestore(tournament: Tournament): Record<string, unknown> {
-  return datesToTimestamps(tournament) as Record<string, unknown>
+function toFirestore(event: Event): Record<string, unknown> {
+  return datesToTimestamps(event) as Record<string, unknown>
 }
 
-function fromFirestore(data: Record<string, unknown>): Tournament {
-  return timestampsToDates(data) as Tournament
+function fromFirestore(data: Record<string, unknown>): Event {
+  return timestampsToDates(data) as Event
 }
 
-export class FirestoreTournamentRepository implements TournamentRepository {
+export class FirestoreEventRepository implements EventRepository {
   private get collectionRef() {
     return collection(db, COLLECTION_NAME)
   }
 
-  async getBySlug(slug: string): Promise<Tournament | null> {
+  async getById(id: string): Promise<Event | null> {
+    const docRef = doc(db, COLLECTION_NAME, id)
+    const snapshot = await getDoc(docRef)
+
+    if (!snapshot.exists()) {
+      return null
+    }
+
+    return fromFirestore({
+      id: snapshot.id,
+      ...snapshot.data(),
+    } as Record<string, unknown>)
+  }
+
+  async getBySlug(slug: string): Promise<Event | null> {
     const q = query(this.collectionRef, where('slug', '==', slug))
     const snapshot = await getDocs(q)
 
@@ -77,37 +88,17 @@ export class FirestoreTournamentRepository implements TournamentRepository {
     } as Record<string, unknown>)
   }
 
-  async getById(id: string): Promise<Tournament | null> {
-    const docRef = doc(db, COLLECTION_NAME, id)
-    const snapshot = await getDoc(docRef)
-
-    if (!snapshot.exists()) {
-      return null
-    }
-
-    return fromFirestore({
-      id: snapshot.id,
-      ...snapshot.data(),
-    } as Record<string, unknown>)
-  }
-
-  async list(filters: ListTournamentsFilters = {}): Promise<Tournament[]> {
+  async list(filters: ListEventsFilters = {}): Promise<Event[]> {
     const constraints: ReturnType<typeof where | typeof orderBy>[] = []
 
-    if (filters.status) {
-      constraints.push(where('status', '==', filters.status))
-    }
-    if (filters.hostAssociation) {
-      constraints.push(where('hostAssociation', '==', filters.hostAssociation))
-    }
-    if (filters.parentEvent) {
-      constraints.push(where('parentEvent', '==', filters.parentEvent))
-    }
     if (filters.createdBy) {
       constraints.push(where('createdBy', '==', filters.createdBy))
     }
     if (filters.startYearMonth) {
       constraints.push(where('startYearMonth', '==', filters.startYearMonth))
+    }
+    if (filters.hostAssociation) {
+      constraints.push(where('hostAssociation', '==', filters.hostAssociation))
     }
 
     constraints.push(orderBy('updatedAt', 'desc'))
@@ -123,16 +114,16 @@ export class FirestoreTournamentRepository implements TournamentRepository {
     )
   }
 
-  async create(tournament: Tournament): Promise<Tournament> {
-    const docRef = doc(db, COLLECTION_NAME, tournament.id)
-    await setDoc(docRef, toFirestore(tournament))
-    return tournament
+  async create(event: Event): Promise<Event> {
+    const docRef = doc(db, COLLECTION_NAME, event.id)
+    await setDoc(docRef, toFirestore(event))
+    return event
   }
 
-  async update(tournament: Tournament): Promise<Tournament> {
-    const docRef = doc(db, COLLECTION_NAME, tournament.id)
-    await setDoc(docRef, toFirestore(tournament))
-    return tournament
+  async update(event: Event): Promise<Event> {
+    const docRef = doc(db, COLLECTION_NAME, event.id)
+    await setDoc(docRef, toFirestore(event))
+    return event
   }
 
   async delete(id: string): Promise<void> {
@@ -146,4 +137,4 @@ export class FirestoreTournamentRepository implements TournamentRepository {
   }
 }
 
-export const firestoreTournamentRepository = new FirestoreTournamentRepository()
+export const firestoreEventRepository = new FirestoreEventRepository()

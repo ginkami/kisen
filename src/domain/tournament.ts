@@ -17,13 +17,22 @@ export const tournamentStatusSchema = z.enum([
 export type TournamentStatus = z.infer<typeof tournamentStatusSchema>
 
 export const tournamentLocaleSchema = z.object({
-  title: z.string().min(1),
+  title: z.string().default(''),
   description: z.string().optional(),
-  location: z.string().min(1),
+  location: z.string().optional(),
   venue: z.string().optional(),
 })
 
 export type TournamentLocale = z.infer<typeof tournamentLocaleSchema>
+
+export const publishedTournamentLocaleSchema = tournamentLocaleSchema.extend({
+  title: z.string().min(1),
+  location: z.string().min(1),
+})
+
+export type PublishedTournamentLocale = z.infer<
+  typeof publishedTournamentLocaleSchema
+>
 
 export const scheduleEventSchema = z.object({
   scheduledAt: z.date(),
@@ -120,10 +129,19 @@ export type TournamentSettings = z.infer<typeof tournamentSettingsSchema>
 
 export const tournamentScheduleSchema = z.object({
   events: z.array(scheduleEventSchema).default([]),
-  rounds: z.array(scheduleRoundSchema).min(1),
+  rounds: z.array(scheduleRoundSchema).default([]),
 })
 
 export type TournamentSchedule = z.infer<typeof tournamentScheduleSchema>
+
+export const publishedTournamentScheduleSchema = z.object({
+  events: z.array(scheduleEventSchema).default([]),
+  rounds: z.array(scheduleRoundSchema).min(1),
+})
+
+export type PublishedTournamentSchedule = z.infer<
+  typeof publishedTournamentScheduleSchema
+>
 
 export const tournamentSchema = z.object({
   id: z.string().uuid(),
@@ -133,6 +151,8 @@ export const tournamentSchema = z.object({
   parentEvent: z.string().uuid().nullable(),
   updatedAt: z.date(),
   status: tournamentStatusSchema,
+  publishedRounds: z.number().int().min(0).default(0),
+  startYearMonth: z.string().length(6).regex(/^\d{6}$/),
   locales: localeSchema(tournamentLocaleSchema).refine(
     (locales) => Object.keys(locales).length > 0,
     'At least one locale is required'
@@ -147,6 +167,33 @@ export const tournamentSchema = z.object({
 })
 
 export type Tournament = z.infer<typeof tournamentSchema>
+
+export const publishedTournamentSchema = tournamentSchema
+  .omit({ locales: true, schedule: true })
+  .extend({
+    locales: localeSchema(publishedTournamentLocaleSchema).refine(
+      (locales) => Object.keys(locales).length > 0,
+      'At least one locale is required'
+    ),
+    schedule: publishedTournamentScheduleSchema,
+  })
+  .refine((t) => t.status !== 'draft', {
+    message: 'Published tournament cannot have draft status',
+  })
+
+export type PublishedTournament = z.infer<typeof publishedTournamentSchema>
+
+export const draftTournamentSchema = tournamentSchema
+  .omit({ id: true, slug: true, createdBy: true, updatedAt: true })
+  .extend({
+    id: z.string().uuid().optional(),
+    slug: z.string().min(1).regex(/^[a-z0-9-]+$/).optional(),
+    createdBy: z.string().min(1).optional(),
+    updatedAt: z.date().optional(),
+  })
+  .partial()
+
+export type DraftTournament = z.infer<typeof draftTournamentSchema>
 
 export interface LocalizedTournamentData {
   locale: SupportedLocale
@@ -168,7 +215,7 @@ export function getTournamentLocale(
     locale,
     title: tournament.locales[locale].title,
     description: tournament.locales[locale].description,
-    location: tournament.locales[locale].location,
+    location: tournament.locales[locale].location ?? '',
     venue: tournament.locales[locale].venue,
   }
 }

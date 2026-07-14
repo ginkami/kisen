@@ -2,22 +2,28 @@
   "auth": {
     "title": "Tournament Hub",
     "email": "Email",
-    "displayName": "Display name",
+    "displayName": "How should we address you",
     "password": "Password",
-    "login": "Log in",
-    "register": "Sign up",
+    "login": "Sign in",
+    "register": "Register",
     "logout": "Log out",
     "loginWithGoogle": "Sign in with Google",
     "profile": "Profile"
   },
   "admin": {
-    "title": "Management",
+    "title": "Admin",
     "tournaments": "Tournaments",
     "events": "Events",
     "associations": "Associations",
     "tournamentsPlaceholder": "Tournament list and management will appear here.",
     "eventsPlaceholder": "Event list and management will appear here.",
-    "associationsPlaceholder": "Association list and management will appear here."
+    "associationsPlaceholder": "Association list and management will appear here.",
+    "selectMonth": "Select month",
+    "loadError": "Failed to load tournaments.",
+    "noTournamentsForMonth": "No tournaments for this month.",
+    "untitledTournament": "Untitled",
+    "noDate": "No date",
+    "unsavedChangesConfirm": "You have unsaved changes. Leave this page?"
   },
   "profile": {
     "title": "Profile",
@@ -26,7 +32,15 @@
   "tournament": {
     "new": "New tournament",
     "newTitle": "New tournament",
-    "formPlaceholder": "Tournament creation and editing form will appear here."
+    "formPlaceholder": "Tournament creation and editing form will appear here.",
+    "status": {
+      "draft": "Draft",
+      "upcoming": "Upcoming",
+      "ongoing": "Ongoing",
+      "finished": "Finished",
+      "canceled": "Canceled",
+      "proposed_for_removing": "Pending removal"
+    }
   },
   "common": {
     "close": "Close"

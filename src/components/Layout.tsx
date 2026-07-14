@@ -11,10 +11,15 @@ import { NewTournamentButton } from './NewTournamentButton.tsx'
 import { AdminDrawer } from './AdminDrawer.tsx'
 import { useAuth } from '../context/AuthContext.tsx'
 
-const ADMIN_AUTO_OPEN_PATHS = ['/tournaments/new']
-
 function shouldAutoOpenAdmin(pathname: string) {
-  return ADMIN_AUTO_OPEN_PATHS.includes(pathname)
+  return (
+    pathname === '/tournaments/new' ||
+    /^\/tournaments\/[^/]+\/edit$/.test(pathname)
+  )
+}
+
+export interface LayoutOutletContext {
+  setHasUnsavedChanges: (value: boolean) => void
 }
 
 export function Layout() {
@@ -23,6 +28,7 @@ export function Layout() {
   const { pathname } = useLocation()
 
   const [isAdminOpen, setIsAdminOpen] = useState(false)
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
 
   useEffect(() => {
     if (
@@ -74,10 +80,14 @@ export function Layout() {
             isAdminOpen ? 'lg:mr-0' : '',
           ].join(' ')}
         >
-          <Outlet />
+          <Outlet context={{ setHasUnsavedChanges }} />
         </main>
 
-        <AdminDrawer isOpen={isAdminOpen} onClose={closeAdmin} />
+        <AdminDrawer
+          isOpen={isAdminOpen}
+          onClose={closeAdmin}
+          hasUnsavedChanges={hasUnsavedChanges}
+        />
       </div>
 
       {/* Sticky admin tab */}

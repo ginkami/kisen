@@ -14,6 +14,7 @@ export const eventSchema = z.object({
   createdBy: z.string().min(1),
   hostAssociation: z.string().uuid(),
   updatedAt: z.date(),
+  startYearMonth: z.string().length(6).regex(/^\d{6}$/),
   locales: localeSchema(eventLocaleSchema).refine(
     (locales) => Object.keys(locales).length > 0,
     'At least one locale is required'
@@ -21,3 +22,15 @@ export const eventSchema = z.object({
 })
 
 export type Event = z.infer<typeof eventSchema>
+
+export const draftEventSchema = eventSchema
+  .omit({ id: true, slug: true, createdBy: true, updatedAt: true })
+  .extend({
+    id: z.string().uuid().optional(),
+    slug: z.string().min(1).regex(/^[a-z0-9-]+$/).optional(),
+    createdBy: z.string().min(1).optional(),
+    updatedAt: z.date().optional(),
+  })
+  .partial()
+
+export type DraftEvent = z.infer<typeof draftEventSchema>

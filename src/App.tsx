@@ -31,6 +31,7 @@ function App() {
           <Route path="login" element={<LoginRoute />} />
           <Route path="profile" element={<ProfilePage />} />
           <Route path="tournaments/new" element={<TournamentEditPage />} />
+          <Route path="tournaments/:id/edit" element={<TournamentEditPage />} />
           <Route path="tournaments/:slug" element={<TournamentPage />} />
         </Route>
       </Routes>

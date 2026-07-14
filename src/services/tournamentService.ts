@@ -1,8 +1,19 @@
 import { uuidv7 } from 'uuidv7'
-import type { Tournament, TournamentStatus } from '../domain/tournament.ts'
-import { generateRandomSlug, isValidSlug, normalizeSlug } from './slugService.ts'
+import type {
+  Tournament,
+  TournamentStatus,
+  TournamentLocale,
+} from '../domain/tournament.ts'
+import {
+  generateRandomSlug,
+  isValidSlug,
+  normalizeSlug,
+  SLUG_MIN_LENGTH,
+} from './slugService.ts'
 import type { TournamentRepository } from './repository.ts'
 import { firestoreTournamentRepository } from './firestoreTournamentRepository.ts'
+import { getTournamentStartYearMonth } from '../utils/yearMonth.ts'
+import { supportedLocales } from '../domain/locale.ts'
 
 export interface CreateTournamentInput {
   createdBy: string
@@ -13,6 +24,14 @@ export interface CreateTournamentInput {
   country: string | null
   settings: Tournament['settings']
   schedule: Tournament['schedule']
+  desiredSlug?: string
+}
+
+export interface CreateDraftInput {
+  createdBy: string
+  hostAssociation?: string | null
+  parentEvent?: string | null
+  initialLocale?: string
   desiredSlug?: string
 }
 
@@ -27,10 +46,32 @@ export interface UpdateTournamentInput {
   participants?: Tournament['participants']
   games?: Tournament['games']
   status?: TournamentStatus
+  publishedRounds?: number
   desiredSlug?: string
 }
 
 const MAX_SLUG_ATTEMPTS = 10
+
+function defaultLocales(initialLocale = 'ru'): Record<string, TournamentLocale> {
+  return Object.fromEntries(
+    supportedLocales.map((locale) => [
+      locale,
+      {
+        title: locale === initialLocale ? '' : '',
+      },
+    ])
+  )
+}
+
+function defaultSettings(): Tournament['settings'] {
+  return {
+    timeControl: {
+      type: 'absolute',
+      mainTime: 0,
+    },
+    tieBreaks: [{ type: 'points' }],
+  }
+}
 
 export class TournamentService {
   private readonly repository: TournamentRepository
@@ -57,6 +98,13 @@ export class TournamentService {
     return this.repository.list({ createdBy })
   }
 
+  async listByYearMonth(
+    startYearMonth: string,
+    createdBy?: string
+  ): Promise<Tournament[]> {
+    return this.repository.list({ startYearMonth, createdBy })
+  }
+
   async create(input: CreateTournamentInput): Promise<Tournament> {
     const slug = await this.resolveSlug(input.desiredSlug)
     const now = new Date()
@@ -69,11 +117,48 @@ export class TournamentService {
       parentEvent: input.parentEvent,
       updatedAt: now,
       status: 'draft',
+      publishedRounds: 0,
+      startYearMonth: getTournamentStartYearMonth({
+        schedule: input.schedule,
+      } as Tournament),
       locales: input.locales,
       isOnline: input.isOnline,
       country: input.country,
       settings: input.settings,
       schedule: input.schedule,
+      arbiters: [],
+      participants: [],
+      games: [],
+    }
+
+    return this.repository.create(tournament)
+  }
+
+  async createDraft(input: CreateDraftInput): Promise<Tournament> {
+    const slug = await this.resolveSlug(input.desiredSlug)
+    const now = new Date()
+    const schedule: Tournament['schedule'] = {
+      events: [],
+      rounds: [],
+    }
+
+    const tournament: Tournament = {
+      id: uuidv7(),
+      slug,
+      createdBy: input.createdBy,
+      hostAssociation: input.hostAssociation ?? null,
+      parentEvent: input.parentEvent ?? null,
+      updatedAt: now,
+      status: 'draft',
+      publishedRounds: 0,
+      startYearMonth: getTournamentStartYearMonth({
+        schedule,
+      } as Tournament),
+      locales: defaultLocales(input.initialLocale),
+      isOnline: false,
+      country: null,
+      settings: defaultSettings(),
+      schedule,
       arbiters: [],
       participants: [],
       games: [],
@@ -94,6 +179,11 @@ export class TournamentService {
       : existing.slug
 
     const nextStatus = input.status ?? this.inferStatus(existing, now)
+    const nextSchedule = input.schedule ?? existing.schedule
+    const nextStartYearMonth = getTournamentStartYearMonth({
+      ...existing,
+      schedule: nextSchedule,
+    } as Tournament)
 
     const updated: Tournament = {
       ...existing,
@@ -101,11 +191,13 @@ export class TournamentService {
       isOnline: input.isOnline ?? existing.isOnline,
       country: input.country ?? existing.country,
       settings: input.settings ?? existing.settings,
-      schedule: input.schedule ?? existing.schedule,
+      schedule: nextSchedule,
       arbiters: input.arbiters ?? existing.arbiters,
       participants: input.participants ?? existing.participants,
       games: input.games ?? existing.games,
       status: nextStatus,
+      publishedRounds: input.publishedRounds ?? existing.publishedRounds,
+      startYearMonth: nextStartYearMonth,
       slug,
       updatedAt: now,
     }
@@ -149,7 +241,9 @@ export class TournamentService {
     if (desiredSlug) {
       const normalized = normalizeSlug(desiredSlug)
       if (!isValidSlug(normalized)) {
-        throw new Error('Invalid slug format')
+        throw new Error(
+          `Slug must be at least ${SLUG_MIN_LENGTH} lowercase latin letters, numbers or hyphens`
+        )
       }
       const existing = await this.repository.getBySlug(normalized)
       if (existing && existing.id !== currentTournamentId) {
