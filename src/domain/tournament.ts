@@ -151,6 +151,7 @@ export const tournamentSchema = z.object({
   parentEvent: z.string().uuid().nullable(),
   updatedAt: z.date(),
   status: tournamentStatusSchema,
+  isPublic: z.boolean(),
   publishedRounds: z.number().int().min(0).default(0),
   startYearMonth: z.string().length(6).regex(/^\d{6}$/),
   locales: localeSchema(tournamentLocaleSchema).refine(

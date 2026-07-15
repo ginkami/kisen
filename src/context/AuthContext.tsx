@@ -18,7 +18,6 @@ import {
   type AuthCredentials,
 } from '../services/authService.ts'
 import { createUser, getUserById } from '../services/userService.ts'
-import { uuidv7 } from 'uuidv7'
 import type { User } from '../types/user.ts'
 
 export interface SignUpInput extends AuthCredentials {
@@ -49,6 +48,42 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [authReady, setAuthReady] = useState(false)
   const queryClient = useQueryClient()
 
+  const ensureUserProfile = useCallback(
+    async (fbUser: FirebaseUser): Promise<User | null> => {
+      try {
+        const existing = await getUserById(fbUser.uid)
+        if (existing) {
+          return existing
+        }
+
+        const displayName = fbUser.displayName ?? ''
+        const [givenName = 'Placeholder', familyName = 'Placeholder'] =
+          displayName.split(' ')
+
+        return await createUser({
+          id: fbUser.uid,
+          email: fbUser.email ?? '',
+          role: 'user',
+          passwordHash: null,
+          providers: fbUser.providerData.map((p) => ({
+            provider: p.providerId,
+            externalId: p.uid,
+          })),
+          emailVerified: fbUser.emailVerified,
+          isActive: true,
+          locales: {
+            ru: { familyName, givenName, displayName: givenName },
+            en: { familyName, givenName, displayName: givenName },
+          },
+        })
+      } catch (error) {
+        console.error('Failed to ensure user profile:', error)
+        return null
+      }
+    },
+    []
+  )
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setFirebaseUser(currentUser)
@@ -57,7 +92,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
       if (currentUser) {
         void queryClient.prefetchQuery({
           queryKey: [USER_QUERY_KEY, currentUser.uid],
-          queryFn: () => ensureUserProfile(currentUser),
+          queryFn: async () => {
+            try {
+              return await ensureUserProfile(currentUser)
+            } catch {
+              return null
+            }
+          },
         })
       } else {
         queryClient.removeQueries({ queryKey: [USER_QUERY_KEY] })
@@ -65,38 +106,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     })
 
     return () => unsubscribe()
-  }, [queryClient])
-
-  const ensureUserProfile = useCallback(
-    async (fbUser: FirebaseUser): Promise<User | null> => {
-      const existing = await getUserById(fbUser.uid)
-      if (existing) {
-        return existing
-      }
-
-      const displayName = fbUser.displayName ?? ''
-      const [givenName = 'Placeholder', familyName = 'Placeholder'] =
-        displayName.split(' ')
-
-      return createUser({
-        id: fbUser.uid,
-        email: fbUser.email ?? '',
-        role: 'user',
-        passwordHash: null,
-        providers: fbUser.providerData.map((p) => ({
-          provider: p.providerId,
-          externalId: p.uid,
-        })),
-        emailVerified: fbUser.emailVerified,
-        isActive: true,
-        locales: {
-          ru: { familyName, givenName, displayName: givenName },
-          en: { familyName, givenName, displayName: givenName },
-        },
-      })
-    },
-    []
-  )
+  }, [queryClient, ensureUserProfile])
 
   const { data: user, isLoading: isProfileLoading } = useQuery({
     queryKey: [USER_QUERY_KEY, firebaseUser?.uid ?? ''],
@@ -118,7 +128,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         displayName.split(' ')
 
       const created = await createUser({
-        id: uuidv7(),
+        id: fbUser.uid,
         email: fbUser.email ?? input.email,
         role: 'user',
         passwordHash: null,
@@ -170,7 +180,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       firebaseUser,
       user,
       isLoading: !authReady || isProfileLoading,
-      isAuthenticated: !!firebaseUser && !!user,
+      isAuthenticated: !!firebaseUser,
       signUp,
       signIn,
       signInGoogle,

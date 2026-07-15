@@ -3,6 +3,7 @@ import type { Event } from '../domain/event.ts'
 
 export interface ListTournamentsFilters {
   status?: 'draft' | 'upcoming' | 'ongoing' | 'finished' | 'canceled'
+  isPublic?: boolean
   hostAssociation?: string
   parentEvent?: string
   createdBy?: string

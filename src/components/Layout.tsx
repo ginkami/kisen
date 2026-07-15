@@ -54,7 +54,7 @@ export function Layout() {
         </div>
 
         <div className="navbar-end gap-2">
-          <NewTournamentButton />
+          <NewTournamentButton hasUnsavedChanges={hasUnsavedChanges} />
           <LanguageSwitcher />
 
           {isLoading ? (

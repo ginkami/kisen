@@ -107,6 +107,7 @@
   },
   "common": {
     "close": "Close",
+    "retry": "Retry",
     "remove": "Remove"
   }
 }

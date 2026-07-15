@@ -48,6 +48,7 @@ export interface UpdateTournamentInput {
   status?: TournamentStatus
   publishedRounds?: number
   desiredSlug?: string
+  existing?: Tournament
 }
 
 const MAX_SLUG_ATTEMPTS = 10
@@ -90,7 +91,7 @@ export class TournamentService {
 
   async listPublic(): Promise<Tournament[]> {
     return this.repository.list({
-      status: 'upcoming',
+      isPublic: true,
     })
   }
 
@@ -117,6 +118,7 @@ export class TournamentService {
       parentEvent: input.parentEvent,
       updatedAt: now,
       status: 'draft',
+      isPublic: false,
       publishedRounds: 0,
       startYearMonth: getTournamentStartYearMonth({
         schedule: input.schedule,
@@ -150,6 +152,7 @@ export class TournamentService {
       parentEvent: input.parentEvent ?? null,
       updatedAt: now,
       status: 'draft',
+      isPublic: false,
       publishedRounds: 0,
       startYearMonth: getTournamentStartYearMonth({
         schedule,
@@ -168,7 +171,7 @@ export class TournamentService {
   }
 
   async update(input: UpdateTournamentInput): Promise<Tournament> {
-    const existing = await this.repository.getById(input.id)
+    const existing = input.existing ?? (await this.repository.getById(input.id))
     if (!existing) {
       throw new Error(`Tournament with id ${input.id} not found`)
     }
@@ -179,6 +182,8 @@ export class TournamentService {
       : existing.slug
 
     const nextStatus = input.status ?? this.inferStatus(existing, now)
+    const isPublic =
+      nextStatus !== 'draft' && nextStatus !== 'proposed_for_removing'
     const nextSchedule = input.schedule ?? existing.schedule
     const nextStartYearMonth = getTournamentStartYearMonth({
       ...existing,
@@ -196,6 +201,7 @@ export class TournamentService {
       participants: input.participants ?? existing.participants,
       games: input.games ?? existing.games,
       status: nextStatus,
+      isPublic,
       publishedRounds: input.publishedRounds ?? existing.publishedRounds,
       startYearMonth: nextStartYearMonth,
       slug,
@@ -205,8 +211,8 @@ export class TournamentService {
     return this.repository.update(updated)
   }
 
-  async publish(id: string): Promise<Tournament> {
-    return this.update({ id, status: 'upcoming' })
+  async publish(id: string, existing?: Tournament): Promise<Tournament> {
+    return this.update({ id, status: 'upcoming', existing })
   }
 
   async delete(id: string): Promise<void> {
@@ -252,15 +258,7 @@ export class TournamentService {
       return normalized
     }
 
-    for (let attempt = 0; attempt < MAX_SLUG_ATTEMPTS; attempt++) {
-      const candidate = generateRandomSlug()
-      const existing = await this.repository.getBySlug(candidate)
-      if (!existing) {
-        return candidate
-      }
-    }
-
-    throw new Error('Failed to generate unique slug')
+    return generateRandomSlug()
   }
 }
 

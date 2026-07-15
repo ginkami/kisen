@@ -214,7 +214,10 @@ export function AdminDrawer({
                       aria-label={t('admin.selectMonth')}
                     />
                   </label>
-                  <NewTournamentButton variant="drawer" />
+                  <NewTournamentButton
+                    variant="drawer"
+                    hasUnsavedChanges={hasUnsavedChanges}
+                  />
                 </div>
 
                 {isLoading && (

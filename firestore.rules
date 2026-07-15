@@ -26,54 +26,22 @@ service cloud.firestore {
     }
 
     function hasManagerAccess(resource) {
-      let associationId = resource.data.hostAssociation;
-      return isManagerOf(associationId);
+      return isManagerOf(resource.data.hostAssociation);
     }
 
     function hasPlayerManagerAccess(resource) {
-      let associationId = resource.data.primaryAssociation;
-      return isManagerOf(associationId);
+      return isManagerOf(resource.data.primaryAssociation);
     }
 
     // ---------- Users (Профили пользователей) ----------
     match /users/{userId} {
-      // Читать свой профиль может сам пользователь или администратор
       allow read: if isAuthenticated() && (currentUserId() == userId || isAdmin());
-      
-      // Создать профиль может только сам пользователь в момент регистрации
       allow create: if isAuthenticated() && currentUserId() == userId;
-      
-      // Обновлять профиль может сам пользователь (например, менять имя) или администратор
-      // (Внимание: если вы храните роль внутри документа, убедитесь на фронтенде, 
-      // что обычный пользователь не может перезаписать свое поле role на 'admin')
-      allow update: if isAuthenticated() && (currentUserId() == userId || isAdmin());
-      
-      // Удалять профили может только администратор
-      allow delete: if isAdmin();
-    }
-
-    match /users/{userId} {
-      // Читать свой профиль может сам пользователь или администратор
-      allow read: if isAuthenticated() && (currentUserId() == userId || isAdmin());
-
-      // Создать профиль может только сам пользователь в момент регистрации
-      allow create: if isAuthenticated() && currentUserId() == userId;
-      
-      // Обновлять профиль может сам пользователь (например, менять имя) или администратор
       allow update: if isAuthenticated() && (currentUserId() == userId || isAdmin())
         && (
-          // Если обновляет админ — ему можно всё
-          isAdmin() 
-          // Если обновляет сам пользователь — мы проверяем, что поле 'role' НЕ изменилось
-          || (
-            // Вариант 1: Новое значение роли в запросе совпадает со старым значением в базе
-            // request.resource.data.role == resource.data.role
-            // Вариант 2 (более строгий): Проверяем, что ключ 'role' вообще не затрагивался в операции diff
-            !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role'])
-          )
+          isAdmin()
+          || !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role'])
         );
-
-      // Удалять профили может только администратор
       allow delete: if isAdmin();
     }
 
@@ -89,43 +57,56 @@ service cloud.firestore {
     match /players/{playerId} {
       allow read: if true;
 
-      // Создание: админ ИЛИ менеджер ассоциации, указанной в качестве primaryAssociation.
       allow create: if isAdmin()
         || (
           isAuthenticated()
-          && request.resource.data.primaryAssociation != null
+          && request.resource.data.get('primaryAssociation', null) != null
           && isManagerOf(request.resource.data.primaryAssociation)
         );
 
-      // Обновление: создатель записи, админ ИЛИ менеджер ассоциации игрока.
       allow update: if isAdmin()
         || isOwner(resource.data.createdBy)
         || hasPlayerManagerAccess(resource);
 
-      // Удаление: админ ИЛИ менеджер ассоциации игрока.
       allow delete: if isAdmin() || hasPlayerManagerAccess(resource);
     }
 
     // ---------- Tournaments (Турниры) ----------
     match /tournaments/{tournamentId} {
-      function canReadTournament() {
-        return resource.data.status != 'draft'
-          || isOwner(resource.data.createdBy)
-          || isAdmin()
-          || isManagerOf(resource.data.hostAssociation);
+
+      // Синхронизация isPublic и status
+      function isValidPublicStatus() {
+        return request.resource.data.isPublic == (
+          request.resource.data.status != 'draft'
+          && request.resource.data.status != 'proposed_for_removing'
+        );
       }
 
-      allow read: if canReadTournament();
+      // Если хост-ассоциация меняется, пользователь должен быть менеджером новой
+      function isValidHostAssociationChange() {
+        return request.resource.data.get('hostAssociation', null) == resource.data.get('hostAssociation', null)
+          || isManagerOf(request.resource.data.get('hostAssociation', null));
+      }
+
+      allow read: if resource.data.isPublic == true
+        || isOwner(resource.data.createdBy)
+        || isAdmin()
+        || isManagerOf(resource.data.hostAssociation);
 
       allow create: if isAuthenticated()
         && (
-          request.resource.data.hostAssociation == null
+          request.resource.data.get('hostAssociation', null) == null
           || isManagerOf(request.resource.data.hostAssociation)
-        );
+        )
+        && isValidPublicStatus();
 
-      allow update: if isAdmin()
-        || isOwner(resource.data.createdBy)
-        || isManagerOf(resource.data.hostAssociation);
+      allow update: if (
+          isAdmin()
+          || isOwner(resource.data.createdBy)
+          || isManagerOf(resource.data.hostAssociation)
+        )
+        && isValidPublicStatus()
+        && isValidHostAssociationChange();
 
       allow delete: if isAdmin()
         || isOwner(resource.data.createdBy)
@@ -136,15 +117,23 @@ service cloud.firestore {
     match /events/{eventId} {
       allow read: if true;
 
+      function isValidEventHostAssociationChange() {
+        return request.resource.data.get('hostAssociation', null) == resource.data.get('hostAssociation', null)
+          || isManagerOf(request.resource.data.get('hostAssociation', null));
+      }
+
       allow create: if isAuthenticated()
         && (
-          request.resource.data.hostAssociation == null
+          request.resource.data.get('hostAssociation', null) == null
           || isManagerOf(request.resource.data.hostAssociation)
         );
 
-      allow update: if isAdmin()
-        || isOwner(resource.data.createdBy)
-        || isManagerOf(resource.data.hostAssociation);
+      allow update: if (
+          isAdmin()
+          || isOwner(resource.data.createdBy)
+          || isManagerOf(resource.data.hostAssociation)
+        )
+        && isValidEventHostAssociationChange();
 
       allow delete: if isAdmin()
         || isOwner(resource.data.createdBy)

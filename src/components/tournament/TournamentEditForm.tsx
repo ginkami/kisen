@@ -441,12 +441,15 @@ export function TournamentEditForm({
     formState,
     isLoading,
     loadError,
+    createError,
     isSaving,
     isPublishing,
     isDeleting,
     saveError,
     publishError,
     deleteError,
+    clearCreateError,
+    retryCreateDraft,
     updateLocale,
     updateBasic,
     updateTimeControlType,
@@ -494,6 +497,31 @@ export function TournamentEditForm({
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
+      {createError && (
+        <div className="alert alert-error">
+          <div>
+            <p>{t('tournament.edit.errors.save')}</p>
+            <p className="text-sm">{createError.message}</p>
+          </div>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={retryCreateDraft}
+              className="btn btn-sm btn-primary"
+            >
+              {t('common.retry')}
+            </button>
+            <button
+              type="button"
+              onClick={clearCreateError}
+              className="btn btn-sm btn-ghost"
+            >
+              {t('common.close')}
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold">{localizedTitle}</h1>

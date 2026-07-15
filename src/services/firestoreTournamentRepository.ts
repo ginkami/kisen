@@ -63,7 +63,11 @@ export class FirestoreTournamentRepository implements TournamentRepository {
   }
 
   async getBySlug(slug: string): Promise<Tournament | null> {
-    const q = query(this.collectionRef, where('slug', '==', slug))
+    const q = query(
+      this.collectionRef,
+      where('slug', '==', slug),
+      where('isPublic', '==', true)
+    )
     const snapshot = await getDocs(q)
 
     if (snapshot.empty) {
@@ -96,6 +100,9 @@ export class FirestoreTournamentRepository implements TournamentRepository {
 
     if (filters.status) {
       constraints.push(where('status', '==', filters.status))
+    }
+    if (filters.isPublic !== undefined) {
+      constraints.push(where('isPublic', '==', filters.isPublic))
     }
     if (filters.hostAssociation) {
       constraints.push(where('hostAssociation', '==', filters.hostAssociation))

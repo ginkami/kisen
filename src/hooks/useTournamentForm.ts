@@ -124,20 +124,34 @@ export function useTournamentForm(tournamentId: string | undefined) {
 
   const [formState, setFormState] = useState<TournamentFormState | null>(null)
   const [lastSavedSnapshot, setLastSavedSnapshot] = useState<string | null>(null)
+  const [createError, setCreateError] = useState<Error | null>(null)
+  const [createDraftRetryCount, setCreateDraftRetryCount] = useState(0)
 
   useEffect(() => {
     if (tournamentId === 'new' && firebaseUser && !creatingDraftRef.current) {
       creatingDraftRef.current = true
+      setCreateError(null)
       tournamentService
         .createDraft({
           createdBy: firebaseUser.uid,
           initialLocale: i18n.language,
         })
         .then((created) => {
+          queryClient.invalidateQueries({ queryKey: ['adminTournaments'] })
           navigate(`/tournaments/${created.id}/edit`, { replace: true })
         })
+        .catch((err) => {
+          creatingDraftRef.current = false
+          setCreateError(
+            err instanceof Error ? err : new Error(String(err))
+          )
+        })
     }
-  }, [tournamentId, firebaseUser, i18n.language, navigate])
+  }, [tournamentId, firebaseUser, i18n.language, navigate, createDraftRetryCount])
+
+  useEffect(() => {
+    setCreateError(null)
+  }, [tournamentId])
 
   useEffect(() => {
     if (tournament) {
@@ -155,6 +169,14 @@ export function useTournamentForm(tournamentId: string | undefined) {
   useEffect(() => {
     setHasUnsavedChanges(isDirty)
   }, [isDirty, setHasUnsavedChanges])
+
+  const clearCreateError = useCallback(() => setCreateError(null), [])
+
+  const retryCreateDraft = useCallback(() => {
+    creatingDraftRef.current = false
+    setCreateError(null)
+    setCreateDraftRetryCount((c) => c + 1)
+  }, [])
 
   const updateForm = useCallback(
     (updater: (state: TournamentFormState) => TournamentFormState) => {
@@ -338,13 +360,15 @@ export function useTournamentForm(tournamentId: string | undefined) {
   const saveMutation = useMutation({
     mutationFn: async () => {
       if (!tournament || !formState) throw new Error('Tournament not loaded')
-      const updated = await tournamentService.update(
-        formStateToUpdateInput(tournament, formState)
-      )
+      const updated = await tournamentService.update({
+        ...formStateToUpdateInput(tournament, formState),
+        existing: tournament,
+      })
       return updated
     },
     onSuccess: (updated) => {
       queryClient.setQueryData([TOURNAMENT_QUERY_KEY, updated.id], updated)
+      queryClient.invalidateQueries({ queryKey: ['adminTournaments'] })
       const snapshot = tournamentToFormState(updated)
       setFormState(snapshot)
       setLastSavedSnapshot(JSON.stringify(snapshot))
@@ -358,12 +382,14 @@ export function useTournamentForm(tournamentId: string | undefined) {
         ...tournament,
         ...formState,
         status: 'upcoming' as const,
+        isPublic: true,
       }
       publishedTournamentSchema.parse(candidate)
-      return tournamentService.publish(tournament.id)
+      return tournamentService.publish(tournament.id, tournament)
     },
     onSuccess: (updated) => {
       queryClient.setQueryData([TOURNAMENT_QUERY_KEY, updated.id], updated)
+      queryClient.invalidateQueries({ queryKey: ['adminTournaments'] })
       const snapshot = tournamentToFormState(updated)
       setFormState(snapshot)
       setLastSavedSnapshot(JSON.stringify(snapshot))
@@ -379,6 +405,7 @@ export function useTournamentForm(tournamentId: string | undefined) {
       queryClient.removeQueries({
         queryKey: [TOURNAMENT_QUERY_KEY, tournamentId],
       })
+      queryClient.invalidateQueries({ queryKey: ['adminTournaments'] })
       navigate('/')
     },
   })
@@ -386,8 +413,10 @@ export function useTournamentForm(tournamentId: string | undefined) {
   return {
     tournament,
     formState,
-    isLoading: isLoadingTournament || tournamentId === 'new',
+    isLoading:
+      (isLoadingTournament || tournamentId === 'new') && !createError,
     loadError,
+    createError,
     isDirty,
     isSaving: saveMutation.isPending,
     isPublishing: publishMutation.isPending,
@@ -408,5 +437,7 @@ export function useTournamentForm(tournamentId: string | undefined) {
     saveDraft: () => saveMutation.mutateAsync(),
     publish: () => publishMutation.mutateAsync(),
     deleteTournament: () => deleteMutation.mutateAsync(),
+    clearCreateError,
+    retryCreateDraft,
   }
 }
