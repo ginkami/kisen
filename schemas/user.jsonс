@@ -1,0 +1,33 @@
+﻿// user (коллекция users)
+{
+    "id": "UID", // (PK)
+    "email": "String", // (Required, Unique) Электронная почта. Всегда приводится к нижнему регистру
+    "role": "'user' | 'manager' | 'admin'", // (Required) При регистрации пользователь получает роль 'user'
+    "secondaryRoles": [ // (Required) Массив вторичных ролей пользователя. 
+        "'moderator' | 'scorekeeper'" 
+    ],
+    // Блок аутентификации. Поддерживает гибридный подход (Email/Pass + OAuth)
+    "auth": { // (Required)
+        "passwordHash": "String", // Хэш пароля (например, Argon2id или bcrypt). Null, если пользователь зарегистрирован ТОЛЬКО через OAuth
+        "providers": [ // Массив подключенных внешних провайдеров (может быть пустым)
+            {
+                "provider": "String", // (Required) Идентификатор провайдера: "clerk", "firebase", "google", "github"
+                "externalId": "String" // (Required) Уникальный ID пользователя внутри этой внешней системы (например, user_2F... из Clerk)
+            }
+        ],
+        "emailVerified": "Bool", // (Required) Подтвержден ли email (важно как для локальной регистрации, так и для OAuth)
+        "isActive": "Bool" // (Required) Для быстрой блокировки аккаунта без удаления данных (мягкое удаление / бан)
+    },
+
+    // Данные профиля
+    "locales": { // (Required)
+        "ru": { // [ >= 1] Должна быть хотя бы одна локаль. При рендеринге берутся значения для текущей локали, либо другой существующей
+            "familyName": "String", // (Required)
+            "givenName": "String" // (Required)
+        }
+    },
+    
+    // Системные метаданные
+    "createdAt": "Date", // (Required) Время регистрации
+    "updatedAt": "Date"  // (Required) Время последнего обновления профиля
+}

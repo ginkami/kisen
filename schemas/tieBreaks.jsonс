@@ -1,0 +1,99 @@
+﻿// tiebreaks dictionary
+{
+    "points" : {
+        "locales": {
+            "ru": {
+                "abbr": "Очки",
+                "title": "Очки"
+            },
+            "en": {
+                "abbr": "Pts",
+                "title": "Points"
+            }
+        }
+    },
+    "buchholz" : {
+        "locales": {
+            "ru": {
+                "abbr": "Бухг.",
+                "title": "Бухгольц"
+            },
+            "en": {
+                "abbr": "BH",
+                "title": "Buchholz"
+            }
+        }
+    },
+    "buchholz_cut" : {
+        "locales": {
+            "ru": {
+                "abbr": "УБ",
+                "title": "Бухгольц усеченный"
+            },
+            "en": {
+                "abbr": "BHC1",
+                "title": "Buchholz Cut 1"
+            }
+        }
+    },
+    "buchholz_median" : {
+        "locales": {
+            "ru": {
+                "abbr": "УБ",
+                "title": "Бухгольц медианный"
+            },
+            "en": {
+                "abbr": "MCH",
+                "title": "Median Buchholz"
+            }
+        }
+    },
+    "buchholz_plus" : {
+        "locales": {
+            "ru": {
+                "abbr": "Бухг.+",
+                "title": "Бухгольц суммарный"
+            },
+            "en": {
+                "abbr": "BH+",
+                "title": "Buchholz Plus"
+            }
+        }
+    },
+    "sonneborn_berger" : {
+        "locales": {
+            "ru": {
+                "abbr": "Берг.",
+                "title": "Бергер"
+            },
+            "en": {
+                "abbr": "SB",
+                "title": "Sonneborn-Berger"
+            }
+        }
+    },
+    "direct_encounter" : {
+        "locales": {
+            "ru": {
+                "abbr": "ЛВ",
+                "title": "Личная встреча"
+            },
+            "en": {
+                "abbr": "DE",
+                "title": "Direct Encounter"
+            }
+        }
+    },
+    "wins_count" : {
+        "locales": {
+            "ru": {
+                "abbr": "ЧВ",
+                "title": "Число побед"
+            },
+            "en": {
+                "abbr": "WIN",
+                "title": "Number of Wins"
+            }
+        }
+    }
+}

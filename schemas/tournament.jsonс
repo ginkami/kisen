@@ -1,0 +1,129 @@
+﻿// tournament (коллекция tournaments)
+{
+    "id": "UUIDv7", // (PK)
+    "slug": "String", 
+    // ^ (Required, Unique) Автоматически генерируется короткий уникальный случайный набор символов (только строчные латинские буквы и цифры), 
+    // но у пользователя есть возможность отредактировать - ввести свой вариант (гыук).
+    // Используется для прямой ссылки на турнир 
+    "createdBy": "UID", // (Required, FK Ref: user.id) Пользователь, кто создал турнир
+    "hostAssociation": "UUIDv7 | null", // Ассоциация под эгидой которой проводится турнир
+    // ^ (Required, FK Ref: association.id)
+    "parentEvent": "UUIDv7 | null", // (Required, FK Ref: event.id) Мероприятие, частью которого является турнир
+    "updatedAt": "Date",  // (Required) Время последнего обновления по турниру 
+    "status": "'draft' | 'upcoming' | 'ongoing' | 'finished' | 'canceled' | 'proposed_for_removing'", 
+    "publishedRounds": "Int", // (Required) Число опубликованных туров, так мы сможем скрывать черновики жеребьёвки и откатывать уже опубликованные результаты, сохраняя при этом их.
+    "startYearMonth": "yyyyMM", // (Required) Год и месяц старта турнира (первого тура) для быстрого поиска по месяцам.
+    // ^ (Required) При создании и до публикации (кнопка Опубликовать) статус турнира - 'draft', в этом статусе турнир недоступен по урл.
+    // После публикации - 'upcoming'. Остальные режимы через текстовые кнопки в выпадающем списке. 
+    // Любое редактирование турнира после времени начала первого тура переводит турнир в статус 'ongoing'.
+    "locales": { // (Required)
+        "ru": {  // [ >= 1] Должна быть хотя бы одна локаль. При рендеринге берутся значения для текущей локали, либо другой существующей
+            "title": "String", // (Required)
+            "description": "String", // Поддерживается Markdown синтаксис
+            "location": "String", // (Required) Место (город/посёлок) или сервис, если это онлайн-турнир
+            "venue": "String"
+        }
+    },
+    "isOnline": "Bool", // (Required)
+    "country": "ISO 3166-1 alpha-2 | null", // (Required) Разрешать null только если isOnline == true
+    "settings": { // (Required)
+        "timeControl": { // (Required, Ref: timeControl.ts)
+            "type": "'absolute' | 'fischer' | 'bronstein' | 'delay' | 'byoyomi' | 'canadian'", // (Required)
+            "mainTime": "Int", // (Required) Основное время в секундах (>= 0)
+            
+            // Поля для инкремента (заполняются, если type — fischer, bronstein, delay)
+            "increment": "Int", // Добавление секунд за ход
+            
+            // Поля для Японского бёёми (заполняются, если type — byoyomi)
+            "byoyomiTime": "Int", // Секунд на один ход в периоде бёёми
+            "byoyomiPeriods": "Int", // Количество периодов бёёми
+            
+            // Поля для Канадского бёёми (заполняются, если type — canadian)
+            "canadianTime": "Int", // Секунд на блок ходов
+            "canadianMoves": "Int" // Количество ходов в блоке
+        },
+        "tieBreaks": [ // (Required, Ref: tieBreak.ts, tieBreaks.jsonc)
+        // [ >= 1 ] Массив критериев в порядке приоритета. Первым элементом ВСЕГДА должны быть очки ('points')
+        {
+            "type": "'points' | 'buchholz' | 'buchholz_cut' | 'buchholz_median' | 'buchholz_plus' | 'sonneborn_berger' | 'direct_encounter' | 'wins_count'", // (Required)
+            
+            // Параметры (заполняются только для специфичных типов)
+            "cutCount": "Int" // Применяется только если type == 'buchholz_cut'. По умолчанию 1.
+        }
+    ]
+    },
+    "schedule": { // (Required)
+        "events": [ // Массив событий в рамках турнира
+            {
+                "scheduledAt": "Date", // (Required) Время начала события
+                "locales": { // (Required) Набор локалей
+                    "ru": { // [ >= 1] Должна быть хотя бы одна локаль. При рендеринге берутся значения для текущей локали, либо другой существующей
+                        "title": "String" // (Required) Название события (например: Opening Ceremony)
+                    }
+                }
+            }
+        ],
+        "rounds": [ // [ > 0 ] (Required) Массив туров
+            {
+                "number": "Int", // (Required) Номер тура
+                "scheduledAt": "Date" // (Required) Время начала тура
+            }
+        ]
+    },
+    "arbiters": [ // Массив судей
+        {
+            "locales": { // (Required) Набор локалей
+                "ru": { // [ >= 1 ] Должна быть хотя бы одна локаль. При рендеринге берутся значения для текущей локали, либо другой существующей
+                    "familyName": "String", // (Required)
+                    "givenName": "String" // (Required)
+                }
+            },
+            "isChief": "Bool", // На UI в виде чекбокса
+            "nationality": "ISO 3166-1 alpha-2", // (Required) Страна гражданства
+            "residence": "ISO 3166-1 alpha-2" // Страна проживания
+        }
+    ],
+    "participants": [ // Массив участников-игроков participant
+        {
+            "id": "Int", // (Required, Unique)
+            "player": "UUIDv7 | null", // (Required, Ref: player.id) 
+            
+            "locales": { // (Required) Набор локалей
+                "ru": { // [ >= 1 ] Должна быть хотя бы одна локаль. При рендеринге берутся значения для текущей локали, либо другой существующей
+                    "familyName": "String", // (Required)
+                    "givenName": "String" // (Required)
+                }
+            },
+            "nationality": "ISO 3166-1 alpha-2",
+            
+            "capturedRating": { // (Required, Ref: playerRating.ts)
+                "value": "Decimal | null", // Числовое значение рейтинга. null, если отсутствует.
+                "rank": "String | null" // Ref: Ранг Кю/Дан. Значения: '20k'...'1k' (Кю), '1d'...'9d' (Дан). null, если разряда нет.
+            },
+            "startingPoints": "Int"
+            // ^ (Required) Стартовые очки игрока перед первым туром (используется, например, в системе МакМагона) 
+            // По-умолчанию 0
+        }
+    ],
+    "games": [ // Массив игр турнира
+        {
+            "id": "UUIDv7", // (PK)
+            "player1": "Int", // (Required, Ref: participant.id)
+            "player2": "Int | null", // (Required, Ref: participant.id) Равен null в случае пропуска (bye) для первого игрока.
+            "sente": "'unknown' | 'player1' | 'player2'", // (Required)
+            // ^ В сёги турнирах, как правило, судьи не фиксируют, кто ходил первым, так как "цвет" часто определяется фуригомой перед стартом 
+            "handicap": "String | null", 
+            // ^ (Required) Фора в партии. null — игра на равных (без форы).
+            // Формат: [направление][код_форы].  
+            // Направление '-': player1 даёт фору (убирает свои фигуры/камни).
+            // Направление '+': player2 даёт фору (убирает свои фигуры/камни).
+            // Коды: "L", "B", "R", "RL", "2p", "4p", "5p", "6p", "8p", "10p"
+            // Ref: handicap.ts
+            "startedAt": "Date", // Время начала игры
+            "endedAt": "Date", // Время окончания игры
+            "result": "'draw' | 'player1_won' | 'player2_won' | null", // (Required)
+            "status": "'not_started' | 'forfeit' | 'bye' | 'live' | 'adjourned' | 'completed'", 
+            "round": "Int" // (Required) Номер тура
+        }
+    ]
+}
