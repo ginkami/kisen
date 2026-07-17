@@ -42,8 +42,18 @@
       "proposed_for_removing": "На удаление"
     },
     "edit": {
+      "managementPanel": "Управление турниром",
+      "pageTitle": "{{title}} — Панель управления | shogi·world",
       "basicInfo": "Основная информация",
       "settings": "Настройки",
+      "tabs": {
+        "general": "Общая информация",
+        "settings": "Настройки",
+        "arbiters": "Судьи",
+        "schedule": "Расписание",
+        "participants": "Участники",
+        "placeholder": "Этот раздел пока пуст."
+      },
       "schedule": {
         "title": "Расписание"
       },

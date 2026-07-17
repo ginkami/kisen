@@ -42,8 +42,18 @@
       "proposed_for_removing": "Pending removal"
     },
     "edit": {
+      "managementPanel": "Tournament management",
+      "pageTitle": "{{title}} — Management panel | shogi·world",
       "basicInfo": "Basic information",
       "settings": "Settings",
+      "tabs": {
+        "general": "General information",
+        "settings": "Settings",
+        "arbiters": "Arbiters",
+        "schedule": "Schedule",
+        "participants": "Participants",
+        "placeholder": "This section is empty for now."
+      },
       "schedule": {
         "title": "Schedule"
       },

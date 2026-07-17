@@ -1,5 +1,12 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import {
+  AdjustmentsVerticalIcon,
+  ClockIcon,
+  PencilSquareIcon,
+  ScaleIcon,
+  UserGroupIcon,
+} from '@heroicons/react/24/outline'
 import { useTournamentForm } from '../../hooks/useTournamentForm.ts'
 import { getCountryList } from '../../utils/countries.ts'
 import {
@@ -69,8 +76,8 @@ function BasicInfoSection({
   )
 
   return (
-    <div className="card bg-base-100 shadow-sm">
-      <div className="card-body">
+    <div className="card bg-base-200 shadow-sm">
+      <div className="card-body gap-2">
         <h2 className="card-title">{t('tournament.edit.basicInfo')}</h2>
 
         <div className="form-control">
@@ -85,7 +92,7 @@ function BasicInfoSection({
           />
         </div>
 
-        <div className="tabs tabs-boxed mt-4 w-fit">
+        <div className="tabs tabs-box bg-base-300 mt-4 w-fit">
           {supportedLocales.map((locale) => (
             <button
               key={locale}
@@ -192,7 +199,7 @@ function TimeControlSection({
   const formats = timeControlFormatSchema.options
 
   return (
-    <div className="card bg-base-100 shadow-sm">
+    <div className="card bg-base-200 shadow-sm">
       <div className="card-body">
         <h2 className="card-title">{t('tournament.edit.settings')}</h2>
 
@@ -288,7 +295,7 @@ function TieBreaksSection({
   )
 
   return (
-    <div className="card bg-base-100 shadow-sm">
+    <div className="card bg-base-200 shadow-sm">
       <div className="card-body">
         <h2 className="card-title">{t('tournament.edit.tieBreaks.title')}</h2>
 
@@ -367,7 +374,7 @@ function ScheduleSection({
   const { t } = useTranslation()
 
   return (
-    <div className="card bg-base-100 shadow-sm">
+    <div className="card bg-base-200 shadow-sm">
       <div className="card-body">
         <h2 className="card-title">{t('tournament.edit.schedule.title')}</h2>
 
@@ -464,10 +471,54 @@ export function TournamentEditForm({
     deleteTournament,
   } = useTournamentForm(tournamentId)
 
+  type TabId = 'general' | 'settings' | 'arbiters' | 'schedule' | 'participants'
+
+  const [activeTab, setActiveTab] = useState<TabId>('general')
+
+  const tabs: {
+    id: TabId
+    label: string
+    icon: React.ComponentType<{ className?: string }>
+  }[] = [
+    {
+      id: 'general',
+      label: t('tournament.edit.tabs.general'),
+      icon: PencilSquareIcon,
+    },
+    {
+      id: 'settings',
+      label: t('tournament.edit.tabs.settings'),
+      icon: AdjustmentsVerticalIcon,
+    },
+    {
+      id: 'arbiters',
+      label: t('tournament.edit.tabs.arbiters'),
+      icon: ScaleIcon,
+    },
+    {
+      id: 'schedule',
+      label: t('tournament.edit.tabs.schedule'),
+      icon: ClockIcon,
+    },
+    {
+      id: 'participants',
+      label: t('tournament.edit.tabs.participants'),
+      icon: UserGroupIcon,
+    },
+  ]
+
   const countryList = useMemo(
     () => getCountryList(i18n.language === 'ru' ? 'ru' : 'en'),
     [i18n.language]
   )
+
+  const localizedTitle =
+    formState?.locales[(i18n.language as SupportedLocale) ?? 'ru']?.title ||
+    t('admin.untitledTournament')
+
+  useEffect(() => {
+    document.title = t('tournament.edit.pageTitle', { title: localizedTitle })
+  }, [localizedTitle, i18n.language, t])
 
   if (isLoading || !formState) {
     return (
@@ -480,10 +531,6 @@ export function TournamentEditForm({
   if (loadError) {
     return <p className="text-error">{t('tournament.edit.errors.load')}</p>
   }
-
-  const localizedTitle =
-    formState.locales[(i18n.language as SupportedLocale) ?? 'ru']?.title ||
-    t('admin.untitledTournament')
 
   const handlePublish = async () => {
     if (!window.confirm(t('tournament.edit.publishConfirm'))) return
@@ -524,6 +571,9 @@ export function TournamentEditForm({
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
+          <div className="text-xs uppercase tracking-wider opacity-70">
+            {t('tournament.edit.managementPanel')}
+          </div>
           <h1 className="text-2xl font-bold">{localizedTitle}</h1>
           <span className="badge badge-sm mt-1">
             {t(`tournament.status.${tournament?.status ?? 'draft'}`)}
@@ -579,31 +629,87 @@ export function TournamentEditForm({
         </div>
       )}
 
-      <BasicInfoSection
-        formState={formState}
-        countryList={countryList}
-        updateLocale={updateLocale}
-        updateBasic={updateBasic}
-      />
+      <div className="tabs tabs-box" role="tablist">
+        {tabs.map((tab) => {
+          const Icon = tab.icon
+          const isActive = activeTab === tab.id
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              role="tab"
+              aria-selected={isActive}
+              onClick={() => setActiveTab(tab.id)}
+              className={['tab gap-2', isActive ? 'tab-active' : ''].join(' ')}
+            >
+              <Icon className="h-5 w-5" />
+              <span className="hidden sm:inline">{tab.label}</span>
+            </button>
+          )
+        })}
+      </div>
 
-      <TimeControlSection
-        timeControl={formState.settings.timeControl}
-        onTypeChange={updateTimeControlType}
-        onFieldChange={updateTimeControlField}
-      />
+      {activeTab === 'general' && (
+        <div className="space-y-6">
+          <BasicInfoSection
+            formState={formState}
+            countryList={countryList}
+            updateLocale={updateLocale}
+            updateBasic={updateBasic}
+          />
 
-      <TieBreaksSection
-        tieBreaks={formState.settings.tieBreaks}
-        onAdd={addTieBreak}
-        onRemove={removeTieBreak}
-      />
+          <TimeControlSection
+            timeControl={formState.settings.timeControl}
+            onTypeChange={updateTimeControlType}
+            onFieldChange={updateTimeControlField}
+          />
 
-      <ScheduleSection
-        rounds={formState.schedule.rounds}
-        onAdd={addRound}
-        onUpdate={updateRound}
-        onRemove={removeRound}
-      />
+          <TieBreaksSection
+            tieBreaks={formState.settings.tieBreaks}
+            onAdd={addTieBreak}
+            onRemove={removeTieBreak}
+          />
+
+          <ScheduleSection
+            rounds={formState.schedule.rounds}
+            onAdd={addRound}
+            onUpdate={updateRound}
+            onRemove={removeRound}
+          />
+        </div>
+      )}
+
+      {activeTab === 'settings' && (
+        <div className="card bg-base-200 shadow-sm">
+          <div className="card-body opacity-70">
+            {t('tournament.edit.tabs.placeholder')}
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'arbiters' && (
+        <div className="card bg-base-200 shadow-sm">
+          <div className="card-body opacity-70">
+            {t('tournament.edit.tabs.placeholder')}
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'schedule' && (
+        <div className="card bg-base-200 shadow-sm">
+          <div className="card-body opacity-70">
+            {t('tournament.edit.tabs.placeholder')}
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'participants' && (
+        <div className="card bg-base-200 shadow-sm">
+          <div className="card-body opacity-70">
+            {t('tournament.edit.tabs.placeholder')}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
