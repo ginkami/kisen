@@ -49,7 +49,6 @@
       "tabs": {
         "general": "General information",
         "settings": "Settings",
-        "arbiters": "Arbiters",
         "schedule": "Schedule",
         "participants": "Participants",
         "placeholder": "This section is empty for now."
@@ -62,7 +61,6 @@
       "description": "Description",
       "location": "City / region",
       "venue": "Venue",
-      "online": "Online tournament",
       "country": "Country",
       "noCountry": "— not selected —",
       "saveDraft": "Save draft",

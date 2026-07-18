@@ -55,7 +55,7 @@ context: |
   - `users` — app user profiles. `id` is the Firebase Auth UID. Contains `email`, `role` (`user` | `manager` | `admin`), `auth` block (providers, passwordHash, emailVerified, isActive), and locale-specific names.
   - `associations` — groups that own players, tournaments, and events. Have `managers` (UID array), `pendingInvites` (email array), localized title/description/location, slug, country.
   - `players` — shogi players with localized names, nationality/residence, gender, current rating/rank, birth date, primary/secondary association links.
-  - `tournaments` — tournament metadata, schedule (events + rounds), settings (time control + tie-breaks), arbiters, participants, games, status, slug, host association, parent event.
+  - `tournaments` — tournament metadata, schedule (events + rounds), settings (time control + tie-breaks), country, chief arbiter, participants, games, status, slug, host association, parent event.
   - `events` — groupings of tournaments (championship stages, leagues, etc.).
 
   ## Identifiers and slugs
@@ -73,7 +73,7 @@ context: |
   - Drafts are private (`isPublic == false`). Publication sets status to `upcoming` and `isPublic` to `true`.
   - `isPublic` is derived from status and must stay in sync (see `isValidPublicStatus()` in `firestore.rules` and `TournamentService.update`).
   - Editing a tournament after its first round start time automatically transitions it to `ongoing`.
-  - Publishing validates the shape via `publishedTournamentSchema` (non-empty title/location, at least one round, etc.).
+  - Publishing validates the shape via `publishedTournamentSchema` (non-empty title/location, required 2-letter country, at least one round, etc.).
 
   ## Security model
   - Authentication via Firebase Auth (email/password + Google).
@@ -102,6 +102,7 @@ rules:
 
   design:
     - When designing any feature that reads from or writes to Firestore, first inspect and, if necessary, update `firestore.rules` so that the client-side operation will be permitted.
+    - Whenever a change touches tournament fields (country, online flag, arbiter model, etc.), review `firestore.rules` and the Zod schema in `src/domain/tournament.ts` for consistency.
     - When a rule change affects data visibility, also update the corresponding Zod schema in `src/domain/` and the JSONC spec in `schemas/`.
     - For every new query that uses multiple `where` clauses or an `orderBy`, verify that `firestore.indexes.json` already contains the required index or propose adding it.
     - Respect the layered architecture: domain logic must not import Firebase or React; services must not import React; components must not import `firebase/*` directly.
@@ -114,6 +115,7 @@ rules:
     - Use `publishedTournamentSchema` and other published/draft Zod schemas for status-sensitive validation rather than duplicating rules inline.
     - After mutations, invalidate the relevant TanStack Query keys (e.g. `['tournament', id]`, `['adminTournaments']`).
     - Do not hardcode locale lists; derive them from `supportedLocales` in `src/domain/locale.ts`.
+    - IP-based defaults must never block draft creation: always provide a fallback country and city.
 
   review:
     - Before marking a task complete, confirm that `npm run lint` and `npm run test:run` would pass, or document the exceptions.

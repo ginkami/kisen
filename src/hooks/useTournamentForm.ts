@@ -19,8 +19,7 @@ import type { TieBreak, TieBreakType } from '../domain/tieBreak.ts'
 export interface TournamentFormState {
   slug: string
   locales: Record<SupportedLocale, TournamentLocale>
-  isOnline: boolean
-  country: string | null
+  country: string
   settings: TournamentSettings
   schedule: TournamentSchedule
 }
@@ -47,7 +46,6 @@ function tournamentToFormState(tournament: Tournament): TournamentFormState {
   return {
     slug: tournament.slug,
     locales,
-    isOnline: tournament.isOnline,
     country: tournament.country,
     settings: tournament.settings,
     schedule: {
@@ -66,15 +64,13 @@ function formStateToUpdateInput(
   const input: {
     id: string
     locales: Tournament['locales']
-    isOnline: boolean
-    country: string | null
+    country: string
     settings: TournamentSettings
     schedule: TournamentSchedule
     desiredSlug?: string
   } = {
     id: tournament.id,
     locales: state.locales as Tournament['locales'],
-    isOnline: state.isOnline,
     country: state.country,
     settings: state.settings,
     schedule: state.schedule,

@@ -20,8 +20,7 @@ export interface CreateTournamentInput {
   hostAssociation: string | null
   parentEvent: string | null
   locales: Tournament['locales']
-  isOnline: boolean
-  country: string | null
+  country: string
   settings: Tournament['settings']
   schedule: Tournament['schedule']
   desiredSlug?: string
@@ -38,11 +37,10 @@ export interface CreateDraftInput {
 export interface UpdateTournamentInput {
   id: string
   locales?: Tournament['locales']
-  isOnline?: boolean
-  country?: string | null
+  country?: string
   settings?: Tournament['settings']
   schedule?: Tournament['schedule']
-  arbiters?: Tournament['arbiters']
+  arbiter?: Tournament['arbiter']
   participants?: Tournament['participants']
   games?: Tournament['games']
   status?: TournamentStatus
@@ -51,14 +49,13 @@ export interface UpdateTournamentInput {
   existing?: Tournament
 }
 
-const MAX_SLUG_ATTEMPTS = 10
-
-function defaultLocales(initialLocale = 'ru'): Record<string, TournamentLocale> {
+function defaultLocales(location = ''): Record<string, TournamentLocale> {
   return Object.fromEntries(
     supportedLocales.map((locale) => [
       locale,
       {
-        title: locale === initialLocale ? '' : '',
+        title: '',
+        location,
       },
     ])
   )
@@ -124,11 +121,9 @@ export class TournamentService {
         schedule: input.schedule,
       } as Tournament),
       locales: input.locales,
-      isOnline: input.isOnline,
       country: input.country,
       settings: input.settings,
       schedule: input.schedule,
-      arbiters: [],
       participants: [],
       games: [],
     }
@@ -139,6 +134,7 @@ export class TournamentService {
   async createDraft(input: CreateDraftInput): Promise<Tournament> {
     const slug = await this.resolveSlug(input.desiredSlug)
     const now = new Date()
+    const { country, city } = await this.detectLocationByIp()
     const schedule: Tournament['schedule'] = {
       events: [],
       rounds: [],
@@ -157,12 +153,10 @@ export class TournamentService {
       startYearMonth: getTournamentStartYearMonth({
         schedule,
       } as Tournament),
-      locales: defaultLocales(input.initialLocale),
-      isOnline: false,
-      country: null,
+      locales: defaultLocales(city),
+      country,
       settings: defaultSettings(),
       schedule,
-      arbiters: [],
       participants: [],
       games: [],
     }
@@ -193,11 +187,10 @@ export class TournamentService {
     const updated: Tournament = {
       ...existing,
       locales: input.locales ?? existing.locales,
-      isOnline: input.isOnline ?? existing.isOnline,
       country: input.country ?? existing.country,
       settings: input.settings ?? existing.settings,
       schedule: nextSchedule,
-      arbiters: input.arbiters ?? existing.arbiters,
+      arbiter: input.arbiter ?? existing.arbiter,
       participants: input.participants ?? existing.participants,
       games: input.games ?? existing.games,
       status: nextStatus,
@@ -259,6 +252,30 @@ export class TournamentService {
     }
 
     return generateRandomSlug()
+  }
+
+  private async detectLocationByIp(): Promise<{ country: string; city: string }> {
+    try {
+      const controller = new AbortController()
+      const timeout = setTimeout(() => controller.abort(), 3000)
+      const response = await fetch('https://ipapi.co/json/', {
+        signal: controller.signal,
+      })
+      clearTimeout(timeout)
+
+      if (!response.ok) {
+        return { country: 'BY', city: '' }
+      }
+
+      const data = await response.json()
+      const country = typeof data.country_code === 'string'
+        ? data.country_code.toUpperCase()
+        : 'BY'
+      const city = typeof data.city === 'string' ? data.city : ''
+      return { country, city }
+    } catch {
+      return { country: 'BY', city: '' }
+    }
   }
 }
 

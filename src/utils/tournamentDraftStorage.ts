@@ -47,7 +47,8 @@ export async function loadTournamentDraft(
   tournamentId: string
 ): Promise<TournamentDraftSnapshot | null> {
   const db = await getDb()
-  return db.get(STORE_NAME, tournamentId) ?? null
+  const snapshot = await db.get(STORE_NAME, tournamentId)
+  return snapshot ?? null
 }
 
 export async function removeTournamentDraft(tournamentId: string): Promise<void> {

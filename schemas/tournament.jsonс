@@ -24,8 +24,7 @@
             "venue": "String"
         }
     },
-    "isOnline": "Bool", // (Required)
-    "country": "ISO 3166-1 alpha-2 | null", // (Required) Разрешать null только если isOnline == true
+    "country": "ISO 3166-1 alpha-2", // (Required)
     "settings": { // (Required)
         "timeControl": { // (Required, Ref: timeControl.ts)
             "type": "'absolute' | 'fischer' | 'bronstein' | 'delay' | 'byoyomi' | 'canadian'", // (Required)
@@ -70,19 +69,14 @@
             }
         ]
     },
-    "arbiters": [ // Массив судей
-        {
-            "locales": { // (Required) Набор локалей
-                "ru": { // [ >= 1 ] Должна быть хотя бы одна локаль. При рендеринге берутся значения для текущей локали, либо другой существующей
-                    "familyName": "String", // (Required)
-                    "givenName": "String" // (Required)
-                }
-            },
-            "isChief": "Bool", // На UI в виде чекбокса
-            "nationality": "ISO 3166-1 alpha-2", // (Required) Страна гражданства
-            "residence": "ISO 3166-1 alpha-2" // Страна проживания
+    "arbiter": { // Главный судья (Chief Arbiter)
+        "locales": { // (Required) Набор локалей
+            "ru": { // [ >= 1 ] Должна быть хотя бы одна локаль. При рендеринге берутся значения для текущей локали, либо другой существующей
+                "familyName": "String", // (Required)
+                "givenName": "String" // (Required)
+            }
         }
-    ],
+    },
     "participants": [ // Массив участников-игроков participant
         {
             "id": "Int", // (Required, Unique)

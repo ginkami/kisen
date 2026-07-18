@@ -49,7 +49,6 @@
       "tabs": {
         "general": "Общая информация",
         "settings": "Настройки",
-        "arbiters": "Судьи",
         "schedule": "Расписание",
         "participants": "Участники",
         "placeholder": "Этот раздел пока пуст."
@@ -62,7 +61,6 @@
       "description": "Описание",
       "location": "Город / регион",
       "venue": "Место проведения",
-      "online": "Онлайн-турнир",
       "country": "Страна",
       "noCountry": "— не выбрана —",
       "saveDraft": "Сохранить черновик",

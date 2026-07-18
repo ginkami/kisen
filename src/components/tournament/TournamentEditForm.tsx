@@ -4,7 +4,6 @@ import {
   AdjustmentsVerticalIcon,
   ClockIcon,
   PencilSquareIcon,
-  ScaleIcon,
   UserGroupIcon,
 } from '@heroicons/react/24/outline'
 import { useTournamentForm } from '../../hooks/useTournamentForm.ts'
@@ -141,37 +140,23 @@ function BasicInfoSection({
           ))}
         </div>
 
-        <div className="mt-4 flex flex-wrap gap-4">
-          <label className="label cursor-pointer gap-2">
-            <input
-              type="checkbox"
-              checked={formState.isOnline}
-              onChange={(e) => updateBasic('isOnline', e.target.checked)}
-              className="checkbox"
-            />
-            <span className="label-text">{t('tournament.edit.online')}</span>
+        <div className="form-control mt-4">
+          <label className="label">
+            <span className="label-text">{t('tournament.edit.country')}</span>
           </label>
+          <select
+            value={formState.country}
+            onChange={(e) => updateBasic('country', e.target.value)}
+            className="select select-bordered"
+          >
+            <option value="">{t('tournament.edit.noCountry')}</option>
+            {countryList.map((country) => (
+              <option key={country.code} value={country.code}>
+                {country.name}
+              </option>
+            ))}
+          </select>
         </div>
-
-        {!formState.isOnline && (
-          <div className="form-control mt-2">
-            <label className="label">
-              <span className="label-text">{t('tournament.edit.country')}</span>
-            </label>
-            <select
-              value={formState.country ?? ''}
-              onChange={(e) => updateBasic('country', e.target.value || null)}
-              className="select select-bordered"
-            >
-              <option value="">{t('tournament.edit.noCountry')}</option>
-              {countryList.map((country) => (
-                <option key={country.code} value={country.code}>
-                  {country.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
       </div>
     </div>
   )
@@ -471,7 +456,7 @@ export function TournamentEditForm({
     deleteTournament,
   } = useTournamentForm(tournamentId)
 
-  type TabId = 'general' | 'settings' | 'arbiters' | 'schedule' | 'participants'
+  type TabId = 'general' | 'settings' | 'schedule' | 'participants'
 
   const [activeTab, setActiveTab] = useState<TabId>('general')
 
@@ -489,11 +474,6 @@ export function TournamentEditForm({
       id: 'settings',
       label: t('tournament.edit.tabs.settings'),
       icon: AdjustmentsVerticalIcon,
-    },
-    {
-      id: 'arbiters',
-      label: t('tournament.edit.tabs.arbiters'),
-      icon: ScaleIcon,
     },
     {
       id: 'schedule',
@@ -680,14 +660,6 @@ export function TournamentEditForm({
       )}
 
       {activeTab === 'settings' && (
-        <div className="card bg-base-200 shadow-sm">
-          <div className="card-body opacity-70">
-            {t('tournament.edit.tabs.placeholder')}
-          </div>
-        </div>
-      )}
-
-      {activeTab === 'arbiters' && (
         <div className="card bg-base-200 shadow-sm">
           <div className="card-body opacity-70">
             {t('tournament.edit.tabs.placeholder')}

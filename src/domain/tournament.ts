@@ -59,9 +59,6 @@ export const arbiterSchema = z.object({
       givenName: z.string().min(1),
     })
   ),
-  isChief: z.boolean().optional(),
-  nationality: z.string().length(2),
-  residence: z.string().length(2).optional(),
 })
 
 export type Arbiter = z.infer<typeof arbiterSchema>
@@ -158,11 +155,10 @@ export const tournamentSchema = z.object({
     (locales) => Object.keys(locales).length > 0,
     'At least one locale is required'
   ),
-  isOnline: z.boolean(),
-  country: z.string().length(2).nullable(),
+  country: z.string().length(2),
   settings: tournamentSettingsSchema,
   schedule: tournamentScheduleSchema,
-  arbiters: z.array(arbiterSchema).default([]),
+  arbiter: arbiterSchema.optional(),
   participants: z.array(participantSchema).default([]),
   games: z.array(gameSchema).default([]),
 })
@@ -192,7 +188,6 @@ export const draftTournamentSchema = tournamentSchema
     createdBy: z.string().min(1).optional(),
     updatedAt: z.date().optional(),
   })
-  .partial()
 
 export type DraftTournament = z.infer<typeof draftTournamentSchema>
 
