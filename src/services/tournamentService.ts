@@ -23,6 +23,7 @@ export interface CreateTournamentInput {
   country: string
   settings: Tournament['settings']
   schedule: Tournament['schedule']
+  arbiter: Tournament['arbiter']
   desiredSlug?: string
 }
 
@@ -32,7 +33,7 @@ export interface CreateDraftInput {
   parentEvent?: string | null
   initialLocale?: string
   desiredSlug?: string
-  arbiter?: Tournament['arbiter']
+  arbiter: Tournament['arbiter']
 }
 
 export interface UpdateTournamentInput {
@@ -127,6 +128,7 @@ export class TournamentService {
       country: input.country,
       settings: input.settings,
       schedule: input.schedule,
+      arbiter: input.arbiter,
       participants: [],
       games: [],
     }

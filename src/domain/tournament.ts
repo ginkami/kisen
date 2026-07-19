@@ -158,7 +158,7 @@ export const tournamentSchema = z.object({
   country: z.string().length(2),
   settings: tournamentSettingsSchema,
   schedule: tournamentScheduleSchema,
-  arbiter: arbiterSchema.optional(),
+  arbiter: arbiterSchema,
   participants: z.array(participantSchema).default([]),
   games: z.array(gameSchema).default([]),
 })

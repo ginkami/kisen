@@ -94,7 +94,7 @@ function formStateToUpdateInput(
     schedule: TournamentSchedule
     parentEvent: string | null
     hostAssociation: string | null
-    arbiter?: Tournament['arbiter']
+    arbiter: Tournament['arbiter']
     desiredSlug?: string
   } = {
     id: tournament.id,
@@ -104,19 +104,7 @@ function formStateToUpdateInput(
     schedule: state.schedule,
     parentEvent: state.parentEvent,
     hostAssociation: state.hostAssociation,
-  }
-
-  if (state.slug !== tournament.slug) {
-    input.desiredSlug = state.slug
-  }
-
-  const hasArbiter = supportedLocales.some(
-    (locale) =>
-      state.arbiter[locale].givenName.trim() ||
-      state.arbiter[locale].familyName.trim()
-  )
-  if (hasArbiter) {
-    input.arbiter = {
+    arbiter: {
       locales: Object.fromEntries(
         supportedLocales.map((locale) => [
           locale,
@@ -125,8 +113,12 @@ function formStateToUpdateInput(
             familyName: state.arbiter[locale].familyName,
           },
         ])
-      ) as NonNullable<Tournament['arbiter']>['locales'],
-    }
+      ) as Tournament['arbiter']['locales'],
+    },
+  }
+
+  if (state.slug !== tournament.slug) {
+    input.desiredSlug = state.slug
   }
 
   return input
@@ -182,7 +174,20 @@ export function useTournamentForm(tournamentId: string | undefined) {
       creatingDraftRef.current = true
       setCreateError(null)
 
-      const arbiter = user?.locales
+      function arbiterFromDisplayName(displayName: string | null): Tournament['arbiter'] {
+        const trimmed = displayName?.trim() ?? ''
+        const parts = trimmed.split(/\s+/).filter(Boolean)
+        const givenName = parts.length > 1 ? parts.slice(0, -1).join(' ') : ''
+        const familyName = parts.length > 0 ? parts.at(-1) ?? '' : ''
+
+        return {
+          locales: Object.fromEntries(
+            supportedLocales.map((locale) => [locale, { givenName, familyName }])
+          ) as Tournament['arbiter']['locales'],
+        }
+      }
+
+      const arbiter: Tournament['arbiter'] = user?.locales
         ? {
             locales: Object.fromEntries(
               supportedLocales.map((locale) => [
@@ -192,9 +197,9 @@ export function useTournamentForm(tournamentId: string | undefined) {
                   familyName: user.locales[locale].familyName ?? '',
                 },
               ])
-            ) as NonNullable<Tournament['arbiter']>['locales'],
+            ) as Tournament['arbiter']['locales'],
           }
-        : undefined
+        : arbiterFromDisplayName(firebaseUser.displayName)
 
       tournamentService
         .createDraft({
@@ -481,6 +486,17 @@ export function useTournamentForm(tournamentId: string | undefined) {
         slug: formState.slug,
         parentEvent: formState.parentEvent,
         hostAssociation: formState.hostAssociation,
+        arbiter: {
+          locales: Object.fromEntries(
+            supportedLocales.map((locale) => [
+              locale,
+              {
+                givenName: formState.arbiter[locale].givenName,
+                familyName: formState.arbiter[locale].familyName,
+              },
+            ])
+          ) as Tournament['arbiter']['locales'],
+        },
         status: 'upcoming' as const,
         isPublic: true,
       }

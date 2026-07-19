@@ -4,6 +4,21 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import { useAuth } from '../context/AuthContext.tsx'
 import { tournamentService } from '../services/tournamentService.ts'
+import { supportedLocales } from '../domain/locale.ts'
+import type { Tournament } from '../domain/tournament.ts'
+
+function arbiterFromDisplayName(displayName: string | null): Tournament['arbiter'] {
+  const trimmed = displayName?.trim() ?? ''
+  const parts = trimmed.split(/\s+/).filter(Boolean)
+  const givenName = parts.length > 1 ? parts.slice(0, -1).join(' ') : ''
+  const familyName = parts.length > 0 ? parts.at(-1) ?? '' : ''
+
+  return {
+    locales: Object.fromEntries(
+      supportedLocales.map((locale) => [locale, { givenName, familyName }])
+    ) as Tournament['arbiter']['locales'],
+  }
+}
 
 interface NewTournamentButtonProps {
   variant?: 'header' | 'drawer'
@@ -44,6 +59,7 @@ export function NewTournamentButton({
       const tournament = await tournamentService.createDraft({
         createdBy: firebaseUser.uid,
         initialLocale: i18n.language,
+        arbiter: arbiterFromDisplayName(firebaseUser.displayName),
       })
       navigate(`/tournaments/${tournament.id}/edit`)
     } catch (err) {

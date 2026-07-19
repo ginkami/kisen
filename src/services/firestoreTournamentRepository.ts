@@ -16,6 +16,22 @@ import type {
   ListTournamentsFilters,
   TournamentRepository,
 } from './repository.ts'
+import { supportedLocales } from '../domain/locale.ts'
+
+function withDefaultArbiter(data: Record<string, unknown>): Record<string, unknown> {
+  if (data.arbiter) return data
+  return {
+    ...data,
+    arbiter: {
+      locales: Object.fromEntries(
+        supportedLocales.map((locale) => [
+          locale,
+          { givenName: '', familyName: '' },
+        ])
+      ),
+    },
+  }
+}
 
 const COLLECTION_NAME = 'tournaments'
 
@@ -71,7 +87,7 @@ function toFirestore(tournament: Tournament): Record<string, unknown> {
 }
 
 function fromFirestore(data: Record<string, unknown>): Tournament {
-  return timestampsToDates(data) as Tournament
+  return timestampsToDates(withDefaultArbiter(data)) as Tournament
 }
 
 export class FirestoreTournamentRepository implements TournamentRepository {

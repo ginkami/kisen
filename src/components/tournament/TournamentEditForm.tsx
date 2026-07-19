@@ -163,35 +163,50 @@ function GeneralInfoSection({
           placeholder={t('tournament.edit.venue')}
         />
 
-        <ExpandableField
-          label={t('tournament.edit.arbiter.title')}
-          isEmpty={
-            !Object.values(formState.arbiter).some(
-              (name) => name.givenName.trim() || name.familyName.trim()
-            )
-          }
-        >
+        <div className="form-control">
+          <label className="label">
+            <span className="label-text">
+              {t('tournament.edit.arbiter.title')}
+              <span className="text-error ml-1">*</span>
+            </span>
+          </label>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <input
-              type="text"
-              value={formState.arbiter[activeLocale].givenName}
-              onChange={(e) =>
-                updateArbiter(activeLocale, 'givenName', e.target.value)
-              }
-              placeholder={t('tournament.edit.arbiter.givenName')}
-              className="input input-bordered w-full"
-            />
-            <input
-              type="text"
-              value={formState.arbiter[activeLocale].familyName}
-              onChange={(e) =>
-                updateArbiter(activeLocale, 'familyName', e.target.value)
-              }
-              placeholder={t('tournament.edit.arbiter.familyName')}
-              className="input input-bordered w-full"
-            />
+            <div className="form-control">
+              <label className="label">
+                <span className="label-text text-xs">
+                  {t('tournament.edit.arbiter.givenName')}
+                  <span className="text-error ml-1">*</span>
+                </span>
+              </label>
+              <input
+                type="text"
+                value={formState.arbiter[activeLocale].givenName}
+                onChange={(e) =>
+                  updateArbiter(activeLocale, 'givenName', e.target.value)
+                }
+                placeholder={t('tournament.edit.arbiter.givenName')}
+                className="input input-bordered w-full"
+              />
+            </div>
+            <div className="form-control">
+              <label className="label">
+                <span className="label-text text-xs">
+                  {t('tournament.edit.arbiter.familyName')}
+                  <span className="text-error ml-1">*</span>
+                </span>
+              </label>
+              <input
+                type="text"
+                value={formState.arbiter[activeLocale].familyName}
+                onChange={(e) =>
+                  updateArbiter(activeLocale, 'familyName', e.target.value)
+                }
+                placeholder={t('tournament.edit.arbiter.familyName')}
+                className="input input-bordered w-full"
+              />
+            </div>
           </div>
-        </ExpandableField>
+        </div>
       </div>
     </div>
   )

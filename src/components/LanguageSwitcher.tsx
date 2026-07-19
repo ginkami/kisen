@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 type Language = 'ru' | 'en'
 
 const languages: { code: Language; label: string }[] = [
-  { code: 'ru', label: 'RU' },
+  { code: 'ru', label: 'РУ' },
   { code: 'en', label: 'EN' },
 ]
 
