@@ -6,19 +6,28 @@ import {
   PencilSquareIcon,
   UserGroupIcon,
 } from '@heroicons/react/24/outline'
+import { useAuth } from '../../context/AuthContext.tsx'
 import { useTournamentForm } from '../../hooks/useTournamentForm.ts'
-import { getCountryList } from '../../utils/countries.ts'
 import {
   dateToLocalDatetimeInputValue,
   localDatetimeInputValueToUtcDate,
 } from '../../utils/dateTime.ts'
-import { supportedLocales, type SupportedLocale } from '../../domain/locale.ts'
+import type { SupportedLocale } from '../../domain/locale.ts'
 import { timeControlFormatSchema } from '../../domain/timeControl.ts'
 import { tieBreakTypeSchema } from '../../domain/tieBreak.ts'
 import type { TournamentFormState } from '../../hooks/useTournamentForm.ts'
 import type { TimeControl, TimeControlFormat } from '../../domain/timeControl.ts'
 import type { TieBreak, TieBreakType } from '../../domain/tieBreak.ts'
 import type { TournamentLocale } from '../../domain/tournament.ts'
+import type { Event } from '../../domain/event.ts'
+import type { Association } from '../../domain/association.ts'
+import { useEventsForMonth } from '../../hooks/useEvents.ts'
+import { useMyAssociations } from '../../hooks/useAssociations.ts'
+import { CountrySelect } from './CountrySelect.tsx'
+import { LocaleTabs } from './LocaleTabs.tsx'
+import { ExpandableField } from './ExpandableField.tsx'
+import { EventPickerModal } from './EventPickerModal.tsx'
+import { AssociationPickerModal } from './AssociationPickerModal.tsx'
 
 interface TournamentEditFormProps {
   tournamentId: string | undefined
@@ -51,14 +60,13 @@ function NumberField({
   )
 }
 
-function BasicInfoSection({
+function GeneralInfoSection({
   formState,
-  countryList,
   updateLocale,
   updateBasic,
+  updateArbiter,
 }: {
   formState: TournamentFormState
-  countryList: { code: string; name: string }[]
   updateLocale: (
     locale: SupportedLocale,
     field: keyof TournamentLocale,
@@ -68,6 +76,11 @@ function BasicInfoSection({
     field: K,
     value: TournamentFormState[K]
   ) => void
+  updateArbiter: (
+    locale: SupportedLocale,
+    field: 'givenName' | 'familyName',
+    value: string
+  ) => void
 }) {
   const { t, i18n } = useTranslation()
   const [activeLocale, setActiveLocale] = useState<SupportedLocale>(
@@ -76,86 +89,221 @@ function BasicInfoSection({
 
   return (
     <div className="card bg-base-200 shadow-sm">
-      <div className="card-body gap-2">
-        <h2 className="card-title">{t('tournament.edit.basicInfo')}</h2>
+      <div className="card-body gap-4">
+        <div className="flex items-center justify-between">
+          <h2 className="card-title">{t('tournament.edit.basicInfo')}</h2>
+          <LocaleTabs locale={activeLocale} onChange={setActiveLocale} />
+        </div>
 
         <div className="form-control">
           <label className="label">
-            <span className="label-text">{t('tournament.edit.slug')}</span>
+            <span className="label-text">
+              {t('tournament.edit.title')}
+              <span className="text-error ml-1">*</span>
+            </span>
           </label>
           <input
             type="text"
-            value={formState.slug}
-            onChange={(e) => updateBasic('slug', e.target.value)}
-            className="input input-bordered"
+            value={formState.locales[activeLocale].title}
+            onChange={(e) =>
+              updateLocale(activeLocale, 'title', e.target.value)
+            }
+            className="input input-bordered w-full"
           />
         </div>
 
-        <div className="tabs tabs-box bg-base-300 mt-4 w-fit">
-          {supportedLocales.map((locale) => (
-            <button
-              key={locale}
-              type="button"
-              onClick={() => setActiveLocale(locale)}
-              className={[
-                'tab',
-                activeLocale === locale ? 'tab-active' : '',
-              ].join(' ')}
-            >
-              {locale.toUpperCase()}
-            </button>
-          ))}
+        <ExpandableField
+          label={t('tournament.edit.description')}
+          value={formState.locales[activeLocale].description ?? ''}
+          onChange={(value) =>
+            updateLocale(activeLocale, 'description', value)
+          }
+          placeholder={t('tournament.edit.description')}
+          textarea
+        />
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="form-control">
+            <label className="label">
+              <span className="label-text">
+                {t('tournament.edit.country')}
+                <span className="text-error ml-1">*</span>
+              </span>
+            </label>
+            <CountrySelect
+              value={formState.country}
+              onChange={(value) => updateBasic('country', value)}
+              lang={i18n.language === 'ru' ? 'ru' : 'en'}
+              placeholder={t('tournament.edit.noCountry')}
+            />
+          </div>
+
+          <div className="form-control">
+            <label className="label">
+              <span className="label-text">
+                {t('tournament.edit.location')}
+                <span className="text-error ml-1">*</span>
+              </span>
+            </label>
+            <input
+              type="text"
+              value={formState.locales[activeLocale].location ?? ''}
+              onChange={(e) =>
+                updateLocale(activeLocale, 'location', e.target.value)
+              }
+              className="input input-bordered w-full"
+            />
+          </div>
         </div>
 
-        <div className="mt-2 space-y-3">
-          {(
-            ['title', 'description', 'location', 'venue'] as const
-          ).map((field) => (
-            <div key={field} className="form-control">
-              <label className="label">
-                <span className="label-text">
-                  {t(`tournament.edit.${field}`)}
-                </span>
-              </label>
-              {field === 'description' ? (
-                <textarea
-                  value={formState.locales[activeLocale][field] ?? ''}
-                  onChange={(e) =>
-                    updateLocale(activeLocale, field, e.target.value)
-                  }
-                  className="textarea textarea-bordered"
-                  rows={3}
-                />
-              ) : (
-                <input
-                  type="text"
-                  value={formState.locales[activeLocale][field] ?? ''}
-                  onChange={(e) =>
-                    updateLocale(activeLocale, field, e.target.value)
-                  }
-                  className="input input-bordered"
-                />
-              )}
-            </div>
-          ))}
-        </div>
+        <ExpandableField
+          label={t('tournament.edit.venue')}
+          value={formState.locales[activeLocale].venue ?? ''}
+          onChange={(value) => updateLocale(activeLocale, 'venue', value)}
+          placeholder={t('tournament.edit.venue')}
+        />
 
-        <div className="form-control mt-4">
+        <ExpandableField
+          label={t('tournament.edit.arbiter.title')}
+          isEmpty={
+            !Object.values(formState.arbiter).some(
+              (name) => name.givenName.trim() || name.familyName.trim()
+            )
+          }
+        >
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <input
+              type="text"
+              value={formState.arbiter[activeLocale].givenName}
+              onChange={(e) =>
+                updateArbiter(activeLocale, 'givenName', e.target.value)
+              }
+              placeholder={t('tournament.edit.arbiter.givenName')}
+              className="input input-bordered w-full"
+            />
+            <input
+              type="text"
+              value={formState.arbiter[activeLocale].familyName}
+              onChange={(e) =>
+                updateArbiter(activeLocale, 'familyName', e.target.value)
+              }
+              placeholder={t('tournament.edit.arbiter.familyName')}
+              className="input input-bordered w-full"
+            />
+          </div>
+        </ExpandableField>
+      </div>
+    </div>
+  )
+}
+
+function BindingSection({
+  formState,
+  updateBasic,
+}: {
+  formState: TournamentFormState
+  updateBasic: <K extends keyof TournamentFormState>(
+    field: K,
+    value: TournamentFormState[K]
+  ) => void
+}) {
+  const { t, i18n } = useTranslation()
+  const { firebaseUser } = useAuth()
+  const [showEventPicker, setShowEventPicker] = useState(false)
+  const [showAssociationPicker, setShowAssociationPicker] = useState(false)
+  const { data: events = [] } = useEventsForMonth()
+  const { data: associations = [] } = useMyAssociations(firebaseUser?.uid)
+
+  const selectedEventTitle = useMemo(() => {
+    if (!formState.parentEvent) return t('tournament.edit.noParentEvent')
+    const event = events.find((item) => item.id === formState.parentEvent)
+    if (!event) return t('tournament.edit.noParentEvent')
+    return (
+      event.locales[i18n.language as keyof Event['locales']]?.title ??
+      event.slug
+    )
+  }, [formState.parentEvent, events, i18n.language, t])
+
+  const selectedAssociationTitle = useMemo(() => {
+    if (!formState.hostAssociation)
+      return t('tournament.edit.noHostAssociation')
+    const association = associations.find(
+      (item) => item.id === formState.hostAssociation
+    )
+    if (!association) return t('tournament.edit.noHostAssociation')
+    return (
+      association.locales[i18n.language as keyof Association['locales']]
+        ?.title ?? association.slug
+    )
+  }, [formState.hostAssociation, associations, i18n.language, t])
+
+  return (
+    <div className="card bg-base-200 shadow-sm">
+      <div className="card-body gap-4">
+        <h2 className="card-title">{t('tournament.edit.binding')}</h2>
+
+        <div className="form-control">
           <label className="label">
-            <span className="label-text">{t('tournament.edit.country')}</span>
+            <span className="label-text">
+              {t('tournament.edit.slug')}
+              <span className="text-error ml-1">*</span>
+            </span>
           </label>
-          <select
-            value={formState.country}
-            onChange={(e) => updateBasic('country', e.target.value)}
-            className="select select-bordered"
+          <div className="join">
+            <span className="bg-base-200 border border-base-300 px-2 flex items-center join-item">shogi.world/tournaments/</span>
+            <input
+              type="text"
+              value={formState.slug}
+              onChange={(e) => updateBasic('slug', e.target.value)}
+              className="input input-bordered join-item w-full"
+            />
+          </div>
+
+
+        </div>
+
+        <div className="form-control">
+          <label className="label">
+            <span className="label-text">
+              {t('tournament.edit.parentEvent')}
+            </span>
+          </label>
+          <button
+            type="button"
+            className="btn btn-outline justify-start"
+            onClick={() => setShowEventPicker(true)}
           >
-            <option value="">{t('tournament.edit.noCountry')}</option>
-            {countryList.map((country) => (
-              <option key={country.code} value={country.code}>
-                {country.name}
-              </option>
-            ))}
-          </select>
+            {selectedEventTitle}
+          </button>
+          {showEventPicker && (
+            <EventPickerModal
+              selectedId={formState.parentEvent}
+              onSelect={(id) => updateBasic('parentEvent', id)}
+              onClose={() => setShowEventPicker(false)}
+            />
+          )}
+        </div>
+
+        <div className="form-control">
+          <label className="label">
+            <span className="label-text">
+              {t('tournament.edit.hostAssociation')}
+            </span>
+          </label>
+          <button
+            type="button"
+            className="btn btn-outline justify-start"
+            onClick={() => setShowAssociationPicker(true)}
+          >
+            {selectedAssociationTitle}
+          </button>
+          {showAssociationPicker && (
+            <AssociationPickerModal
+              selectedId={formState.hostAssociation}
+              onSelect={(id) => updateBasic('hostAssociation', id)}
+              onClose={() => setShowAssociationPicker(false)}
+            />
+          )}
         </div>
       </div>
     </div>
@@ -312,7 +460,7 @@ function TieBreaksSection({
                 onChange={(e) =>
                   setSelectedType(e.target.value as TieBreakType)
                 }
-                className="select select-bordered select-sm"
+                className="select select-bordered"
               >
                 {availableTypes.map((type) => (
                   <option key={type} value={type}>
@@ -331,7 +479,7 @@ function TieBreaksSection({
                     'buchholz'
                 )
               }}
-              className="btn btn-secondary btn-sm"
+              className="btn btn-secondary"
             >
               {t('tournament.edit.tieBreaks.add')}
             </button>
@@ -428,6 +576,7 @@ export function TournamentEditForm({
   tournamentId,
 }: TournamentEditFormProps) {
   const { t, i18n } = useTranslation()
+  const { firebaseUser, user } = useAuth()
   const {
     tournament,
     formState,
@@ -444,6 +593,7 @@ export function TournamentEditForm({
     retryCreateDraft,
     updateLocale,
     updateBasic,
+    updateArbiter,
     updateTimeControlType,
     updateTimeControlField,
     addTieBreak,
@@ -487,11 +637,6 @@ export function TournamentEditForm({
     },
   ]
 
-  const countryList = useMemo(
-    () => getCountryList(i18n.language === 'ru' ? 'ru' : 'en'),
-    [i18n.language]
-  )
-
   const localizedTitle =
     formState?.locales[(i18n.language as SupportedLocale) ?? 'ru']?.title ||
     t('admin.untitledTournament')
@@ -521,6 +666,11 @@ export function TournamentEditForm({
     if (!window.confirm(t('tournament.edit.deleteConfirm'))) return
     await deleteTournament()
   }
+
+  const canEditBinding =
+    user?.role === 'admin' ||
+    user?.role === 'manager' ||
+    tournament?.createdBy === firebaseUser?.uid
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -564,7 +714,7 @@ export function TournamentEditForm({
             type="button"
             onClick={saveDraft}
             disabled={isSaving || isPublishing || isDeleting}
-            className="btn btn-primary btn-sm"
+            className="btn btn-primary"
           >
             {isSaving ? (
               <span className="loading loading-spinner loading-xs" />
@@ -577,7 +727,7 @@ export function TournamentEditForm({
               type="button"
               onClick={handlePublish}
               disabled={isPublishing || isSaving || isDeleting}
-              className="btn btn-success btn-sm"
+              className="btn btn-success"
             >
               {isPublishing ? (
                 <span className="loading loading-spinner loading-xs" />
@@ -590,7 +740,7 @@ export function TournamentEditForm({
             type="button"
             onClick={handleDelete}
             disabled={isDeleting || isSaving || isPublishing}
-            className="btn btn-error btn-outline btn-sm"
+            className="btn btn-error btn-outline"
           >
             {isDeleting ? (
               <span className="loading loading-spinner loading-xs" />
@@ -631,12 +781,16 @@ export function TournamentEditForm({
 
       {activeTab === 'general' && (
         <div className="space-y-6">
-          <BasicInfoSection
+          <GeneralInfoSection
             formState={formState}
-            countryList={countryList}
             updateLocale={updateLocale}
             updateBasic={updateBasic}
+            updateArbiter={updateArbiter}
           />
+
+          {canEditBinding && (
+            <BindingSection formState={formState} updateBasic={updateBasic} />
+          )}
 
           <TimeControlSection
             timeControl={formState.settings.timeControl}

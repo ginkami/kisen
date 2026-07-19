@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest'
 import App from './App'
 
 vi.mock('@tanstack/react-query', () => ({
-  useQuery: vi.fn(),
+  useQuery: vi.fn(() => ({ data: [], isLoading: false, isError: false })),
   useQueryClient: () => ({
     prefetchQuery: vi.fn(),
     setQueryData: vi.fn(),
@@ -12,6 +12,7 @@ vi.mock('@tanstack/react-query', () => ({
 }))
 
 vi.mock('react-i18next', () => ({
+  initReactI18next: { type: '3rdParty', init: vi.fn() },
   useTranslation: () => ({
     t: (key: string) => key,
     i18n: { language: 'ru', changeLanguage: vi.fn() },
@@ -46,9 +47,10 @@ describe('App', () => {
       isError: false,
     } as ReturnType<typeof useQuery>)
 
+    window.history.pushState({}, 'Login', '/login')
     render(<App />)
 
-    expect(screen.getByText('auth.title')).toBeInTheDocument()
-    expect(screen.getByText('auth.login')).toBeInTheDocument()
+    expect(screen.getByText('auth.email')).toBeInTheDocument()
+    expect(screen.getByText('auth.password')).toBeInTheDocument()
   })
 })

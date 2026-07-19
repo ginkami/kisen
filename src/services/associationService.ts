@@ -18,6 +18,21 @@ export class AssociationService {
   async listManagedByUser(userId: string): Promise<Association[]> {
     return this.repository.listManagedByUser(userId)
   }
+
+  async listMyAssociations(userId: string): Promise<Association[]> {
+    const [managed, created] = await Promise.all([
+      this.repository.listManagedByUser(userId),
+      this.repository.listCreatedByUser(userId),
+    ])
+    const byId = new Map<string, Association>()
+    for (const association of managed) {
+      byId.set(association.id, association)
+    }
+    for (const association of created) {
+      byId.set(association.id, association)
+    }
+    return Array.from(byId.values())
+  }
 }
 
 export const associationService = new AssociationService(

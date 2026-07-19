@@ -45,6 +45,16 @@ export class FirestoreAssociationRepository {
     })) as Association[]
   }
 
+  async listCreatedByUser(userId: string): Promise<Association[]> {
+    const q = query(this.collectionRef, where('createdBy', '==', userId))
+    const snapshot = await getDocs(q)
+
+    return snapshot.docs.map((docSnap) => ({
+      id: docSnap.id,
+      ...docSnap.data(),
+    })) as Association[]
+  }
+
   async create(association: Association): Promise<Association> {
     const docRef = doc(db, COLLECTION_NAME, association.id)
     await setDoc(docRef, association)

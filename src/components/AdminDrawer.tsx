@@ -109,7 +109,7 @@ export function AdminDrawer({
   })
 
   const sortedTournaments = useMemo(() => {
-    return [...tournaments].sort((a, b) => {
+    return [...(tournaments ?? [])].sort((a, b) => {
       const aStart = a.schedule.rounds[0]?.scheduledAt.getTime() ?? 0
       const bStart = b.schedule.rounds[0]?.scheduledAt.getTime() ?? 0
       return bStart - aStart
@@ -188,7 +188,7 @@ export function AdminDrawer({
           <button
             type="button"
             onClick={onClose}
-            className="btn btn-circle btn-ghost btn-sm"
+            className="btn btn-circle btn-ghost"
             aria-label={t('common.close')}
           >
             <XMarkIcon className="h-5 w-5" />

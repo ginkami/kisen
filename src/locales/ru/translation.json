@@ -56,13 +56,29 @@
       "schedule": {
         "title": "Расписание"
       },
-      "slug": "URL-идентификатор (slug)",
+      "slug": "URL-идентификатор",
       "title": "Название",
       "description": "Описание",
       "location": "Город / регион",
       "venue": "Место проведения",
       "country": "Страна",
       "noCountry": "— не выбрана —",
+      "binding": "Привязка турнира",
+      "parentEvent": "В рамках мероприятия",
+      "noParentEvent": "Не указано",
+      "hostAssociation": "Ассоциирован с",
+      "noHostAssociation": "Не указано",
+      "selectEvent": "Выбрать мероприятие",
+      "selectAssociation": "Выбрать ассоциацию",
+      "noEvents": "Нет мероприятий",
+      "noAssociations": "Нет ассоциаций",
+      "addDescription": "+ Описание",
+      "addVenue": "+ Место проведения",
+      "arbiter": {
+        "title": "Главный судья",
+        "givenName": "Имя",
+        "familyName": "Фамилия"
+      },
       "saveDraft": "Сохранить черновик",
       "publish": "Опубликовать",
       "publishConfirm": "Опубликовать турнир? После публикации он станет виден всем.",
@@ -116,6 +132,8 @@
   "common": {
     "close": "Закрыть",
     "retry": "Повторить",
-    "remove": "Удалить"
+    "remove": "Удалить",
+    "select": "Выбрать",
+    "cancel": "Отмена"
   }
 }

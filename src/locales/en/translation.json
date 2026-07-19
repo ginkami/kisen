@@ -63,6 +63,22 @@
       "venue": "Venue",
       "country": "Country",
       "noCountry": "— not selected —",
+      "binding": "Tournament linking",
+      "parentEvent": "Part of event",
+      "noParentEvent": "Not specified",
+      "hostAssociation": "Associated with",
+      "noHostAssociation": "Not specified",
+      "selectEvent": "Select event",
+      "selectAssociation": "Select association",
+      "noEvents": "No events",
+      "noAssociations": "No associations",
+      "addDescription": "+ Description",
+      "addVenue": "+ Venue",
+      "arbiter": {
+        "title": "Chief arbiter",
+        "givenName": "Given name",
+        "familyName": "Family name"
+      },
       "saveDraft": "Save draft",
       "publish": "Publish",
       "publishConfirm": "Publish the tournament? It will become visible to everyone.",
@@ -116,6 +132,8 @@
   "common": {
     "close": "Close",
     "retry": "Retry",
-    "remove": "Remove"
+    "remove": "Remove",
+    "select": "Select",
+    "cancel": "Cancel"
   }
 }

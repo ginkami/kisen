@@ -49,8 +49,25 @@ function timestampsToDates(value: unknown): unknown {
   return value
 }
 
+function removeUndefined(value: unknown): unknown {
+  if (value === undefined) {
+    return undefined
+  }
+  if (Array.isArray(value)) {
+    return value.map(removeUndefined).filter((v) => v !== undefined)
+  }
+  if (value !== null && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value)
+        .map(([key, val]) => [key, removeUndefined(val)])
+        .filter(([, val]) => val !== undefined)
+    )
+  }
+  return value
+}
+
 function toFirestore(tournament: Tournament): Record<string, unknown> {
-  return datesToTimestamps(tournament) as Record<string, unknown>
+  return removeUndefined(datesToTimestamps(tournament)) as Record<string, unknown>
 }
 
 function fromFirestore(data: Record<string, unknown>): Tournament {

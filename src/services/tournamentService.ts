@@ -32,6 +32,7 @@ export interface CreateDraftInput {
   parentEvent?: string | null
   initialLocale?: string
   desiredSlug?: string
+  arbiter?: Tournament['arbiter']
 }
 
 export interface UpdateTournamentInput {
@@ -45,6 +46,8 @@ export interface UpdateTournamentInput {
   games?: Tournament['games']
   status?: TournamentStatus
   publishedRounds?: number
+  parentEvent?: string | null
+  hostAssociation?: string | null
   desiredSlug?: string
   existing?: Tournament
 }
@@ -157,6 +160,7 @@ export class TournamentService {
       country,
       settings: defaultSettings(),
       schedule,
+      arbiter: input.arbiter,
       participants: [],
       games: [],
     }
@@ -197,6 +201,12 @@ export class TournamentService {
       isPublic,
       publishedRounds: input.publishedRounds ?? existing.publishedRounds,
       startYearMonth: nextStartYearMonth,
+      parentEvent:
+        input.parentEvent !== undefined ? input.parentEvent : existing.parentEvent,
+      hostAssociation:
+        input.hostAssociation !== undefined
+          ? input.hostAssociation
+          : existing.hostAssociation,
       slug,
       updatedAt: now,
     }
@@ -258,7 +268,7 @@ export class TournamentService {
     try {
       const controller = new AbortController()
       const timeout = setTimeout(() => controller.abort(), 3000)
-      const response = await fetch('https://ipapi.co/json/', {
+      const response = await fetch('https://ipwho.is/', {
         signal: controller.signal,
       })
       clearTimeout(timeout)
