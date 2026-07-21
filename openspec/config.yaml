@@ -99,6 +99,7 @@ rules:
     - Keep proposals concise but include the affected domain entities, Firestore collections, and security-rule implications.
     - Always include a "Non-goals" section to separate adjacent concerns.
     - If a change introduces a new Firestore query or filter, explicitly mention the need for a composite index in `firestore.indexes.json`.
+    - Testing Strategy: Every proposal must explicitly state what tests will be added or updated, defining unit tests for services/domain models and component/hook tests for UI features.
 
   design:
     - When designing any feature that reads from or writes to Firestore, first inspect and, if necessary, update `firestore.rules` so that the client-side operation will be permitted.
@@ -107,6 +108,9 @@ rules:
     - For every new query that uses multiple `where` clauses or an `orderBy`, verify that `firestore.indexes.json` already contains the required index or propose adding it.
     - Respect the layered architecture: domain logic must not import Firebase or React; services must not import React; components must not import `firebase/*` directly.
     - Always route slug creation/normalization/validation through `src/services/slugService.ts` and ensure uniqueness checks inside the service layer.
+    - Test-Driven Design: Define the inputs, outputs, and failure states for any service or domain utility *before* implementation, so they can be written as clear Vitest specifications.
+    - Optimistic UI Strategy: For state-changing mutations (e.g., status changes, participant enrollment), design a rollback mechanism using TanStack Query's `onMutate`, `onError`, and `onSettled` hooks to ensure immediate visual feedback for the user.
+    - Transactional Integrity: Any multi-document update or cross-collection operation (e.g., creating a tournament while registering its parent event) must be designed using Firestore's `writeBatch` or `runTransaction` to prevent partial commits.
 
   implementation:
     - Preserve existing import style: ES modules with explicit `.ts` extensions, named exports, and `type` imports for types only.
@@ -116,7 +120,23 @@ rules:
     - After mutations, invalidate the relevant TanStack Query keys (e.g. `['tournament', id]`, `['adminTournaments']`).
     - Do not hardcode locale lists; derive them from `supportedLocales` in `src/domain/locale.ts`.
     - IP-based defaults must never block draft creation: always provide a fallback country and city.
+    - Testing Rules:
+      - Co-location: Place test files directly adjacent to the file they are testing (e.g. `src/domain/tournament.test.ts` next to `src/domain/tournament.ts`).
+      - Domain Coverage: Pure domain files (`src/domain/`) and validation schemas must have 100% unit-test coverage focusing on both valid structures and validation error cases.
+      - Service Mocking: Service-layer tests must mock the Firestore repository implementations completely using Vitest (`vi.mock`). Unit and integration tests must NEVER make real network requests to Firebase or depend on initialized Firebase SDKs.
+      - Hook Isolation: Test custom hooks (like `useTournamentForm`) using `@testing-library/react`'s `renderHook`. Wrap them in necessary providers (QueryClientProvider, Router, AuthContext) using reusable test wrappers from `src/test/setup.ts`.
+      - Component Testing: Use React Testing Library (RTL) for testing user interactions (`userEvent`). Ensure proper cleanup of mock routers (React Router 7) and auth context.
+      - No Raw Locales in UI: UI text assertions in tests should reference keys or mock implementations of `t()` to prevent breaking when locales change.
+    - Strict Boundary Parsing: Never return untyped Firestore documents to the service or view layer. Repository implementations must parse raw Firestore data using Zod's `.safeParse()` immediately at the data-access boundary to catch corrupted data early.
+    - daisyUI 5 Theme Safety: Never use arbitrary colors or hardcoded hex codes (e.g., `text-[#1a202c]` or `bg-[#fff]`). Only use semantic Tailwind/daisyUI design tokens (`bg-base-100`, `text-base-content`, `btn-primary`, `border-base-300`) to guarantee full dark/light theme compliance.
+    - Localized Rendering Safeguards: Never render localized values using direct object access with hardcoded keys (e.g., `name.ru`). Always pass the current active locale from i18next and resolve translations using a safe domain-level utility that handles language fallback logic gracefully.
 
   review:
     - Before marking a task complete, confirm that `npm run lint` and `npm run test:run` would pass, or document the exceptions.
     - Re-read `firestore.rules` and `firestore.indexes.json` whenever a feature touches authentication, roles, collections, or queries.
+    - Test Quality Review:
+      - Verify that mocks are explicitly cleared or restored between tests (`afterEach(() => vi.clearAllMocks())` or `vi.restoreAllMocks()`) to avoid state leaks.
+      - Ensure there are no unhandled promise rejections or console errors/warnings (such as React 19 `'act'` or key warnings) printed during test execution.
+      - Confirm that tests cover negative/unhappy paths (e.g., Firestore permission errors, validation failures, empty lists, offline behavior).
+      - Translation Coverage: Verify that no user-facing text is hardcoded in React components or hooks. All strings, including placeholders, alt-texts, and ARIA labels, must use the `t()` function.
+    - Unused Component Cleanup: Ensure that newly introduced components do not leak performance. Double-check that any EventListeners or custom subscriptions are properly terminated inside cleanup functions.
