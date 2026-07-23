@@ -1,0 +1,92 @@
+{
+  "changeName": "part3-tournament-edit-ux-general-info",
+  "schemaName": "spec-driven",
+  "planningHome": {
+    "kind": "repo",
+    "root": "E:\\Projects\\kisen",
+    "changesDir": "E:\\Projects\\kisen\\openspec\\changes",
+    "defaultSchema": "spec-driven"
+  },
+  "changeRoot": "E:\\Projects\\kisen\\openspec\\changes\\part3-tournament-edit-ux-general-info",
+  "artifactPaths": {
+    "proposal": {
+      "outputPath": "proposal.md",
+      "resolvedOutputPath": "E:\\Projects\\kisen\\openspec\\changes\\part3-tournament-edit-ux-general-info\\proposal.md",
+      "existingOutputPaths": [
+        "E:\\Projects\\kisen\\openspec\\changes\\part3-tournament-edit-ux-general-info\\proposal.md"
+      ]
+    },
+    "specs": {
+      "outputPath": "specs/**/*.md",
+      "resolvedOutputPath": "E:\\Projects\\kisen\\openspec\\changes\\part3-tournament-edit-ux-general-info\\specs\\**\\*.md",
+      "existingOutputPaths": [
+        "E:\\Projects\\kisen\\openspec\\changes\\part3-tournament-edit-ux-general-info\\specs\\tournament-edit-form-ux\\spec.md"
+      ]
+    },
+    "design": {
+      "outputPath": "design.md",
+      "resolvedOutputPath": "E:\\Projects\\kisen\\openspec\\changes\\part3-tournament-edit-ux-general-info\\design.md",
+      "existingOutputPaths": [
+        "E:\\Projects\\kisen\\openspec\\changes\\part3-tournament-edit-ux-general-info\\design.md"
+      ]
+    },
+    "tasks": {
+      "outputPath": "tasks.md",
+      "resolvedOutputPath": "E:\\Projects\\kisen\\openspec\\changes\\part3-tournament-edit-ux-general-info\\tasks.md",
+      "existingOutputPaths": [
+        "E:\\Projects\\kisen\\openspec\\changes\\part3-tournament-edit-ux-general-info\\tasks.md"
+      ]
+    }
+  },
+  "isComplete": true,
+  "applyRequires": [
+    "tasks"
+  ],
+  "nextSteps": [
+    "All planning artifacts are complete; review tasks before implementation."
+  ],
+  "actionContext": {
+    "mode": "repo-local",
+    "sourceOfTruth": "repo",
+    "planningArtifacts": [
+      "proposal",
+      "design",
+      "specs",
+      "tasks"
+    ],
+    "linkedContext": [],
+    "allowedEditRoots": [
+      "E:\\Projects\\kisen"
+    ],
+    "requiresAffectedAreaSelection": false,
+    "constraints": [
+      "Repo-local change artifacts and implementation edits are scoped to this project."
+    ]
+  },
+  "artifacts": [
+    {
+      "id": "proposal",
+      "outputPath": "proposal.md",
+      "status": "done"
+    },
+    {
+      "id": "design",
+      "outputPath": "design.md",
+      "status": "done"
+    },
+    {
+      "id": "specs",
+      "outputPath": "specs/**/*.md",
+      "status": "done"
+    },
+    {
+      "id": "tasks",
+      "outputPath": "tasks.md",
+      "status": "done"
+    }
+  ],
+  "root": {
+    "path": "E:\\Projects\\kisen",
+    "source": "nearest"
+  }
+}
