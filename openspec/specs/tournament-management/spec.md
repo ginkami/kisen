@@ -17,3 +17,16 @@ The tournament entity SHALL represent the organizing country as a required ISO 3
 - **WHEN** a user publishes a tournament
 - **THEN** the system rejects the publish action unless `country` is a valid 2-letter code
 - **AND** the system rejects the publish action unless every locale has a non-empty `location`
+
+### Requirement: Removed features
+The tournament entity SHALL NOT provide an online/offline flag. The tournament entity SHALL NOT support multiple arbiters.
+
+#### Scenario: Online flag absent
+- **WHEN** a tournament is created or updated
+- **THEN** no `isOnline` field is stored or exposed
+- **AND** country selection is always visible in the tournament edit form
+
+#### Scenario: Single arbiter
+- **WHEN** a tournament is created or updated
+- **THEN** only a single optional `arbiter` with localized `familyName` and `givenName` is stored
+- **AND** no "Arbiters" tab appears in the tournament edit form
