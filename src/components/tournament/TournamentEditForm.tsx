@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { ConfirmModal } from '../ConfirmModal.tsx'
 import { useTranslation } from 'react-i18next'
 import {
   AdjustmentsVerticalIcon,
@@ -184,7 +185,6 @@ function GeneralInfoSection({
                 onChange={(e) =>
                   updateArbiter(activeLocale, 'givenName', e.target.value)
                 }
-                placeholder={t('tournament.edit.arbiter.givenName')}
                 className="input input-bordered w-full"
               />
             </div>
@@ -201,7 +201,6 @@ function GeneralInfoSection({
                 onChange={(e) =>
                   updateArbiter(activeLocale, 'familyName', e.target.value)
                 }
-                placeholder={t('tournament.edit.arbiter.familyName')}
                 className="input input-bordered w-full"
               />
             </div>
@@ -624,6 +623,10 @@ export function TournamentEditForm({
   type TabId = 'general' | 'settings' | 'schedule' | 'participants'
 
   const [activeTab, setActiveTab] = useState<TabId>('general')
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean
+    type: 'publish' | 'delete'
+  }>({ isOpen: false, type: 'publish' })
 
   const tabs: {
     id: TabId
@@ -657,7 +660,10 @@ export function TournamentEditForm({
     t('admin.untitledTournament')
 
   useEffect(() => {
-    document.title = t('tournament.edit.pageTitle', { title: localizedTitle })
+    document.title = t('tournament.edit.pageTitle', {
+      title: localizedTitle,
+      managementPanel: t('tournament.edit.managementPanel'),
+    })
   }, [localizedTitle, i18n.language, t])
 
   if (isLoading || !formState) {
@@ -672,14 +678,25 @@ export function TournamentEditForm({
     return <p className="text-error">{t('tournament.edit.errors.load')}</p>
   }
 
-  const handlePublish = async () => {
-    if (!window.confirm(t('tournament.edit.publishConfirm'))) return
-    await publish()
+  const handlePublish = () => {
+    setConfirmModal({ isOpen: true, type: 'publish' })
   }
 
-  const handleDelete = async () => {
-    if (!window.confirm(t('tournament.edit.deleteConfirm'))) return
-    await deleteTournament()
+  const handleDelete = () => {
+    setConfirmModal({ isOpen: true, type: 'delete' })
+  }
+
+  const handleConfirmAction = async () => {
+    setConfirmModal((prev) => ({ ...prev, isOpen: false }))
+    if (confirmModal.type === 'publish') {
+      await publish()
+    } else {
+      await deleteTournament()
+    }
+  }
+
+  const handleCancelAction = () => {
+    setConfirmModal((prev) => ({ ...prev, isOpen: false }))
   }
 
   const canEditBinding =
@@ -841,6 +858,25 @@ export function TournamentEditForm({
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        title={
+          confirmModal.type === 'publish'
+            ? t('tournament.edit.publishConfirmTitle')
+            : t('tournament.edit.deleteConfirmTitle')
+        }
+        message={
+          confirmModal.type === 'publish'
+            ? t('tournament.edit.publishConfirm')
+            : t('tournament.edit.deleteConfirm')
+        }
+        confirmText={t('common.confirm')}
+        cancelText={t('common.cancel')}
+        variant={confirmModal.type === 'delete' ? 'error' : 'primary'}
+        onConfirm={handleConfirmAction}
+        onCancel={handleCancelAction}
+      />
     </div>
   )
 }

@@ -1,7 +1,8 @@
 import { PlusIcon } from '@heroicons/react/24/outline'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { ConfirmModal } from './ConfirmModal.tsx'
 import { useAuth } from '../context/AuthContext.tsx'
 import { tournamentService } from '../services/tournamentService.ts'
 import { supportedLocales } from '../domain/locale.ts'
@@ -35,21 +36,16 @@ export function NewTournamentButton({
   const location = useLocation()
   const [isCreating, setIsCreating] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [confirmModalOpen, setConfirmModalOpen] = useState(false)
+  const shouldCreateAfterConfirm = useRef(false)
 
   useEffect(() => {
     setError(null)
   }, [location.pathname])
 
-  const handleClick = async () => {
+  const createTournament = async () => {
     if (!isAuthenticated || !firebaseUser) {
       navigate('/login')
-      return
-    }
-
-    if (
-      hasUnsavedChanges &&
-      !window.confirm(t('admin.unsavedChangesConfirm'))
-    ) {
       return
     }
 
@@ -71,6 +67,34 @@ export function NewTournamentButton({
     } finally {
       setIsCreating(false)
     }
+  }
+
+  const handleClick = () => {
+    if (!isAuthenticated || !firebaseUser) {
+      navigate('/login')
+      return
+    }
+
+    if (hasUnsavedChanges) {
+      shouldCreateAfterConfirm.current = true
+      setConfirmModalOpen(true)
+      return
+    }
+
+    void createTournament()
+  }
+
+  const handleConfirm = () => {
+    setConfirmModalOpen(false)
+    if (shouldCreateAfterConfirm.current) {
+      shouldCreateAfterConfirm.current = false
+      void createTournament()
+    }
+  }
+
+  const handleCancel = () => {
+    setConfirmModalOpen(false)
+    shouldCreateAfterConfirm.current = false
   }
 
   return (
@@ -96,6 +120,17 @@ export function NewTournamentButton({
       {error && (
         <span className="text-error text-xs max-w-[200px]">{error}</span>
       )}
+
+      <ConfirmModal
+        isOpen={confirmModalOpen}
+        title={t('admin.unsavedChangesConfirmTitle')}
+        message={t('admin.unsavedChangesConfirm')}
+        confirmText={t('common.confirm')}
+        cancelText={t('common.cancel')}
+        variant="primary"
+        onConfirm={handleConfirm}
+        onCancel={handleCancel}
+      />
     </div>
   )
 }

@@ -3,7 +3,7 @@ import { Link, Outlet, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
   ArrowRightEndOnRectangleIcon,
-  TrophyIcon,
+  Cog8ToothIcon,
 } from '@heroicons/react/24/outline'
 import { LanguageSwitcher } from './LanguageSwitcher.tsx'
 import { UserMenu } from './UserMenu.tsx'
@@ -74,20 +74,20 @@ export function Layout() {
       </header>
 
       <div className="relative flex flex-1">
-        <main
-          className={[
-            'flex-1 bg-base-100 p-4 transition-all duration-300 ease-in-out',
-            isAdminOpen ? 'lg:mr-0' : '',
-          ].join(' ')}
-        >
-          <Outlet context={{ setHasUnsavedChanges }} />
-        </main>
-
         <AdminDrawer
           isOpen={isAdminOpen}
           onClose={closeAdmin}
           hasUnsavedChanges={hasUnsavedChanges}
         />
+
+        <main
+          className={[
+            'flex-1 bg-base-100 p-4 transition-all duration-300 ease-in-out',
+            isAdminOpen ? 'lg:ml-0' : '',
+          ].join(' ')}
+        >
+          <Outlet context={{ setHasUnsavedChanges }} />
+        </main>
       </div>
 
       {/* Sticky admin tab */}
@@ -95,10 +95,10 @@ export function Layout() {
         <button
           type="button"
           onClick={toggleAdmin}
-          className="fixed right-0 top-1/2 z-40 -translate-y-1/2 rounded-l-box bg-secondary p-3 text-secondary-content shadow-lg"
+          className="fixed left-0 top-1/2 z-40 -translate-y-1/2 rounded-r-box bg-secondary p-3 text-secondary-content shadow-lg"
           aria-label={t('admin.title')}
         >
-          <TrophyIcon className="h-6 w-6" />
+          <Cog8ToothIcon className="h-6 w-6" />
         </button>
       )}
     </div>

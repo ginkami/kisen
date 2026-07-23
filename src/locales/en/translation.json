@@ -23,6 +23,7 @@
     "noTournamentsForMonth": "No tournaments for this month.",
     "untitledTournament": "Untitled",
     "noDate": "No date",
+    "unsavedChangesConfirmTitle": "Unsaved changes",
     "unsavedChangesConfirm": "You have unsaved changes. Leave this page?"
   },
   "profile": {
@@ -43,7 +44,7 @@
     },
     "edit": {
       "managementPanel": "Tournament management",
-      "pageTitle": "{{title}} — Management panel | shogi·world",
+      "pageTitle": "{{title}} — {{managementPanel}} | shogi·world",
       "basicInfo": "Basic information",
       "settings": "Settings",
       "tabs": {
@@ -81,8 +82,10 @@
       },
       "saveDraft": "Save draft",
       "publish": "Publish",
+      "publishConfirmTitle": "Publish tournament",
       "publishConfirm": "Publish the tournament? It will become visible to everyone.",
       "delete": "Delete",
+      "deleteConfirmTitle": "Delete tournament",
       "deleteConfirm": "Delete the tournament? This action cannot be undone.",
       "errors": {
         "load": "Failed to load tournament.",
@@ -135,6 +138,7 @@
     "retry": "Retry",
     "remove": "Remove",
     "select": "Select",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "confirm": "Confirm"
   }
 }

@@ -23,6 +23,7 @@
     "noTournamentsForMonth": "В этом месяце нет турниров.",
     "untitledTournament": "Без названия",
     "noDate": "Без даты",
+    "unsavedChangesConfirmTitle": "Несохранённые изменения",
     "unsavedChangesConfirm": "Есть несохранённые изменения. Покинуть страницу?"
   },
   "profile": {
@@ -43,7 +44,7 @@
     },
     "edit": {
       "managementPanel": "Управление турниром",
-      "pageTitle": "{{title}} — Панель управления | shogi·world",
+      "pageTitle": "{{title}} — {{managementPanel}} | shogi·world",
       "basicInfo": "Основная информация",
       "settings": "Настройки",
       "tabs": {
@@ -81,8 +82,10 @@
       },
       "saveDraft": "Сохранить черновик",
       "publish": "Опубликовать",
+      "publishConfirmTitle": "Публикация турнира",
       "publishConfirm": "Опубликовать турнир? После публикации он станет виден всем.",
       "delete": "Удалить",
+      "deleteConfirmTitle": "Удаление турнира",
       "deleteConfirm": "Удалить турнир? Это действие нельзя отменить.",
       "errors": {
         "load": "Не удалось загрузить турнир.",
@@ -135,6 +138,7 @@
     "retry": "Повторить",
     "remove": "Удалить",
     "select": "Выбрать",
-    "cancel": "Отмена"
+    "cancel": "Отмена",
+    "confirm": "Подтвердить"
   }
 }

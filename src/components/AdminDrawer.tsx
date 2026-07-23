@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { ConfirmModal } from './ConfirmModal.tsx'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import {
-  TrophyIcon,
+  Cog8ToothIcon,
   XMarkIcon,
   CalendarIcon,
 } from '@heroicons/react/24/outline'
@@ -63,6 +64,8 @@ export function AdminDrawer({
   const [selectedYearMonth, setSelectedYearMonth] = useState(() =>
     formatYearMonthToMonthInput(formatDateToYearMonth(new Date()))
   )
+  const [confirmModalOpen, setConfirmModalOpen] = useState(false)
+  const pendingNavigation = useRef<string | null>(null)
 
   useEffect(() => {
     const handleEscape = (event: KeyboardEvent) => {
@@ -85,7 +88,7 @@ export function AdminDrawer({
     const endX = event.changedTouches[0]?.clientX ?? touchStartX.current
     const deltaX = endX - touchStartX.current
 
-    if (deltaX < -50) {
+    if (deltaX > 50) {
       onClose()
     }
 
@@ -118,11 +121,26 @@ export function AdminDrawer({
 
   const handleNavigate = (to: string) => {
     if (hasUnsavedChanges && to !== pathname) {
-      const confirmed = window.confirm(t('admin.unsavedChangesConfirm'))
-      if (!confirmed) return
+      pendingNavigation.current = to
+      setConfirmModalOpen(true)
+      return
     }
     navigate(to)
     onClose()
+  }
+
+  const handleConfirmNavigation = () => {
+    setConfirmModalOpen(false)
+    if (pendingNavigation.current) {
+      navigate(pendingNavigation.current)
+      pendingNavigation.current = null
+    }
+    onClose()
+  }
+
+  const handleCancelNavigation = () => {
+    setConfirmModalOpen(false)
+    pendingNavigation.current = null
   }
 
   const renderTournamentItem = (tournament: Tournament) => {
@@ -176,13 +194,13 @@ export function AdminDrawer({
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
         className={[
-          'fixed top-0 right-0 z-50 h-full w-80 overflow-y-auto bg-base-200 shadow-xl transition-transform duration-300 ease-in-out',
-          isOpen ? 'translate-x-0' : 'translate-x-full',
+          'fixed top-0 left-0 z-50 h-full w-80 overflow-y-auto bg-base-200 shadow-xl transition-transform duration-300 ease-in-out',
+          isOpen ? 'translate-x-0' : '-translate-x-full',
         ].join(' ')}
       >
         <div className="sticky top-0 z-10 flex items-center justify-between bg-base-200 px-4 py-3">
           <div className="flex items-center gap-2 text-lg font-semibold">
-            <TrophyIcon className="h-5 w-5" />
+            <Cog8ToothIcon className="h-5 w-5" />
             {t('admin.title')}
           </div>
           <button
@@ -272,6 +290,17 @@ export function AdminDrawer({
           </div>
         </div>
       </div>
+
+      <ConfirmModal
+        isOpen={confirmModalOpen}
+        title={t('admin.unsavedChangesConfirmTitle')}
+        message={t('admin.unsavedChangesConfirm')}
+        confirmText={t('common.confirm')}
+        cancelText={t('common.cancel')}
+        variant="primary"
+        onConfirm={handleConfirmNavigation}
+        onCancel={handleCancelNavigation}
+      />
     </>
   )
 }
