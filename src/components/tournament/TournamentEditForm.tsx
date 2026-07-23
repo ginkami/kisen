@@ -349,7 +349,7 @@ function TimeControlSection({
   return (
     <div className="card bg-base-200 shadow-sm">
       <div className="card-body">
-        <h2 className="card-title">{t('tournament.edit.settings')}</h2>
+        <h2 className="card-title">{t('tournament.edit.timeControl.title')}</h2>
 
         <div className="form-control">
           <label className="label">
@@ -806,7 +806,11 @@ export function TournamentEditForm({
           {canEditBinding && (
             <BindingSection formState={formState} updateBasic={updateBasic} />
           )}
+        </div>
+      )}
 
+      {activeTab === 'settings' && (
+        <div className="space-y-6">
           <TimeControlSection
             timeControl={formState.settings.timeControl}
             onTypeChange={updateTimeControlType}
@@ -818,30 +822,16 @@ export function TournamentEditForm({
             onAdd={addTieBreak}
             onRemove={removeTieBreak}
           />
-
-          <ScheduleSection
-            rounds={formState.schedule.rounds}
-            onAdd={addRound}
-            onUpdate={updateRound}
-            onRemove={removeRound}
-          />
-        </div>
-      )}
-
-      {activeTab === 'settings' && (
-        <div className="card bg-base-200 shadow-sm">
-          <div className="card-body opacity-70">
-            {t('tournament.edit.tabs.placeholder')}
-          </div>
         </div>
       )}
 
       {activeTab === 'schedule' && (
-        <div className="card bg-base-200 shadow-sm">
-          <div className="card-body opacity-70">
-            {t('tournament.edit.tabs.placeholder')}
-          </div>
-        </div>
+        <ScheduleSection
+          rounds={formState.schedule.rounds}
+          onAdd={addRound}
+          onUpdate={updateRound}
+          onRemove={removeRound}
+        />
       )}
 
       {activeTab === 'participants' && (

@@ -47,7 +47,7 @@
       "basicInfo": "Basic information",
       "settings": "Settings",
       "tabs": {
-        "general": "General information",
+        "general": "General",
         "settings": "Settings",
         "schedule": "Schedule",
         "participants": "Participants",
@@ -91,6 +91,7 @@
         "delete": "Failed to delete tournament."
       },
       "timeControl": {
+        "title": "Time control",
         "type": "Time control type",
         "mainTime": "Main time (min)",
         "increment": "Increment (sec)",
