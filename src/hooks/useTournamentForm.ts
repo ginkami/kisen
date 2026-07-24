@@ -376,14 +376,18 @@ export function useTournamentForm(tournamentId: string | undefined) {
   )
 
   const addTieBreak = useCallback(
-    (type: TieBreakType) => {
+    (type: TieBreakType, cutCount?: number) => {
       updateForm((state) => {
-        const existing = state.settings.tieBreaks.find(
-          (tb) => tb.type === type
-        )
-        if (existing) return state
+        if (type !== 'buchholz_cut') {
+          const existing = state.settings.tieBreaks.find(
+            (tb) => tb.type === type
+          )
+          if (existing) return state
+        }
         const newTieBreak: TieBreak =
-          type === 'buchholz_cut' ? { type, cutCount: 1 } : { type }
+          type === 'buchholz_cut'
+            ? { type, cutCount: cutCount ?? 1 }
+            : { type }
         return {
           ...state,
           settings: {

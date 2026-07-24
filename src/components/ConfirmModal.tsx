@@ -47,7 +47,7 @@ export function ConfirmModal({
       aria-modal="true"
       aria-labelledby="confirm-modal-title"
     >
-      <div className="modal-box">
+      <div className="modal-box text-secondary-content">
         <h3 id="confirm-modal-title" className="text-lg font-bold">
           {title}
         </h3>

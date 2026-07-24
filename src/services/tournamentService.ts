@@ -68,10 +68,16 @@ function defaultLocales(location = ''): Record<string, TournamentLocale> {
 function defaultSettings(): Tournament['settings'] {
   return {
     timeControl: {
-      type: 'absolute',
+      type: 'byoyomi',
       mainTime: 0,
+      byoyomiTime: 0,
+      byoyomiPeriods: 1,
     },
-    tieBreaks: [{ type: 'points' }],
+    tieBreaks: [
+      { type: 'points' },
+      { type: 'buchholz' },
+      { type: 'sonneborn_berger' },
+    ],
   }
 }
 

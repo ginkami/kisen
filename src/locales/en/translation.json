@@ -105,7 +105,8 @@
       },
       "tieBreaks": {
         "title": "Tie-breaks",
-        "add": "Add"
+        "add": "Add",
+        "cutCount": "Cut count"
       },
       "rounds": {
         "number": "Round",

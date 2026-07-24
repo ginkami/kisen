@@ -431,14 +431,17 @@ function TieBreaksSection({
   onRemove,
 }: {
   tieBreaks: TieBreak[]
-  onAdd: (type: TieBreakType) => void
+  onAdd: (type: TieBreakType, cutCount?: number) => void
   onRemove: (index: number) => void
 }) {
   const { t } = useTranslation()
   const [selectedType, setSelectedType] = useState<TieBreakType>('buchholz')
+  const [cutCount, setCutCount] = useState(1)
 
   const availableTypes = tieBreakTypeSchema.options.filter(
-    (type) => type !== 'points' && !tieBreaks.some((tb) => tb.type === type)
+    (type) =>
+      type !== 'points' &&
+      (type === 'buchholz_cut' || !tieBreaks.some((tb) => tb.type === type))
   )
 
   return (
@@ -451,7 +454,7 @@ function TieBreaksSection({
             {t('tournament.tieBreak.points')}
           </span>
           {tieBreaks.slice(1).map((tb, index) => (
-            <span key={tb.type} className="badge badge-outline gap-2">
+            <span key={index} className="badge badge-outline gap-2">
               {t(`tournament.tieBreak.${tb.type}`)}
               {tb.type === 'buchholz_cut' && ` (${tb.cutCount})`}
               <button
@@ -483,15 +486,22 @@ function TieBreaksSection({
                 ))}
               </select>
             </div>
+            {selectedType === 'buchholz_cut' && (
+              <NumberField
+                label={t('tournament.edit.tieBreaks.cutCount')}
+                value={cutCount}
+                onChange={setCutCount}
+                min={0}
+              />
+            )}
             <button
               type="button"
               onClick={() => {
-                onAdd(selectedType)
-                setSelectedType(
-                  availableTypes.find((type) => type !== selectedType) ??
-                    availableTypes[0] ??
-                    'buchholz'
+                onAdd(
+                  selectedType,
+                  selectedType === 'buchholz_cut' ? cutCount : undefined
                 )
+                setCutCount(1)
               }}
               className="btn btn-secondary"
             >
