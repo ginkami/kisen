@@ -108,8 +108,12 @@ export function sortAndRenumber(rows: ScheduleRow[]): ScheduleRow[] {
     return aTime - bTime
   })
 
+  return renumberRounds(sorted)
+}
+
+function renumberRounds(rows: ScheduleRow[]): ScheduleRow[] {
   let roundNumber = 1
-  return sorted.map((row) => {
+  return rows.map((row) => {
     if (row.kind === 'round') {
       return { ...row, number: roundNumber++ }
     }
@@ -554,14 +558,15 @@ export function useTournamentForm(tournamentId: string | undefined) {
           } as ScheduleRow
           return {
             ...state,
-            scheduleRows: [...state.scheduleRows, newRow],
+            scheduleRows: renumberRounds([...state.scheduleRows, newRow]),
           }
         }
+        const updatedRows = state.scheduleRows.map((row) =>
+          row.id === id ? ({ ...row, ...patch } as ScheduleRow) : row
+        )
         return {
           ...state,
-          scheduleRows: state.scheduleRows.map((row) =>
-            row.id === id ? ({ ...row, ...patch } as ScheduleRow) : row
-          ),
+          scheduleRows: renumberRounds(updatedRows),
         }
       })
     },

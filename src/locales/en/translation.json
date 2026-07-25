@@ -119,6 +119,7 @@
         "dateTime": "Date and time",
         "event": "Event",
         "round": "Round {{n}}",
+        "roundOption": "Round",
         "preset": {
           "registration": "Participant registration",
           "opening": "Tournament opening, drawing",

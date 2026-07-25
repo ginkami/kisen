@@ -535,13 +535,20 @@ function ScheduleEventCombobox({
   roundCount: number
   onUpdate: (id: string, patch: Partial<ScheduleRow>) => void
 }) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const [isOpen, setIsOpen] = useState(false)
 
-  const displayValue =
-    row.kind === 'round'
-      ? t('tournament.edit.program.round', { n: row.number })
-      : row.locales[activeLocale]?.title ?? ''
+  if (row.kind === 'round') {
+    return (
+      <div className="flex-1 flex p-1">
+        <span className="badge badge-info">
+          {t('tournament.edit.program.round', { n: row.number })}
+        </span>
+      </div>
+    )
+  }
+
+  const displayValue = row.locales[activeLocale]?.title ?? ''
 
   const filterText = displayValue.toLowerCase()
 
@@ -551,37 +558,21 @@ function ScheduleEventCombobox({
       .includes(filterText)
   )
 
-  const nextRoundNumber = roundCount + 1
-
   const handleTextChange = (value: string) => {
-    if (row.kind === 'round') {
-      onUpdate(row.id, {
-        kind: 'event',
-        locales: Object.fromEntries(
-          supportedLocales.map((locale) => [
-            locale,
-            { title: locale === activeLocale ? value : '' },
-          ])
-        ) as ScheduleRow extends { kind: 'event' }
-          ? ScheduleRow['locales']
-          : never,
-      })
-    } else {
-      onUpdate(row.id, {
-        locales: {
-          ...row.locales,
-          [activeLocale]: { title: value },
-        },
-      })
-    }
+    onUpdate(row.id, {
+      locales: {
+        ...row.locales,
+        [activeLocale]: { title: value },
+      },
+    })
   }
 
   const handleSelectPreset = (key: SchedulePresetKey) => {
     const locales = Object.fromEntries(
-      supportedLocales.map((locale) => [
-        locale,
-        { title: t(`tournament.edit.program.preset.${key}`) },
-      ])
+      supportedLocales.map((locale) => {
+        const fixedT = i18n.getFixedT(locale)
+        return [locale, { title: fixedT(`tournament.edit.program.preset.${key}`) }]
+      })
     ) as ScheduleRow extends { kind: 'event' } ? ScheduleRow['locales'] : never
 
     onUpdate(row.id, {
@@ -594,7 +585,7 @@ function ScheduleEventCombobox({
   const handleSelectRound = () => {
     onUpdate(row.id, {
       kind: 'round',
-      number: nextRoundNumber,
+      number: roundCount + 1,
     })
     setIsOpen(false)
   }
@@ -624,9 +615,9 @@ function ScheduleEventCombobox({
                 e.preventDefault()
                 handleSelectRound()
               }}
-              className="w-full text-left"
+              className="w-full text-left bg-info"
             >
-              {t('tournament.edit.program.round', { n: nextRoundNumber })}
+              {t('tournament.edit.program.roundOption')}
             </button>
           </li>
           {filteredPresets.map((key) => (
