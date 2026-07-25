@@ -17,6 +17,106 @@ import { supportedLocales, type SupportedLocale } from '../domain/locale.ts'
 import type { TimeControlFormat } from '../domain/timeControl.ts'
 import type { TieBreak, TieBreakType } from '../domain/tieBreak.ts'
 
+export type ScheduleRow =
+  | { kind: 'round'; id: string; scheduledAt: Date | null; number: number }
+  | {
+      kind: 'event'
+      id: string
+      scheduledAt: Date | null
+      locales: Record<SupportedLocale, { title: string }>
+    }
+
+function createEmptyEventLocales(): Record<SupportedLocale, { title: string }> {
+  return Object.fromEntries(
+    supportedLocales.map((locale) => [locale, { title: '' }])
+  ) as Record<SupportedLocale, { title: string }>
+}
+
+function generateRowId(): string {
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+}
+
+export function mergeSchedule(
+  events: TournamentSchedule['events'],
+  rounds: TournamentSchedule['rounds']
+): ScheduleRow[] {
+  const rows: ScheduleRow[] = [
+    ...events.map((event) => ({
+      kind: 'event' as const,
+      id: generateRowId(),
+      scheduledAt: event.scheduledAt instanceof Date ? event.scheduledAt : null,
+      locales: Object.fromEntries(
+        supportedLocales.map((locale) => [
+          locale,
+          { title: event.locales[locale]?.title ?? '' },
+        ])
+      ) as Record<SupportedLocale, { title: string }>,
+    })),
+    ...rounds.map((round) => ({
+      kind: 'round' as const,
+      id: generateRowId(),
+      scheduledAt: round.scheduledAt instanceof Date ? round.scheduledAt : null,
+      number: round.number,
+    })),
+  ]
+  return rows.sort((a, b) => {
+    const aTime = a.scheduledAt?.getTime() ?? 0
+    const bTime = b.scheduledAt?.getTime() ?? 0
+    return aTime - bTime
+  })
+}
+
+export function splitSchedule(rows: ScheduleRow[]): TournamentSchedule {
+  const events: TournamentSchedule['events'] = []
+  const rounds: TournamentSchedule['rounds'] = []
+
+  for (const row of rows) {
+    if (!row.scheduledAt) continue
+
+    if (row.kind === 'round') {
+      rounds.push({
+        number: row.number,
+        scheduledAt: row.scheduledAt,
+      })
+    } else {
+      const hasTitle = supportedLocales.some(
+        (locale) => row.locales[locale]?.title.trim() !== ''
+      )
+      if (!hasTitle) continue
+
+      events.push({
+        scheduledAt: row.scheduledAt,
+        locales: Object.fromEntries(
+          supportedLocales
+            .filter((locale) => row.locales[locale]?.title.trim() !== '')
+            .map((locale) => [
+              locale,
+              { title: row.locales[locale].title },
+            ])
+        ) as TournamentSchedule['events'][number]['locales'],
+      })
+    }
+  }
+
+  return { events, rounds }
+}
+
+export function sortAndRenumber(rows: ScheduleRow[]): ScheduleRow[] {
+  const sorted = [...rows].sort((a, b) => {
+    const aTime = a.scheduledAt?.getTime() ?? 0
+    const bTime = b.scheduledAt?.getTime() ?? 0
+    return aTime - bTime
+  })
+
+  let roundNumber = 1
+  return sorted.map((row) => {
+    if (row.kind === 'round') {
+      return { ...row, number: roundNumber++ }
+    }
+    return row
+  })
+}
+
 export interface TournamentFormState {
   slug: string
   parentEvent: string | null
@@ -25,7 +125,7 @@ export interface TournamentFormState {
   country: string
   arbiter: Record<SupportedLocale, { givenName: string; familyName: string }>
   settings: TournamentSettings
-  schedule: TournamentSchedule
+  scheduleRows: ScheduleRow[]
 }
 
 function createEmptyLocale(): TournamentLocale {
@@ -73,12 +173,10 @@ function tournamentToFormState(tournament: Tournament): TournamentFormState {
       ) as TournamentFormState['arbiter']
     })(),
     settings: tournament.settings,
-    schedule: {
-      events: tournament.schedule.events,
-      rounds: [...tournament.schedule.rounds].sort(
-        (a, b) => a.number - b.number
-      ),
-    },
+    scheduleRows: mergeSchedule(
+      tournament.schedule.events,
+      tournament.schedule.rounds
+    ),
   }
 }
 
@@ -86,6 +184,8 @@ function formStateToUpdateInput(
   tournament: Tournament,
   state: TournamentFormState
 ) {
+  const schedule = splitSchedule(state.scheduleRows)
+
   const input: {
     id: string
     locales: Tournament['locales']
@@ -101,7 +201,7 @@ function formStateToUpdateInput(
     locales: state.locales as Tournament['locales'],
     country: state.country,
     settings: state.settings,
-    schedule: state.schedule,
+    schedule,
     parentEvent: state.parentEvent,
     hostAssociation: state.hostAssociation,
     arbiter: {
@@ -125,13 +225,7 @@ function formStateToUpdateInput(
 }
 
 function normalizeState(state: TournamentFormState): TournamentFormState {
-  return {
-    ...state,
-    schedule: {
-      ...state.schedule,
-      rounds: [...state.schedule.rounds].sort((a, b) => a.number - b.number),
-    },
-  }
+  return state
 }
 
 const TOURNAMENT_QUERY_KEY = 'tournament'
@@ -413,52 +507,83 @@ export function useTournamentForm(tournamentId: string | undefined) {
     [updateForm]
   )
 
-  const addRound = useCallback(() => {
-    updateForm((state) => {
-      const numbers = state.schedule.rounds.map((r) => r.number)
-      const nextNumber = numbers.length > 0 ? Math.max(...numbers) + 1 : 1
-      return {
-        ...state,
-        schedule: {
-          ...state.schedule,
-          rounds: [
-            ...state.schedule.rounds,
-            { number: nextNumber, scheduledAt: new Date() },
-          ],
-        },
-      }
-    })
-  }, [updateForm])
-
-  const updateRound = useCallback(
-    (
-      index: number,
-      patch: Partial<TournamentSchedule['rounds'][number]>
-    ) => {
+  const addScheduleRow = useCallback(
+    (afterId?: string) => {
       updateForm((state) => {
-        const rounds = [...state.schedule.rounds]
-        rounds[index] = { ...rounds[index], ...patch }
+        const newRow: ScheduleRow = {
+          kind: 'event',
+          id: generateRowId(),
+          scheduledAt: null,
+          locales: createEmptyEventLocales(),
+        }
+        if (!afterId) {
+          return {
+            ...state,
+            scheduleRows: [...state.scheduleRows, newRow],
+          }
+        }
+        const index = state.scheduleRows.findIndex((r) => r.id === afterId)
+        if (index === -1) {
+          return {
+            ...state,
+            scheduleRows: [...state.scheduleRows, newRow],
+          }
+        }
+        const newRows = [...state.scheduleRows]
+        newRows.splice(index + 1, 0, newRow)
         return {
           ...state,
-          schedule: { ...state.schedule, rounds },
+          scheduleRows: newRows,
         }
       })
     },
     [updateForm]
   )
 
-  const removeRound = useCallback(
-    (index: number) => {
+  const updateScheduleRow = useCallback(
+    (id: string, patch: Partial<ScheduleRow>) => {
+      updateForm((state) => {
+        const exists = state.scheduleRows.some((row) => row.id === id)
+        if (!exists) {
+          const newRow: ScheduleRow = {
+            kind: 'event',
+            id,
+            scheduledAt: null,
+            locales: createEmptyEventLocales(),
+            ...patch,
+          } as ScheduleRow
+          return {
+            ...state,
+            scheduleRows: [...state.scheduleRows, newRow],
+          }
+        }
+        return {
+          ...state,
+          scheduleRows: state.scheduleRows.map((row) =>
+            row.id === id ? ({ ...row, ...patch } as ScheduleRow) : row
+          ),
+        }
+      })
+    },
+    [updateForm]
+  )
+
+  const removeScheduleRow = useCallback(
+    (id: string) => {
       updateForm((state) => ({
         ...state,
-        schedule: {
-          ...state.schedule,
-          rounds: state.schedule.rounds.filter((_, i) => i !== index),
-        },
+        scheduleRows: state.scheduleRows.filter((r) => r.id !== id),
       }))
     },
     [updateForm]
   )
+
+  const sortScheduleRows = useCallback(() => {
+    updateForm((state) => ({
+      ...state,
+      scheduleRows: sortAndRenumber(state.scheduleRows),
+    }))
+  }, [updateForm])
 
   const saveMutation = useMutation({
     mutationFn: async () => {
@@ -481,12 +606,13 @@ export function useTournamentForm(tournamentId: string | undefined) {
   const publishMutation = useMutation({
     mutationFn: async () => {
       if (!tournament || !formState) throw new Error('Tournament not loaded')
+      const schedule = splitSchedule(formState.scheduleRows)
       const candidate = {
         ...tournament,
         locales: formState.locales as Tournament['locales'],
         country: formState.country,
         settings: formState.settings,
-        schedule: formState.schedule,
+        schedule,
         slug: formState.slug,
         parentEvent: formState.parentEvent,
         hostAssociation: formState.hostAssociation,
@@ -552,9 +678,10 @@ export function useTournamentForm(tournamentId: string | undefined) {
     setTieBreaks,
     addTieBreak,
     removeTieBreak,
-    addRound,
-    updateRound,
-    removeRound,
+    addScheduleRow,
+    updateScheduleRow,
+    removeScheduleRow,
+    sortScheduleRows,
     saveDraft: () => saveMutation.mutateAsync(),
     publish: () => publishMutation.mutateAsync(),
     deleteTournament: () => deleteMutation.mutateAsync(),

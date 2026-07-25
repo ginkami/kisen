@@ -7,44 +7,14 @@ import {
   deleteDoc,
   query,
   where,
-  Timestamp,
   orderBy,
 } from 'firebase/firestore'
 import { db } from './firebaseConfig.ts'
 import type { Event } from '../domain/event.ts'
 import type { EventRepository, ListEventsFilters } from './repository.ts'
+import { datesToTimestamps, timestampsToDates } from './firestoreHelpers.ts'
 
 const COLLECTION_NAME = 'events'
-
-function datesToTimestamps(value: unknown): unknown {
-  if (value instanceof Date) {
-    return Timestamp.fromDate(value)
-  }
-  if (Array.isArray(value)) {
-    return value.map(datesToTimestamps)
-  }
-  if (value !== null && typeof value === 'object') {
-    return Object.fromEntries(
-      Object.entries(value).map(([key, val]) => [key, datesToTimestamps(val)])
-    )
-  }
-  return value
-}
-
-function timestampsToDates(value: unknown): unknown {
-  if (value instanceof Timestamp) {
-    return value.toDate()
-  }
-  if (Array.isArray(value)) {
-    return value.map(timestampsToDates)
-  }
-  if (value !== null && typeof value === 'object') {
-    return Object.fromEntries(
-      Object.entries(value).map(([key, val]) => [key, timestampsToDates(val)])
-    )
-  }
-  return value
-}
 
 function toFirestore(event: Event): Record<string, unknown> {
   return datesToTimestamps(event) as Record<string, unknown>

@@ -7,16 +7,17 @@ import {
   PencilSquareIcon,
   UserGroupIcon,
 } from '@heroicons/react/24/outline'
+import { PlusIcon, XMarkIcon } from '@heroicons/react/20/solid'
 import { useAuth } from '../../context/AuthContext.tsx'
 import { useTournamentForm } from '../../hooks/useTournamentForm.ts'
 import {
   dateToLocalDatetimeInputValue,
   localDatetimeInputValueToUtcDate,
 } from '../../utils/dateTime.ts'
-import type { SupportedLocale } from '../../domain/locale.ts'
+import { supportedLocales, type SupportedLocale } from '../../domain/locale.ts'
 import { timeControlFormatSchema } from '../../domain/timeControl.ts'
 import { tieBreakTypeSchema } from '../../domain/tieBreak.ts'
-import type { TournamentFormState } from '../../hooks/useTournamentForm.ts'
+import type { TournamentFormState, ScheduleRow } from '../../hooks/useTournamentForm.ts'
 import type { TimeControl, TimeControlFormat } from '../../domain/timeControl.ts'
 import type { TieBreak, TieBreakType } from '../../domain/tieBreak.ts'
 import type { TournamentLocale } from '../../domain/tournament.ts'
@@ -514,83 +515,244 @@ function TieBreaksSection({
   )
 }
 
+const SCHEDULE_PRESETS = [
+  'registration',
+  'opening',
+  'award',
+  'break',
+] as const
+
+type SchedulePresetKey = (typeof SCHEDULE_PRESETS)[number]
+
+function ScheduleEventCombobox({
+  row,
+  activeLocale,
+  roundCount,
+  onUpdate,
+}: {
+  row: ScheduleRow
+  activeLocale: SupportedLocale
+  roundCount: number
+  onUpdate: (id: string, patch: Partial<ScheduleRow>) => void
+}) {
+  const { t } = useTranslation()
+  const [isOpen, setIsOpen] = useState(false)
+
+  const displayValue =
+    row.kind === 'round'
+      ? t('tournament.edit.program.round', { n: row.number })
+      : row.locales[activeLocale]?.title ?? ''
+
+  const filterText = displayValue.toLowerCase()
+
+  const filteredPresets = SCHEDULE_PRESETS.filter((key) =>
+    t(`tournament.edit.program.preset.${key}`)
+      .toLowerCase()
+      .includes(filterText)
+  )
+
+  const nextRoundNumber = roundCount + 1
+
+  const handleTextChange = (value: string) => {
+    if (row.kind === 'round') {
+      onUpdate(row.id, {
+        kind: 'event',
+        locales: Object.fromEntries(
+          supportedLocales.map((locale) => [
+            locale,
+            { title: locale === activeLocale ? value : '' },
+          ])
+        ) as ScheduleRow extends { kind: 'event' }
+          ? ScheduleRow['locales']
+          : never,
+      })
+    } else {
+      onUpdate(row.id, {
+        locales: {
+          ...row.locales,
+          [activeLocale]: { title: value },
+        },
+      })
+    }
+  }
+
+  const handleSelectPreset = (key: SchedulePresetKey) => {
+    const locales = Object.fromEntries(
+      supportedLocales.map((locale) => [
+        locale,
+        { title: t(`tournament.edit.program.preset.${key}`) },
+      ])
+    ) as ScheduleRow extends { kind: 'event' } ? ScheduleRow['locales'] : never
+
+    onUpdate(row.id, {
+      kind: 'event',
+      locales,
+    })
+    setIsOpen(false)
+  }
+
+  const handleSelectRound = () => {
+    onUpdate(row.id, {
+      kind: 'round',
+      number: nextRoundNumber,
+    })
+    setIsOpen(false)
+  }
+
+  return (
+    <div className="relative flex-1">
+      <input
+        type="text"
+        value={displayValue}
+        onChange={(e) => handleTextChange(e.target.value)}
+        onFocus={() => setIsOpen(true)}
+        onBlur={() => setTimeout(() => setIsOpen(false), 150)}
+        className="input input-bordered input-sm w-full"
+        role="combobox"
+        aria-expanded={isOpen}
+        autoComplete="off"
+      />
+      {isOpen && (
+        <ul
+          className="dropdown-content z-10 menu p-2 shadow bg-base-100 rounded-box w-full absolute top-full mt-1 max-h-60 overflow-auto"
+          role="listbox"
+        >
+          <li>
+            <button
+              type="button"
+              onMouseDown={(e) => {
+                e.preventDefault()
+                handleSelectRound()
+              }}
+              className="w-full text-left"
+            >
+              {t('tournament.edit.program.round', { n: nextRoundNumber })}
+            </button>
+          </li>
+          {filteredPresets.map((key) => (
+            <li key={key}>
+              <button
+                type="button"
+                onMouseDown={(e) => {
+                  e.preventDefault()
+                  handleSelectPreset(key)
+                }}
+                className="w-full text-left"
+              >
+                {t(`tournament.edit.program.preset.${key}`)}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+}
+
 function ScheduleSection({
-  rounds,
+  scheduleRows,
+  activeLocale,
   onAdd,
   onUpdate,
   onRemove,
+  onSort,
+  onLocaleChange,
 }: {
-  rounds: TournamentFormState['schedule']['rounds']
-  onAdd: () => void
-  onUpdate: (
-    index: number,
-    patch: Partial<TournamentFormState['schedule']['rounds'][number]>
-  ) => void
-  onRemove: (index: number) => void
+  scheduleRows: ScheduleRow[]
+  activeLocale: SupportedLocale
+  onAdd: (afterId?: string) => void
+  onUpdate: (id: string, patch: Partial<ScheduleRow>) => void
+  onRemove: (id: string) => void
+  onSort: () => void
+  onLocaleChange: (locale: SupportedLocale) => void
 }) {
   const { t } = useTranslation()
+
+  const rows =
+    scheduleRows.length > 0
+      ? scheduleRows
+      : [
+          {
+            kind: 'event' as const,
+            id: 'empty-row',
+            scheduledAt: null,
+            locales: Object.fromEntries(
+              supportedLocales.map((locale) => [locale, { title: '' }])
+            ) as Record<SupportedLocale, { title: string }>,
+          },
+        ]
+
+  const roundCount = scheduleRows.filter((r) => r.kind === 'round').length
 
   return (
     <div className="card bg-base-200 shadow-sm">
       <div className="card-body">
-        <h2 className="card-title">{t('tournament.edit.schedule.title')}</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="card-title">
+            {t('tournament.edit.program.title')}
+          </h2>
+          <LocaleTabs locale={activeLocale} onChange={onLocaleChange} />
+        </div>
+
+        <div className="flex items-center gap-2 text-xs text-base-content/60 pb-1">
+          <div className="flex-1">{t('tournament.edit.program.dateTime')}</div>
+          <div className="flex-1">{t('tournament.edit.program.event')}</div>
+          <div className="w-16" />
+        </div>
 
         <div className="space-y-2">
-          {rounds.map((round, index) => (
-            <div key={round.number} className="flex flex-wrap items-end gap-2">
-              <div className="form-control">
-                <label className="label">
-                  <span className="label-text">
-                    {t('tournament.edit.rounds.number')}
-                  </span>
-                </label>
-                <input
-                  type="number"
-                  min={1}
-                  value={round.number}
-                  onChange={(e) =>
-                    onUpdate(index, { number: Number(e.target.value) })
-                  }
-                  className="input input-bordered input-sm w-20"
-                />
-              </div>
-              <div className="form-control flex-1">
-                <label className="label">
-                  <span className="label-text">
-                    {t('tournament.edit.rounds.date')}
-                  </span>
-                </label>
+          {rows.map((row) => (
+            <div key={row.id} className="flex flex-wrap items-start gap-2">
+              <div className="form-control flex-1 min-w-0">
                 <input
                   type="datetime-local"
-                  value={dateToLocalDatetimeInputValue(round.scheduledAt)}
+                  value={
+                    row.scheduledAt
+                      ? dateToLocalDatetimeInputValue(row.scheduledAt)
+                      : ''
+                  }
                   onChange={(e) =>
-                    onUpdate(index, {
-                      scheduledAt: localDatetimeInputValueToUtcDate(
-                        e.target.value
-                      ),
+                    onUpdate(row.id, {
+                      scheduledAt: e.target.value
+                        ? localDatetimeInputValueToUtcDate(e.target.value)
+                        : null,
                     })
                   }
-                  className="input input-bordered input-sm min-w-0"
+                  onBlur={onSort}
+                  className="input input-bordered input-sm w-full"
                 />
               </div>
-              <button
-                type="button"
-                onClick={() => onRemove(index)}
-                className="btn btn-error btn-outline btn-sm"
-              >
-                {t('tournament.edit.rounds.remove')}
-              </button>
+              <div className="flex-1 min-w-0">
+                <ScheduleEventCombobox
+                  row={row}
+                  activeLocale={activeLocale}
+                  roundCount={roundCount}
+                  onUpdate={onUpdate}
+                />
+              </div>
+              <div className="flex gap-1">
+                <button
+                  type="button"
+                  onClick={() => onAdd(row.id)}
+                  className="btn btn-sm btn-circle tooltip"
+                  data-tip={t('tournament.edit.rounds.add')}
+                  aria-label={t('tournament.edit.rounds.add')}
+                >
+                  <PlusIcon className="h-4 w-4 text-success" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onRemove(row.id)}
+                  className="btn btn-sm btn-circle tooltip"
+                  data-tip={t('tournament.edit.rounds.remove')}
+                  aria-label={t('tournament.edit.rounds.remove')}
+                >
+                  <XMarkIcon className="h-4 w-4 text-error" />
+                </button>
+              </div>
             </div>
           ))}
         </div>
-
-        <button
-          type="button"
-          onClick={onAdd}
-          className="btn btn-secondary btn-sm mt-4"
-        >
-          {t('tournament.edit.rounds.add')}
-        </button>
       </div>
     </div>
   )
@@ -622,9 +784,10 @@ export function TournamentEditForm({
     updateTimeControlField,
     addTieBreak,
     removeTieBreak,
-    addRound,
-    updateRound,
-    removeRound,
+    addScheduleRow,
+    updateScheduleRow,
+    removeScheduleRow,
+    sortScheduleRows,
     saveDraft,
     publish,
     deleteTournament,
@@ -633,6 +796,9 @@ export function TournamentEditForm({
   type TabId = 'general' | 'settings' | 'schedule' | 'participants'
 
   const [activeTab, setActiveTab] = useState<TabId>('general')
+  const [scheduleLocale, setScheduleLocale] = useState<SupportedLocale>(
+    (i18n.language as SupportedLocale) ?? 'ru'
+  )
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean
     type: 'publish' | 'delete'
@@ -854,10 +1020,13 @@ export function TournamentEditForm({
 
       {activeTab === 'schedule' && (
         <ScheduleSection
-          rounds={formState.schedule.rounds}
-          onAdd={addRound}
-          onUpdate={updateRound}
-          onRemove={removeRound}
+          scheduleRows={formState.scheduleRows}
+          activeLocale={scheduleLocale}
+          onAdd={addScheduleRow}
+          onUpdate={updateScheduleRow}
+          onRemove={removeScheduleRow}
+          onSort={sortScheduleRows}
+          onLocaleChange={setScheduleLocale}
         />
       )}
 

@@ -7,7 +7,6 @@ import {
   deleteDoc,
   query,
   where,
-  Timestamp,
   orderBy,
 } from 'firebase/firestore'
 import { db } from './firebaseConfig.ts'
@@ -17,6 +16,11 @@ import type {
   TournamentRepository,
 } from './repository.ts'
 import { supportedLocales } from '../domain/locale.ts'
+import {
+  datesToTimestamps,
+  timestampsToDates,
+  removeUndefined,
+} from './firestoreHelpers.ts'
 
 function withDefaultArbiter(data: Record<string, unknown>): Record<string, unknown> {
   if (data.arbiter) return data
@@ -34,53 +38,6 @@ function withDefaultArbiter(data: Record<string, unknown>): Record<string, unkno
 }
 
 const COLLECTION_NAME = 'tournaments'
-
-function datesToTimestamps(value: unknown): unknown {
-  if (value instanceof Date) {
-    return Timestamp.fromDate(value)
-  }
-  if (Array.isArray(value)) {
-    return value.map(datesToTimestamps)
-  }
-  if (value !== null && typeof value === 'object') {
-    return Object.fromEntries(
-      Object.entries(value).map(([key, val]) => [key, datesToTimestamps(val)])
-    )
-  }
-  return value
-}
-
-function timestampsToDates(value: unknown): unknown {
-  if (value instanceof Timestamp) {
-    return value.toDate()
-  }
-  if (Array.isArray(value)) {
-    return value.map(timestampsToDates)
-  }
-  if (value !== null && typeof value === 'object') {
-    return Object.fromEntries(
-      Object.entries(value).map(([key, val]) => [key, timestampsToDates(val)])
-    )
-  }
-  return value
-}
-
-function removeUndefined(value: unknown): unknown {
-  if (value === undefined) {
-    return undefined
-  }
-  if (Array.isArray(value)) {
-    return value.map(removeUndefined).filter((v) => v !== undefined)
-  }
-  if (value !== null && typeof value === 'object') {
-    return Object.fromEntries(
-      Object.entries(value)
-        .map(([key, val]) => [key, removeUndefined(val)])
-        .filter(([, val]) => val !== undefined)
-    )
-  }
-  return value
-}
 
 function toFirestore(tournament: Tournament): Record<string, unknown> {
   return removeUndefined(datesToTimestamps(tournament)) as Record<string, unknown>

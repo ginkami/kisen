@@ -111,8 +111,20 @@
       "rounds": {
         "number": "Round",
         "date": "Date and time",
-        "add": "Add round",
-        "remove": "Remove"
+        "add": "Add event",
+        "remove": "Remove event"
+      },
+      "program": {
+        "title": "Competition program",
+        "dateTime": "Date and time",
+        "event": "Event",
+        "round": "Round {{n}}",
+        "preset": {
+          "registration": "Participant registration",
+          "opening": "Tournament opening, drawing",
+          "award": "Award ceremony, closing",
+          "break": "Break"
+        }
       }
     },
     "timeControl": {
