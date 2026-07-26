@@ -187,6 +187,15 @@ export function usePlayerForm(playerId: string | undefined) {
   const { firebaseUser } = useAuth()
   const { setHasUnsavedChanges } = useOutletContext<LayoutOutletContext>()
 
+  const [formState, setFormState] = useState<PlayerFormState | null>(
+    playerId === 'new' ? createEmptyFormState() : null
+  )
+  const [lastSavedSnapshot, setLastSavedSnapshot] = useState<string | null>(
+    playerId === 'new' ? JSON.stringify(createEmptyFormState()) : null
+  )
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({})
+  const [initializedPlayerId, setInitializedPlayerId] = useState<string | null>(null)
+
   const {
     data: player,
     isLoading: isLoadingPlayer,
@@ -201,22 +210,13 @@ export function usePlayerForm(playerId: string | undefined) {
     staleTime: 30 * 1000,
   })
 
-  const [formState, setFormState] = useState<PlayerFormState | null>(
-    playerId === 'new' ? createEmptyFormState() : null
-  )
-  const [lastSavedSnapshot, setLastSavedSnapshot] = useState<string | null>(
-    playerId === 'new' ? JSON.stringify(createEmptyFormState()) : null
-  )
-  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({})
-
-  // Load existing player into form state
-  useEffect(() => {
-    if (player) {
-      const initial = playerToFormState(player)
-      setFormState(initial)
-      setLastSavedSnapshot(JSON.stringify(initial))
-    }
-  }, [player])
+  // Adjust state during render (React 19 pattern — no useEffect needed)
+  if (player && initializedPlayerId !== player.id) {
+    setInitializedPlayerId(player.id)
+    const initial = playerToFormState(player)
+    setFormState(initial)
+    setLastSavedSnapshot(JSON.stringify(initial))
+  }
 
   const isDirty = useMemo(() => {
     if (!formState || !lastSavedSnapshot) return false

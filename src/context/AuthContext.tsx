@@ -1,7 +1,5 @@
 import {
-  createContext,
   useCallback,
-  useContext,
   useEffect,
   useMemo,
   useState,
@@ -19,23 +17,10 @@ import {
 } from '../services/authService.ts'
 import { createUser, getUserById } from '../services/userService.ts'
 import type { User } from '../types/user.ts'
+import { AuthContext, type SignUpInput } from './useAuth.ts'
 
-export interface SignUpInput extends AuthCredentials {
-  displayName: string
-}
-
-interface AuthContextValue {
-  firebaseUser: FirebaseUser | null
-  user: User | null | undefined
-  isLoading: boolean
-  isAuthenticated: boolean
-  signUp: (input: SignUpInput) => Promise<void>
-  signIn: (credentials: AuthCredentials) => Promise<void>
-  signInGoogle: () => Promise<void>
-  logout: () => Promise<void>
-}
-
-const AuthContext = createContext<AuthContextValue | undefined>(undefined)
+// eslint-disable-next-line react-refresh/only-export-components
+export { useAuth, type AuthContextValue } from './useAuth.ts'
 
 const USER_QUERY_KEY = 'authUser'
 
@@ -201,10 +186,3 @@ export function AuthProvider({ children }: AuthProviderProps) {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
 
-export function useAuth(): AuthContextValue {
-  const context = useContext(AuthContext)
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider')
-  }
-  return context
-}

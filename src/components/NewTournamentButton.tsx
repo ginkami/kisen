@@ -1,7 +1,7 @@
 import { PlusIcon } from '@heroicons/react/24/outline'
 import { useTranslation } from 'react-i18next'
-import { useNavigate, useLocation } from 'react-router-dom'
-import { useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useRef, useState } from 'react'
 import { ConfirmModal } from './ConfirmModal.tsx'
 import { useAuth } from '../context/AuthContext.tsx'
 import { tournamentService } from '../services/tournamentService.ts'
@@ -33,15 +33,10 @@ export function NewTournamentButton({
   const { t, i18n } = useTranslation()
   const { isAuthenticated, firebaseUser } = useAuth()
   const navigate = useNavigate()
-  const location = useLocation()
   const [isCreating, setIsCreating] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [confirmModalOpen, setConfirmModalOpen] = useState(false)
   const shouldCreateAfterConfirm = useRef(false)
-
-  useEffect(() => {
-    setError(null)
-  }, [location.pathname])
 
   const createTournament = async () => {
     if (!isAuthenticated || !firebaseUser) {

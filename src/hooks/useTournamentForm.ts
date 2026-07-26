@@ -303,6 +303,7 @@ export function useTournamentForm(tournamentId: string | undefined) {
   const [createError, setCreateError] = useState<Error | null>(null)
   const [createDraftRetryCount, setCreateDraftRetryCount] = useState(0)
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({})
+  const [initializedTournamentId, setInitializedTournamentId] = useState<string | null>(null)
 
   useEffect(() => {
     if (
@@ -360,17 +361,20 @@ export function useTournamentForm(tournamentId: string | undefined) {
     }
   }, [tournamentId, firebaseUser, user, i18n.language, navigate, createDraftRetryCount])
 
-  useEffect(() => {
-    setCreateError(null)
-  }, [tournamentId])
+  // Adjust state during render (React 19 pattern — no useEffect needed)
+  if (tournament && initializedTournamentId !== tournament.id) {
+    setInitializedTournamentId(tournament.id)
+    const initial = tournamentToFormState(tournament)
+    setFormState(initial)
+    setLastSavedSnapshot(JSON.stringify(initial))
+  }
 
-  useEffect(() => {
-    if (tournament) {
-      const initial = tournamentToFormState(tournament)
-      setFormState(initial)
-      setLastSavedSnapshot(JSON.stringify(initial))
-    }
-  }, [tournament])
+  // Reset createError when tournamentId changes
+  const [prevTournamentId, setPrevTournamentId] = useState(tournamentId)
+  if (prevTournamentId !== tournamentId) {
+    setPrevTournamentId(tournamentId)
+    setCreateError(null)
+  }
 
   const isDirty = useMemo(() => {
     if (!formState || !lastSavedSnapshot) return false

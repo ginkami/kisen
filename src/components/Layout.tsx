@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Link, Outlet, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
@@ -30,15 +30,11 @@ export function Layout() {
   const [isAdminOpen, setIsAdminOpen] = useState(false)
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
 
-  useEffect(() => {
-    if (
-      isAuthenticated &&
-      shouldAutoOpenAdmin(pathname) &&
-      window.matchMedia('(min-width: 1024px)').matches
-    ) {
-      setIsAdminOpen(true)
-    }
-  }, [isAuthenticated, pathname])
+  const [autoOpenDone, setAutoOpenDone] = useState(false)
+  if (!autoOpenDone && isAuthenticated && shouldAutoOpenAdmin(pathname) && window.matchMedia('(min-width: 1024px)').matches) {
+    setAutoOpenDone(true)
+    setIsAdminOpen(true)
+  }
 
   const openAdmin = () => setIsAdminOpen(true)
   const closeAdmin = () => setIsAdminOpen(false)
