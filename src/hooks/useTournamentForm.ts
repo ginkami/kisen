@@ -234,8 +234,49 @@ function normalizeState(state: TournamentFormState): TournamentFormState {
 
 const TOURNAMENT_QUERY_KEY = 'tournament'
 
+function validateTournamentPublishForm(
+  state: TournamentFormState
+): Record<string, string> {
+  const errors: Record<string, string> = {}
+
+  const hasTitle = supportedLocales.some(
+    (locale) => state.locales[locale].title.trim() !== ''
+  )
+  if (!hasTitle) {
+    errors.title = 'required'
+  }
+
+  const hasLocation = supportedLocales.some(
+    (locale) => (state.locales[locale].location?.trim() ?? '') !== ''
+  )
+  if (!hasLocation) {
+    errors.location = 'required'
+  }
+
+  if (!state.country) {
+    errors.country = 'required'
+  }
+
+  const hasArbiter = supportedLocales.some(
+    (locale) =>
+      state.arbiter[locale].givenName.trim() !== '' &&
+      state.arbiter[locale].familyName.trim() !== ''
+  )
+  if (!hasArbiter) {
+    errors['arbiter.givenName'] = 'required'
+    errors['arbiter.familyName'] = 'required'
+  }
+
+  const hasRounds = state.scheduleRows.some((row) => row.kind === 'round')
+  if (!hasRounds) {
+    errors.rounds = 'required'
+  }
+
+  return errors
+}
+
 export function useTournamentForm(tournamentId: string | undefined) {
-  const { i18n } = useTranslation()
+  const { t, i18n } = useTranslation()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { firebaseUser, user } = useAuth()
@@ -261,6 +302,7 @@ export function useTournamentForm(tournamentId: string | undefined) {
   const [lastSavedSnapshot, setLastSavedSnapshot] = useState<string | null>(null)
   const [createError, setCreateError] = useState<Error | null>(null)
   const [createDraftRetryCount, setCreateDraftRetryCount] = useState(0)
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({})
 
   useEffect(() => {
     if (
@@ -350,6 +392,7 @@ export function useTournamentForm(tournamentId: string | undefined) {
   const updateForm = useCallback(
     (updater: (state: TournamentFormState) => TournamentFormState) => {
       setFormState((prev) => (prev ? normalizeState(updater(prev)) : prev))
+      setValidationErrors({})
     },
     []
   )
@@ -661,6 +704,31 @@ export function useTournamentForm(tournamentId: string | undefined) {
     },
   })
 
+  const saveDraft = useCallback(() => {
+    saveMutation.reset()
+    saveMutation.mutate()
+  }, [saveMutation])
+
+  const publish = useCallback(() => {
+    if (!formState) return
+    const errors = validateTournamentPublishForm(formState)
+    if (Object.keys(errors).length > 0) {
+      setValidationErrors(
+        Object.fromEntries(
+          Object.entries(errors).map(([key]) => [key, t('common.fieldRequired')])
+        )
+      )
+      return
+    }
+    publishMutation.reset()
+    publishMutation.mutate()
+  }, [formState, publishMutation, t])
+
+  const deleteTournament = useCallback(() => {
+    deleteMutation.reset()
+    deleteMutation.mutate()
+  }, [deleteMutation])
+
   return {
     tournament,
     formState,
@@ -675,6 +743,10 @@ export function useTournamentForm(tournamentId: string | undefined) {
     saveError: saveMutation.error,
     publishError: publishMutation.error,
     deleteError: deleteMutation.error,
+    validationErrors,
+    clearSaveError: saveMutation.reset,
+    clearPublishError: publishMutation.reset,
+    clearDeleteError: deleteMutation.reset,
     updateLocale,
     updateBasic,
     updateArbiter,
@@ -687,9 +759,9 @@ export function useTournamentForm(tournamentId: string | undefined) {
     updateScheduleRow,
     removeScheduleRow,
     sortScheduleRows,
-    saveDraft: () => saveMutation.mutateAsync(),
-    publish: () => publishMutation.mutateAsync(),
-    deleteTournament: () => deleteMutation.mutateAsync(),
+    saveDraft,
+    publish,
+    deleteTournament,
     clearCreateError,
     retryCreateDraft,
   }

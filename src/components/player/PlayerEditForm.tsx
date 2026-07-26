@@ -28,6 +28,9 @@ export function PlayerEditForm({ playerId }: PlayerEditFormProps) {
     isDeleting,
     saveError,
     deleteError,
+    validationErrors,
+    clearSaveError,
+    clearDeleteError,
     updateLocale,
     updateBasic,
     updateRating,
@@ -120,12 +123,18 @@ export function PlayerEditForm({ playerId }: PlayerEditFormProps) {
       {/* Error alerts */}
       {saveError && (
         <div className="alert alert-error">
-          <p>{t('player.edit.errors.save')}</p>
+          <p className="flex-1">{t('player.edit.errors.save')}</p>
+          <button type="button" onClick={clearSaveError} className="btn btn-sm btn-ghost">
+            ×
+          </button>
         </div>
       )}
       {deleteError && (
         <div className="alert alert-error">
-          <p>{t('player.edit.errors.delete')}</p>
+          <p className="flex-1">{t('player.edit.errors.delete')}</p>
+          <button type="button" onClick={clearDeleteError} className="btn btn-sm btn-ghost">
+            ×
+          </button>
         </div>
       )}
 
@@ -140,6 +149,7 @@ export function PlayerEditForm({ playerId }: PlayerEditFormProps) {
         onAddAssociation={addAssociation}
         onRemoveAssociation={removeAssociation}
         canEditAssociations={canEditAssociations}
+        validationErrors={validationErrors}
       />
 
       {/* Delete confirmation modal */}

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate, useOutletContext } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '../context/AuthContext.tsx'
 import type { LayoutOutletContext } from '../components/Layout.tsx'
 import { playerService } from '../services/playerService.ts'
@@ -92,7 +93,7 @@ function formStateToCreateInput(
 ): Parameters<typeof playerService.create>[0] {
   const locales = Object.fromEntries(
     supportedLocales
-      .filter((locale) => state.locales[locale].familyName.trim() !== '' || state.locales[locale].givenName.trim() !== '')
+      .filter((locale) => state.locales[locale].familyName.trim() !== '' && state.locales[locale].givenName.trim() !== '')
       .map((locale) => [
         locale,
         {
@@ -127,7 +128,7 @@ function formStateToUpdateInput(
 ): Parameters<typeof playerService.update>[0] {
   const locales = Object.fromEntries(
     supportedLocales
-      .filter((locale) => state.locales[locale].familyName.trim() !== '' || state.locales[locale].givenName.trim() !== '')
+      .filter((locale) => state.locales[locale].familyName.trim() !== '' && state.locales[locale].givenName.trim() !== '')
       .map((locale) => [
         locale,
         {
@@ -159,7 +160,28 @@ function formStateToUpdateInput(
 
 const PLAYER_QUERY_KEY = 'player'
 
+function validatePlayerForm(state: PlayerFormState): Record<string, string> {
+  const errors: Record<string, string> = {}
+
+  const hasCompleteLocale = supportedLocales.some(
+    (locale) =>
+      state.locales[locale].familyName.trim() !== '' &&
+      state.locales[locale].givenName.trim() !== ''
+  )
+  if (!hasCompleteLocale) {
+    errors.familyName = 'required'
+    errors.givenName = 'required'
+  }
+
+  if (!state.nationality) {
+    errors.nationality = 'required'
+  }
+
+  return errors
+}
+
 export function usePlayerForm(playerId: string | undefined) {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { firebaseUser } = useAuth()
@@ -185,6 +207,7 @@ export function usePlayerForm(playerId: string | undefined) {
   const [lastSavedSnapshot, setLastSavedSnapshot] = useState<string | null>(
     playerId === 'new' ? JSON.stringify(createEmptyFormState()) : null
   )
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({})
 
   // Load existing player into form state
   useEffect(() => {
@@ -207,6 +230,7 @@ export function usePlayerForm(playerId: string | undefined) {
   const updateForm = useCallback(
     (updater: (state: PlayerFormState) => PlayerFormState) => {
       setFormState((prev) => (prev ? updater(prev) : prev))
+      setValidationErrors({})
     },
     []
   )
@@ -298,6 +322,26 @@ export function usePlayerForm(playerId: string | undefined) {
     },
   })
 
+  const savePlayer = useCallback(() => {
+    if (!formState) return
+    const errors = validatePlayerForm(formState)
+    if (Object.keys(errors).length > 0) {
+      setValidationErrors(
+        Object.fromEntries(
+          Object.entries(errors).map(([key]) => [key, t('common.fieldRequired')])
+        )
+      )
+      return
+    }
+    saveMutation.reset()
+    saveMutation.mutate()
+  }, [formState, saveMutation, t])
+
+  const deletePlayer = useCallback(() => {
+    deleteMutation.reset()
+    deleteMutation.mutate()
+  }, [deleteMutation])
+
   return {
     player,
     formState,
@@ -308,12 +352,15 @@ export function usePlayerForm(playerId: string | undefined) {
     isDeleting: deleteMutation.isPending,
     saveError: saveMutation.error,
     deleteError: deleteMutation.error,
+    validationErrors,
+    clearSaveError: saveMutation.reset,
+    clearDeleteError: deleteMutation.reset,
     updateLocale,
     updateBasic,
     updateRating,
     addAssociation,
     removeAssociation,
-    savePlayer: () => saveMutation.mutateAsync(),
-    deletePlayer: () => deleteMutation.mutateAsync(),
+    savePlayer,
+    deletePlayer,
   }
 }

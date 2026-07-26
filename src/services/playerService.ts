@@ -1,5 +1,5 @@
 import { uuidv7 } from 'uuidv7'
-import type { Player } from '../domain/player.ts'
+import { playerSchema, type Player } from '../domain/player.ts'
 import type { PlayerRepository } from './repository.ts'
 import { firestorePlayerRepository } from './firestorePlayerRepository.ts'
 
@@ -53,6 +53,7 @@ export class PlayerService {
       secondaryAssociations: input.secondaryAssociations ?? [],
     }
 
+    playerSchema.parse(player)
     return this.repository.create(player)
   }
 
@@ -78,6 +79,7 @@ export class PlayerService {
         input.secondaryAssociations ?? existing.secondaryAssociations,
     }
 
+    playerSchema.parse(updated)
     return this.repository.update(updated)
   }
 

@@ -67,6 +67,7 @@ function GeneralInfoSection({
   updateLocale,
   updateBasic,
   updateArbiter,
+  validationErrors = {},
 }: {
   formState: TournamentFormState
   updateLocale: (
@@ -83,6 +84,7 @@ function GeneralInfoSection({
     field: 'givenName' | 'familyName',
     value: string
   ) => void
+  validationErrors?: Record<string, string>
 }) {
   const { t, i18n } = useTranslation()
   const [activeLocale, setActiveLocale] = useState<SupportedLocale>(
@@ -110,8 +112,11 @@ function GeneralInfoSection({
             onChange={(e) =>
               updateLocale(activeLocale, 'title', e.target.value)
             }
-            className="input input-bordered w-full"
+            className={`input input-bordered w-full ${validationErrors.title ? 'input-error' : ''}`}
           />
+          {validationErrors.title && (
+            <span className="text-error text-xs mt-1">{t('common.fieldRequired')}</span>
+          )}
         </div>
 
         <ExpandableField
@@ -138,6 +143,9 @@ function GeneralInfoSection({
               lang={i18n.language === 'ru' ? 'ru' : 'en'}
               placeholder={t('tournament.edit.noCountry')}
             />
+            {validationErrors.country && (
+              <span className="text-error text-xs mt-1">{t('common.fieldRequired')}</span>
+            )}
           </div>
 
           <div className="form-control">
@@ -153,8 +161,11 @@ function GeneralInfoSection({
               onChange={(e) =>
                 updateLocale(activeLocale, 'location', e.target.value)
               }
-              className="input input-bordered w-full"
+              className={`input input-bordered w-full ${validationErrors.location ? 'input-error' : ''}`}
             />
+            {validationErrors.location && (
+              <span className="text-error text-xs mt-1">{t('common.fieldRequired')}</span>
+            )}
           </div>
         </div>
 
@@ -186,8 +197,11 @@ function GeneralInfoSection({
                 onChange={(e) =>
                   updateArbiter(activeLocale, 'givenName', e.target.value)
                 }
-                className="input input-bordered w-full"
+                className={`input input-bordered w-full ${validationErrors['arbiter.givenName'] ? 'input-error' : ''}`}
               />
+              {validationErrors['arbiter.givenName'] && (
+                <span className="text-error text-xs mt-1">{t('common.fieldRequired')}</span>
+              )}
             </div>
             <div className="form-control">
               <label className="label">
@@ -202,8 +216,11 @@ function GeneralInfoSection({
                 onChange={(e) =>
                   updateArbiter(activeLocale, 'familyName', e.target.value)
                 }
-                className="input input-bordered w-full"
+                className={`input input-bordered w-full ${validationErrors['arbiter.familyName'] ? 'input-error' : ''}`}
               />
+              {validationErrors['arbiter.familyName'] && (
+                <span className="text-error text-xs mt-1">{t('common.fieldRequired')}</span>
+              )}
             </div>
           </div>
         </div>
@@ -766,6 +783,10 @@ export function TournamentEditForm({
     saveError,
     publishError,
     deleteError,
+    validationErrors,
+    clearSaveError,
+    clearPublishError,
+    clearDeleteError,
     clearCreateError,
     retryCreateDraft,
     updateLocale,
@@ -950,11 +971,28 @@ export function TournamentEditForm({
         </div>
       </div>
 
-      {(saveError || publishError || deleteError) && (
+      {saveError && (
         <div className="alert alert-error">
-          {saveError && <p>{t('tournament.edit.errors.save')}</p>}
-          {publishError && <p>{t('tournament.edit.errors.publish')}</p>}
-          {deleteError && <p>{t('tournament.edit.errors.delete')}</p>}
+          <p className="flex-1">{t('tournament.edit.errors.save')}</p>
+          <button type="button" onClick={clearSaveError} className="btn btn-sm btn-ghost">
+            ×
+          </button>
+        </div>
+      )}
+      {publishError && (
+        <div className="alert alert-error">
+          <p className="flex-1">{t('tournament.edit.errors.publish')}</p>
+          <button type="button" onClick={clearPublishError} className="btn btn-sm btn-ghost">
+            ×
+          </button>
+        </div>
+      )}
+      {deleteError && (
+        <div className="alert alert-error">
+          <p className="flex-1">{t('tournament.edit.errors.delete')}</p>
+          <button type="button" onClick={clearDeleteError} className="btn btn-sm btn-ghost">
+            ×
+          </button>
         </div>
       )}
 
@@ -985,6 +1023,7 @@ export function TournamentEditForm({
             updateLocale={updateLocale}
             updateBasic={updateBasic}
             updateArbiter={updateArbiter}
+            validationErrors={validationErrors}
           />
 
           {canEditBinding && (

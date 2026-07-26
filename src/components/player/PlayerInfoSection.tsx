@@ -19,6 +19,7 @@ interface PlayerInfoSectionProps {
   onAddAssociation: (id: string) => void
   onRemoveAssociation: (id: string) => void
   canEditAssociations: boolean
+  validationErrors?: Record<string, string>
 }
 
 export function PlayerInfoSection({
@@ -31,6 +32,7 @@ export function PlayerInfoSection({
   onAddAssociation,
   onRemoveAssociation,
   canEditAssociations,
+  validationErrors = {},
 }: PlayerInfoSectionProps) {
   const { t, i18n } = useTranslation()
   const [showAssociationPicker, setShowAssociationPicker] = useState(false)
@@ -65,8 +67,11 @@ export function PlayerInfoSection({
               type="text"
               value={currentLocale.familyName}
               onChange={(e) => onUpdateLocale(activeLocale, 'familyName', e.target.value)}
-              className="input input-bordered w-full"
+              className={`input input-bordered w-full ${validationErrors.familyName ? 'input-error' : ''}`}
             />
+            {validationErrors.familyName && (
+              <span className="text-error text-xs mt-1">{t('common.fieldRequired')}</span>
+            )}
           </div>
           <div className="form-control">
             <label className="label">
@@ -79,8 +84,11 @@ export function PlayerInfoSection({
               type="text"
               value={currentLocale.givenName}
               onChange={(e) => onUpdateLocale(activeLocale, 'givenName', e.target.value)}
-              className="input input-bordered w-full"
+              className={`input input-bordered w-full ${validationErrors.givenName ? 'input-error' : ''}`}
             />
+            {validationErrors.givenName && (
+              <span className="text-error text-xs mt-1">{t('common.fieldRequired')}</span>
+            )}
           </div>
         </div>
 
@@ -99,6 +107,9 @@ export function PlayerInfoSection({
               lang={i18n.language === 'ru' ? 'ru' : 'en'}
               placeholder={t('tournament.edit.noCountry')}
             />
+            {validationErrors.nationality && (
+              <span className="text-error text-xs mt-1">{t('common.fieldRequired')}</span>
+            )}
           </div>
           <ExpandableField
             label={t('player.edit.location')}
