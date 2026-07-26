@@ -122,7 +122,7 @@
         "roundOption": "Round",
         "preset": {
           "registration": "Participant registration",
-          "opening": "Tournament opening, drawing",
+          "opening": "Tournament opening, drawing of lots",
           "award": "Award ceremony, closing",
           "break": "Break"
         }
