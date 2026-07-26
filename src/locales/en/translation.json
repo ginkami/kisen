@@ -23,6 +23,11 @@
     "noTournamentsForMonth": "No tournaments for this month.",
     "untitledTournament": "Untitled",
     "noDate": "No date",
+    "players": "Players",
+    "searchPlayers": "Search by family name...",
+    "noPlayersFound": "No players found",
+    "newPlayer": "Player",
+    "playersDisabled": "Not available for your role",
     "unsavedChangesConfirmTitle": "Unsaved changes",
     "unsavedChangesConfirm": "You have unsaved changes. Leave this page?"
   },

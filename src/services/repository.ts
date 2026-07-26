@@ -1,5 +1,6 @@
 import type { Tournament } from '../domain/tournament.ts'
 import type { Event } from '../domain/event.ts'
+import type { Player } from '../domain/player.ts'
 
 export interface ListTournamentsFilters {
   status?: 'draft' | 'upcoming' | 'ongoing' | 'finished' | 'canceled'
@@ -37,5 +38,15 @@ export interface EventRepository {
   delete(id: string): Promise<void>
   slugExists(slug: string): Promise<boolean>
 }
+
+export interface PlayerRepository {
+  getById(id: string): Promise<Player | null>
+  create(player: Player): Promise<Player>
+  update(player: Player): Promise<Player>
+  delete(id: string): Promise<void>
+  searchByFamilyName(prefix: string, locale: string): Promise<Player[]>
+}
+
+export const PlayerRepositoryKey = Symbol('PlayerRepository')
 
 export const EventRepositoryKey = Symbol('EventRepository')

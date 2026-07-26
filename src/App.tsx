@@ -5,6 +5,7 @@ import { LoginPage } from './pages/LoginPage.tsx'
 import { TournamentPage } from './pages/TournamentPage.tsx'
 import { TournamentEditPage } from './pages/TournamentEditPage.tsx'
 import { ProfilePage } from './pages/ProfilePage.tsx'
+import { PlayerEditPage } from './pages/PlayerEditPage.tsx'
 import { useAuth } from './context/AuthContext.tsx'
 import './i18n'
 
@@ -33,6 +34,8 @@ function App() {
           <Route path="tournaments/new" element={<TournamentEditPage />} />
           <Route path="tournaments/:id/edit" element={<TournamentEditPage />} />
           <Route path="tournaments/:slug" element={<TournamentPage />} />
+          <Route path="players/new" element={<PlayerEditPage />} />
+          <Route path="players/:id/edit" element={<PlayerEditPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

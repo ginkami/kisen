@@ -3,13 +3,17 @@ import { ConfirmModal } from './ConfirmModal.tsx'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
+import * as Flags from 'country-flag-icons/react/3x2'
 import {
   Cog8ToothIcon,
   XMarkIcon,
   CalendarIcon,
+  MagnifyingGlassIcon,
+  PlusIcon,
 } from '@heroicons/react/24/outline'
 import { useAuth } from '../context/AuthContext.tsx'
 import { tournamentService } from '../services/tournamentService.ts'
+import { usePlayerSearch } from '../hooks/usePlayers.ts'
 import {
   formatDateToYearMonth,
   formatYearMonthToMonthInput,
@@ -56,7 +60,7 @@ export function AdminDrawer({
   const navigate = useNavigate()
   const { pathname } = useLocation()
   const { id: activeTournamentId } = useParams<{ id: string }>()
-  const { isAuthenticated, firebaseUser } = useAuth()
+  const { isAuthenticated, firebaseUser, user } = useAuth()
 
   const panelRef = useRef<HTMLDivElement>(null)
   const touchStartX = useRef<number | null>(null)
@@ -66,6 +70,9 @@ export function AdminDrawer({
   )
   const [confirmModalOpen, setConfirmModalOpen] = useState(false)
   const pendingNavigation = useRef<string | null>(null)
+  const [playerSearch, setPlayerSearch] = useState('')
+  const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null)
+  const canManagePlayers = user?.role === 'admin' || user?.role === 'manager'
 
   useEffect(() => {
     const handleEscape = (event: KeyboardEvent) => {
@@ -97,6 +104,8 @@ export function AdminDrawer({
 
   const yearMonth = parseMonthInputToYearMonth(selectedYearMonth)
   const userId = firebaseUser?.uid
+  const playerLocale = (i18n.language as 'ru' | 'en') ?? 'ru'
+  const { data: playerResults = [], isLoading: isSearchingPlayers } = usePlayerSearch(playerSearch, playerLocale)
 
   const {
     data: tournaments = [],
@@ -260,6 +269,106 @@ export function AdminDrawer({
                   <div className="flex max-h-96 flex-col gap-2 overflow-y-auto">
                     {sortedTournaments.map(renderTournamentItem)}
                   </div>
+                )}
+              </div>
+            </div>
+
+            <div className={`collapse collapse-arrow bg-base-100 mt-2${canManagePlayers ? '' : ' pointer-events-none opacity-50'}`}>
+              <input type="radio" name="admin-accordion" disabled={!canManagePlayers} />
+              <div className="collapse-title font-medium">
+                {t('admin.players')}
+              </div>
+              <div className="collapse-content">
+                {canManagePlayers ? (
+                  <div className="flex flex-col gap-2">
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleNavigate('/players/new')}
+                        className="btn btn-secondary btn-sm w-full"
+                      >
+                        <PlusIcon className="stroke-[3] h-4 w-4" />
+                        <span className="hidden sm:inline">{t('admin.newPlayer')}</span>
+                      </button>
+                    </div>
+                    <div className="flex gap-2">
+                      <label className="input input-sm input-bordered flex items-center gap-2 flex-1">
+                        <MagnifyingGlassIcon className="h-4 w-4 opacity-70" />
+                        <input
+                          type="text"
+                          value={playerSearch}
+                          onChange={(e) => {
+                            setPlayerSearch(e.target.value)
+                            setSelectedPlayerId(null)
+                          }}
+                          placeholder={t('admin.searchPlayers')}
+                          className="grow bg-transparent outline-none"
+                        />
+                      </label>
+                    </div>
+
+
+                    {isSearchingPlayers && (
+                      <div className="flex justify-center py-4">
+                        <span className="loading loading-spinner loading-sm" />
+                      </div>
+                    )}
+
+                    {!isSearchingPlayers && playerSearch.length >= 3 && playerResults.length === 0 && (
+                      <p className="text-sm opacity-70">
+                        {t('admin.noPlayersFound')}
+                      </p>
+                    )}
+
+                    {!isSearchingPlayers && playerResults.length > 0 && (
+                      <div className="flex max-h-96 flex-col gap-2 overflow-y-auto">
+                        {playerResults.map((player) => {
+                          const localeData = player.locales[playerLocale] ?? player.locales.ru ?? player.locales.en
+                          const Flag = Flags[player.nationality.toUpperCase() as keyof typeof Flags]
+                          const isActive = player.id === selectedPlayerId
+
+                          return (
+                            <button
+                              key={player.id}
+                              type="button"
+                              onClick={() => {
+                                setSelectedPlayerId(player.id)
+                                handleNavigate(`/players/${player.id}/edit`)
+                              }}
+                              className={[
+                                'group flex w-full flex-col gap-1 rounded-lg border px-3 py-2 text-left transition-colors',
+                                isActive
+                                  ? 'border-primary bg-primary/10'
+                                  : 'border-base-300 hover:bg-base-200',
+                              ].join(' ')}
+                            >
+                              <div className="flex items-center gap-2">
+                                {Flag && <Flag className="h-3 w-4 rounded-sm" />}
+                                <span className="line-clamp-1 font-medium">
+                                  {localeData?.familyName} {localeData?.givenName}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2 text-xs opacity-70">
+                                {localeData?.location && (
+                                  <span>{localeData.location}</span>
+                                )}
+                                {player.currentRating?.value != null && (
+                                  <span>Elo: {player.currentRating.value}</span>
+                                )}
+                                {player.currentRating?.rank && (
+                                  <span>{player.currentRating.rank}</span>
+                                )}
+                              </div>
+                            </button>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-sm opacity-70">
+                    {t('admin.playersDisabled')}
+                  </p>
                 )}
               </div>
             </div>

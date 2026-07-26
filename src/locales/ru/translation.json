@@ -23,6 +23,11 @@
     "noTournamentsForMonth": "В этом месяце нет турниров.",
     "untitledTournament": "Без названия",
     "noDate": "Без даты",
+    "players": "Игроки",
+    "searchPlayers": "Поиск по фамилии...",
+    "noPlayersFound": "Игроки не найдены",
+    "newPlayer": "Игрок",
+    "playersDisabled": "Недоступно для вашей роли",
     "unsavedChangesConfirmTitle": "Несохранённые изменения",
     "unsavedChangesConfirm": "Есть несохранённые изменения. Покинуть страницу?"
   },
