@@ -35,6 +35,39 @@
     "title": "Profile",
     "placeholder": "Profile editing form will appear here."
   },
+  "player": {
+    "new": "New player",
+    "edit": {
+      "managementPanel": "Player editing",
+      "pageTitle": "{{name}} — Editing | shogi·world",
+      "info": "Player information",
+      "familyName": "Family name",
+      "givenName": "Given name",
+      "country": "Country",
+      "location": "City / region",
+      "residence": "Country of residence",
+      "club": "Club",
+      "rating": "Rating",
+      "ratingValue": "Rating value",
+      "rank": "Rank",
+      "title": "Title",
+      "gender": "Gender",
+      "genderMen": "Male",
+      "genderWomen": "Female",
+      "birthDate": "Birth date",
+      "associations": "Associated with",
+      "addAssociation": "Association",
+      "save": "Save",
+      "delete": "Delete",
+      "deleteConfirmTitle": "Delete player",
+      "deleteConfirm": "Delete the player? This action cannot be undone.",
+      "errors": {
+        "load": "Failed to load player.",
+        "save": "Failed to save player.",
+        "delete": "Failed to delete player."
+      }
+    }
+  },
   "tournament": {
     "new": "New tournament",
     "newTitle": "New tournament",

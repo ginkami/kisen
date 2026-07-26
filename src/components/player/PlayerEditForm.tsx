@@ -1,16 +1,158 @@
+import { useEffect, useState } from 'react'
+import { Navigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
+import { useAuth } from '../../context/AuthContext.tsx'
+import { usePlayerForm } from '../../hooks/usePlayerForm.ts'
+import { ConfirmModal } from '../ConfirmModal.tsx'
+import { PlayerInfoSection } from './PlayerInfoSection.tsx'
+import type { SupportedLocale } from '../../domain/locale.ts'
+
 interface PlayerEditFormProps {
   playerId: string | undefined
 }
 
 export function PlayerEditForm({ playerId }: PlayerEditFormProps) {
-  return (
-    <div className="card bg-base-200 shadow-sm">
-      <div className="card-body">
-        <h2 className="card-title">
-          {playerId ? `Player ${playerId}` : 'New Player'}
-        </h2>
-        <p className="opacity-70">Player edit form placeholder</p>
+  const { t, i18n } = useTranslation()
+  const { isAuthenticated, user } = useAuth()
+  const [activeLocale, setActiveLocale] = useState<SupportedLocale>(
+    (i18n.language as SupportedLocale) ?? 'ru'
+  )
+  const [confirmModal, setConfirmModal] = useState(false)
+
+  const {
+    player,
+    formState,
+    isLoading,
+    loadError,
+    isSaving,
+    isDeleting,
+    saveError,
+    deleteError,
+    updateLocale,
+    updateBasic,
+    updateRating,
+    addAssociation,
+    removeAssociation,
+    savePlayer,
+    deletePlayer,
+  } = usePlayerForm(playerId)
+
+  const canEditAssociations = user?.role === 'admin' || user?.role === 'manager'
+
+  // Compute display name from active locale
+  const localizedFamilyName = formState?.locales[activeLocale]?.familyName ?? ''
+  const localizedGivenName = formState?.locales[activeLocale]?.givenName ?? ''
+  const displayName =
+    localizedFamilyName && localizedGivenName
+      ? `${localizedFamilyName}, ${localizedGivenName}`
+      : t('player.new')
+
+  // Update document title reactively
+  useEffect(() => {
+    document.title = t('player.edit.pageTitle', { name: displayName })
+  }, [displayName, i18n.language, t])
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />
+  }
+
+  if (isLoading || !formState) {
+    return (
+      <div className="flex justify-center py-12">
+        <span className="loading loading-spinner loading-lg" />
       </div>
+    )
+  }
+
+  if (loadError) {
+    return <p className="text-error">{t('player.edit.errors.load')}</p>
+  }
+
+  const handleDelete = () => {
+    setConfirmModal(true)
+  }
+
+  const handleConfirmDelete = async () => {
+    setConfirmModal(false)
+    await deletePlayer()
+  }
+
+  return (
+    <div className="mx-auto max-w-3xl space-y-6">
+      {/* Header block */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <div className="text-xs uppercase tracking-wider opacity-70">
+            {t('player.edit.managementPanel')}
+          </div>
+          <h1 className="text-2xl font-bold">{displayName}</h1>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={savePlayer}
+            disabled={isSaving || isDeleting}
+            className="btn btn-primary"
+          >
+            {isSaving ? (
+              <span className="loading loading-spinner loading-xs" />
+            ) : (
+              t('player.edit.save')
+            )}
+          </button>
+          {player && (
+            <button
+              type="button"
+              onClick={handleDelete}
+              disabled={isDeleting || isSaving}
+              className="btn btn-error btn-outline"
+            >
+              {isDeleting ? (
+                <span className="loading loading-spinner loading-xs" />
+              ) : (
+                t('player.edit.delete')
+              )}
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Error alerts */}
+      {saveError && (
+        <div className="alert alert-error">
+          <p>{t('player.edit.errors.save')}</p>
+        </div>
+      )}
+      {deleteError && (
+        <div className="alert alert-error">
+          <p>{t('player.edit.errors.delete')}</p>
+        </div>
+      )}
+
+      {/* Player info section */}
+      <PlayerInfoSection
+        formState={formState}
+        activeLocale={activeLocale}
+        onLocaleChange={setActiveLocale}
+        onUpdateLocale={updateLocale}
+        onUpdateBasic={updateBasic}
+        onUpdateRating={updateRating}
+        onAddAssociation={addAssociation}
+        onRemoveAssociation={removeAssociation}
+        canEditAssociations={canEditAssociations}
+      />
+
+      {/* Delete confirmation modal */}
+      <ConfirmModal
+        isOpen={confirmModal}
+        title={t('player.edit.deleteConfirmTitle')}
+        message={t('player.edit.deleteConfirm')}
+        confirmText={t('common.confirm')}
+        cancelText={t('common.cancel')}
+        variant="error"
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setConfirmModal(false)}
+      />
     </div>
   )
 }

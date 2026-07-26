@@ -80,3 +80,7 @@
 .form-control .label {
   margin-right: 0.375rem;
 }
+*:has(>.select-rank) + button,
+*:has(>label.country) + button {
+  margin-top: 1.25rem;
+}

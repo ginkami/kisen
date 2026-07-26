@@ -40,7 +40,7 @@ export function ExpandableField({
   }
 
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex flex-col">
       <label className="label">
         <span className="label-text">{label}</span>
       </label>

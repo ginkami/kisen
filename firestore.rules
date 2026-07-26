@@ -57,7 +57,11 @@ service cloud.firestore {
     match /players/{playerId} {
       allow read: if true;
 
+      // Admin (custom claim) can always create.
+      // Authenticated owner can create with or without primaryAssociation.
+      // Manager of a primary association can create.
       allow create: if isAdmin()
+        || isOwner(request.resource.data.createdBy)
         || (
           isAuthenticated()
           && request.resource.data.get('primaryAssociation', null) != null
