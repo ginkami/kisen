@@ -1,11 +1,6 @@
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import {
-  ArrowRightStartOnRectangleIcon,
-  TrophyIcon,
-  UserCircleIcon,
-  UserIcon,
-} from '@heroicons/react/24/outline'
+import { BsBoxArrowRight, BsGear, BsPersonCircle, BsPerson } from 'react-icons/bs'
 import { useAuth } from '../context/AuthContext.tsx'
 
 interface UserMenuProps {
@@ -29,7 +24,7 @@ export function UserMenu({ onOpenAdmin }: UserMenuProps) {
         className="btn btn-secondary btn-sm"
         aria-label={t('auth.profile')}
       >
-        <UserIcon className="h-5 w-5" />
+        <BsPerson className="h-5 w-5" />
         <span className="truncate">{displayName}</span>
       </button>
 
@@ -43,19 +38,19 @@ export function UserMenu({ onOpenAdmin }: UserMenuProps) {
         <li className="divider my-2 h-[2px] bg-base-100" />
         <li>
           <Link to="/profile">
-            <UserCircleIcon className="h-4 w-4" />
+            <BsPersonCircle className="h-4 w-4" />
             {t('profile.title')}
           </Link>
         </li>
         <li>
           <button type="button" onClick={onOpenAdmin}>
-            <TrophyIcon className="h-4 w-4" />
+            <BsGear className="h-4 w-4" />
             {t('admin.title')}
           </button>
         </li>
         <li>
           <button type="button" onClick={() => void logout()}>
-            <ArrowRightStartOnRectangleIcon className="h-4 w-4" />
+            <BsBoxArrowRight className="h-4 w-4" />
             {t('auth.logout')}
           </button>
         </li>

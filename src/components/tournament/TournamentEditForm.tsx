@@ -1,13 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ConfirmModal } from '../ConfirmModal.tsx'
 import { useTranslation } from 'react-i18next'
-import {
-  AdjustmentsVerticalIcon,
-  ClockIcon,
-  PencilSquareIcon,
-  UserGroupIcon,
-} from '@heroicons/react/24/outline'
-import { PlusIcon, XMarkIcon } from '@heroicons/react/20/solid'
+import { BsSliders2Vertical, BsClock, BsJournalText, BsPeople, BsPlus, BsX } from 'react-icons/bs'
 import { useAuth } from '../../context/AuthContext.tsx'
 import { useTournamentForm } from '../../hooks/useTournamentForm.ts'
 import {
@@ -746,7 +740,7 @@ function ScheduleSection({
                   data-tip={t('tournament.edit.rounds.add')}
                   aria-label={t('tournament.edit.rounds.add')}
                 >
-                  <PlusIcon className="h-4 w-4 text-success" />
+                  <BsPlus className="h-4 w-4 text-success" />
                 </button>
                 <button
                   type="button"
@@ -755,7 +749,7 @@ function ScheduleSection({
                   data-tip={t('tournament.edit.rounds.remove')}
                   aria-label={t('tournament.edit.rounds.remove')}
                 >
-                  <XMarkIcon className="h-4 w-4 text-error" />
+                  <BsX className="h-4 w-4 text-error" />
                 </button>
               </div>
             </div>
@@ -824,22 +818,22 @@ export function TournamentEditForm({
     {
       id: 'general',
       label: t('tournament.edit.tabs.general'),
-      icon: PencilSquareIcon,
+      icon: BsJournalText,
     },
     {
       id: 'settings',
       label: t('tournament.edit.tabs.settings'),
-      icon: AdjustmentsVerticalIcon,
+      icon: BsSliders2Vertical,
     },
     {
       id: 'schedule',
       label: t('tournament.edit.tabs.schedule'),
-      icon: ClockIcon,
+      icon: BsClock,
     },
     {
       id: 'participants',
       label: t('tournament.edit.tabs.participants'),
-      icon: UserGroupIcon,
+      icon: BsPeople,
     },
   ]
 

@@ -4,13 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import * as Flags from 'country-flag-icons/react/3x2'
-import {
-  Cog8ToothIcon,
-  XMarkIcon,
-  CalendarIcon,
-  MagnifyingGlassIcon,
-  PlusIcon,
-} from '@heroicons/react/24/outline'
+import { BsGear, BsX, BsCalendar2, BsSearch, BsPlus } from 'react-icons/bs'
 import { useAuth } from '../context/AuthContext.tsx'
 import { tournamentService } from '../services/tournamentService.ts'
 import { usePlayerSearch } from '../hooks/usePlayers.ts'
@@ -209,7 +203,7 @@ export function AdminDrawer({
       >
         <div className="sticky top-0 z-10 flex items-center justify-between bg-base-200 px-4 py-3">
           <div className="flex items-center gap-2 text-lg font-semibold">
-            <Cog8ToothIcon className="h-5 w-5" />
+            <BsGear className="h-5 w-5" />
             {t('admin.title')}
           </div>
           <button
@@ -218,7 +212,7 @@ export function AdminDrawer({
             className="btn btn-circle btn-ghost"
             aria-label={t('common.close')}
           >
-            <XMarkIcon className="h-5 w-5" />
+            <BsX className="h-5 w-5" />
           </button>
         </div>
 
@@ -232,7 +226,7 @@ export function AdminDrawer({
               <div className="collapse-content">
                 <div className="mb-3 flex flex-col gap-2">
                   <label className="input input-sm input-bordered flex items-center gap-2">
-                    <CalendarIcon className="h-4 w-4 opacity-70" />
+                    <BsCalendar2 className="h-4 w-4 opacity-70" />
                     <input
                       type="month"
                       value={selectedYearMonth}
@@ -285,15 +279,15 @@ export function AdminDrawer({
                       <button
                         type="button"
                         onClick={() => handleNavigate('/players/new')}
-                        className="btn btn-secondary btn-sm w-full"
+                        className="btn btn-secondary btn-sm w-full flex items-center gap-0"
                       >
-                        <PlusIcon className="stroke-[3] h-4 w-4" />
+                        <BsPlus className="h-5 w-5" />
                         <span className="hidden sm:inline">{t('admin.newPlayer')}</span>
                       </button>
                     </div>
                     <div className="flex gap-2">
                       <label className="input input-sm input-bordered flex items-center gap-2 flex-1">
-                        <MagnifyingGlassIcon className="h-4 w-4 opacity-70" />
+                        <BsSearch className="h-4 w-4 opacity-70" />
                         <input
                           type="text"
                           value={playerSearch}

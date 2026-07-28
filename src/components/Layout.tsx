@@ -1,10 +1,7 @@
 import { useState } from 'react'
 import { Link, Outlet, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import {
-  ArrowRightEndOnRectangleIcon,
-  Cog8ToothIcon,
-} from '@heroicons/react/24/outline'
+import { BsBoxArrowRight, BsGear } from 'react-icons/bs'
 import { LanguageSwitcher } from './LanguageSwitcher.tsx'
 import { UserMenu } from './UserMenu.tsx'
 import { NewTournamentButton } from './NewTournamentButton.tsx'
@@ -45,7 +42,7 @@ export function Layout() {
       <header className="navbar bg-primary text-primary-content">
         <div className="navbar-start">
           <Link to="/" className="logo">
-            shogi<b>·</b>world
+            shogi world
           </Link>
         </div>
 
@@ -62,7 +59,7 @@ export function Layout() {
               to="/login"
               className="btn btn-secondary btn-sm"
             >
-              <ArrowRightEndOnRectangleIcon className="h-4 w-4" />
+              <BsBoxArrowRight className="h-4 w-4" />
               <span className="hidden sm:inline">{t('auth.login')}</span>
             </Link>
           )}
@@ -94,7 +91,7 @@ export function Layout() {
           className="fixed left-0 top-1/2 z-40 -translate-y-1/2 rounded-r-box bg-secondary p-3 text-secondary-content shadow-lg"
           aria-label={t('admin.title')}
         >
-          <Cog8ToothIcon className="h-6 w-6" />
+          <BsGear className="h-6 w-6" />
         </button>
       )}
     </div>

@@ -1,4 +1,4 @@
-import { PlusIcon } from '@heroicons/react/24/outline'
+import { BsPlus } from 'react-icons/bs'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { useRef, useState } from 'react'
@@ -99,14 +99,14 @@ export function NewTournamentButton({
         onClick={handleClick}
         disabled={isCreating}
         className={[
-          'btn btn-secondary',
+          'btn btn-secondary flex items-center gap-0',
           variant === 'header' ? 'btn-sm' : 'btn-block btn-sm',
         ].join(' ')}
       >
         {isCreating ? (
           <span className="loading loading-spinner loading-xs" />
         ) : (
-          <PlusIcon className="stroke-[3] h-4 w-4" />
+          <BsPlus className="h-5 w-5" />
         )}
         <span className={variant === 'header' ? 'hidden sm:inline' : ''}>
           {t('tournament.new')}

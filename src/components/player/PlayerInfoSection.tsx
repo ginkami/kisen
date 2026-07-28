@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { PlusIcon } from '@heroicons/react/24/outline'
+import { BsPlus } from 'react-icons/bs'
 import { useTranslation } from 'react-i18next'
 import { CountrySelect } from '../tournament/CountrySelect.tsx'
 import { LocaleTabs } from '../tournament/LocaleTabs.tsx'
@@ -145,7 +145,7 @@ export function PlayerInfoSection({
             className="btn btn-ghost justify-start px-2 text-primary"
             onClick={() => setRatingExpanded(true)}
           >
-            <PlusIcon className="h-5 w-5" />
+            <BsPlus className="h-5 w-5" />
             {t('player.edit.rating')}
           </button>
         ) : (
@@ -245,7 +245,7 @@ export function PlayerInfoSection({
               className="btn btn-ghost justify-start px-2 text-primary mt-2"
               onClick={() => setShowAssociationPicker(true)}
             >
-              <PlusIcon className="h-5 w-5" />
+              <BsPlus className="h-5 w-5" />
               {t('player.edit.addAssociation')}
             </button>
           )}

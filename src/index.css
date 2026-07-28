@@ -69,10 +69,23 @@
   font-weight: 400;
   font-style: normal;
   font-size: 1.5rem;
+  margin-left: -1rem;
 }
-.logo b {
+.logo::before{
+  content: '·';
   color: #f62a00;
-  margin-right: .05rem;
+  font-size: 2rem;
+  vertical-align: middle;
+  position: relative;
+  left: 5.5rem;
+  top: -.05rem;
+}
+.logo::after{
+  content: 'α';
+  font-size: .8rem;
+  vertical-align: top;
+  margin-left: .1rem;
+  opacity: .5;
 }
 .newt-btn {
   font-size: 1.0rem;

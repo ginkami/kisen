@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { ReactNode } from 'react'
-import { PlusIcon } from '@heroicons/react/24/outline'
+import { BsPlus } from 'react-icons/bs'
 
 interface ExpandableFieldProps {
   label: string
@@ -30,10 +30,10 @@ export function ExpandableField({
     return (
       <button
         type="button"
-        className="btn btn-ghost justify-start px-2 text-primary"
+        className="btn btn-ghost justify-start px-2 text-primary flex items-center gap-0"
         onClick={() => setIsOpen(true)}
       >
-        <PlusIcon className="h-5 w-5" />
+        <BsPlus className="h-5 w-5" />
         {label}
       </button>
     )
