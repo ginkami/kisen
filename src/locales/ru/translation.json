@@ -28,6 +28,11 @@
     "noPlayersFound": "Игроки не найдены",
     "newPlayer": "Игрок",
     "playersDisabled": "Недоступно для вашей роли",
+    "bulkImport": "Импорт из CSV",
+    "bulkImportResults": "Результаты импорта",
+    "added": "Добавлено",
+    "updated": "Обновлено",
+    "invalid": "Невалидных",
     "unsavedChangesConfirmTitle": "Несохранённые изменения",
     "unsavedChangesConfirm": "Есть несохранённые изменения. Покинуть страницу?"
   },
@@ -192,6 +197,7 @@
     "select": "Выбрать",
     "cancel": "Отмена",
     "confirm": "Подтвердить",
-    "fieldRequired": "Обязательное поле"
+    "fieldRequired": "Обязательное поле",
+    "errors": "Ошибки"
   }
 }

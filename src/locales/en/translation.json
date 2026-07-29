@@ -28,6 +28,11 @@
     "noPlayersFound": "No players found",
     "newPlayer": "Player",
     "playersDisabled": "Not available for your role",
+    "bulkImport": "Import from CSV",
+    "bulkImportResults": "Import results",
+    "added": "Added",
+    "updated": "Updated",
+    "invalid": "Invalid",
     "unsavedChangesConfirmTitle": "Unsaved changes",
     "unsavedChangesConfirm": "You have unsaved changes. Leave this page?"
   },
@@ -192,6 +197,7 @@
     "select": "Select",
     "cancel": "Cancel",
     "confirm": "Confirm",
-    "fieldRequired": "Required field"
+    "fieldRequired": "Required field",
+    "errors": "Errors"
   }
 }

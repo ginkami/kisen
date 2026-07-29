@@ -41,6 +41,7 @@ export interface EventRepository {
 
 export interface PlayerRepository {
   getById(id: string): Promise<Player | null>
+  listAll(): Promise<Player[]>
   create(player: Player): Promise<Player>
   update(player: Player): Promise<Player>
   delete(id: string): Promise<void>

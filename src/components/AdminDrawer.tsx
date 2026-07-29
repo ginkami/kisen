@@ -4,9 +4,11 @@ import { useTranslation } from 'react-i18next'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import * as Flags from 'country-flag-icons/react/3x2'
-import { BsGear, BsX, BsCalendar2, BsSearch, BsPlus } from 'react-icons/bs'
+import { BsGear, BsX, BsCalendar2, BsSearch, BsPlus, BsPeople, BsFiletypeCsv, BsPeopleFill } from 'react-icons/bs'
 import { useAuth } from '../context/AuthContext.tsx'
 import { tournamentService } from '../services/tournamentService.ts'
+import { playerService, type ImportResult } from '../services/playerService.ts'
+import { BulkImportResultModal } from './BulkImportResultModal.tsx'
 import { usePlayerSearch } from '../hooks/usePlayers.ts'
 import {
   formatDateToYearMonth,
@@ -67,6 +69,12 @@ export function AdminDrawer({
   const [playerSearch, setPlayerSearch] = useState('')
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null)
   const canManagePlayers = user?.role === 'admin' || user?.role === 'manager'
+  const canBulkImport = user?.role === 'admin'
+  const [isImporting, setIsImporting] = useState(false)
+  const [importResult, setImportResult] = useState<ImportResult | null>(null)
+  const [importError, setImportError] = useState<string | null>(null)
+  const [showImportResult, setShowImportResult] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     const handleEscape = (event: KeyboardEvent) => {
@@ -144,6 +152,42 @@ export function AdminDrawer({
   const handleCancelNavigation = () => {
     setConfirmModalOpen(false)
     pendingNavigation.current = null
+  }
+
+  const handleBulkImport = async (file: File) => {
+    if (!firebaseUser) return
+    setIsImporting(true)
+    setImportError(null)
+    setImportResult(null)
+    try {
+      const result = await playerService.importFromCsv(file, firebaseUser.uid)
+      setImportResult(result)
+    } catch (err) {
+      setImportError(
+        err instanceof Error
+          ? err.message
+          : t('admin.errors.firestore')
+      )
+    } finally {
+      setIsImporting(false)
+      setShowImportResult(true)
+    }
+  }
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) void handleBulkImport(file)
+    e.target.value = ''
+  }
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    const file = e.dataTransfer.files[0]
+    if (file && file.name.endsWith('.csv')) void handleBulkImport(file)
+  }
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
   }
 
   const renderTournamentItem = (tournament: Tournament) => {
@@ -279,10 +323,10 @@ export function AdminDrawer({
                       <button
                         type="button"
                         onClick={() => handleNavigate('/players/new')}
-                        className="btn btn-secondary btn-sm w-full flex items-center gap-0"
+                        className="btn btn-secondary btn-sm flex-1 flex items-center gap-0"
                       >
                         <BsPlus className="h-5 w-5" />
-                        <span className="hidden sm:inline">{t('admin.newPlayer')}</span>
+                        <span className="hidden text-sm sm:inline">{t('admin.newPlayer')}</span>
                       </button>
                     </div>
                     <div className="flex gap-2">
@@ -358,6 +402,35 @@ export function AdminDrawer({
                         })}
                       </div>
                     )}
+
+                    <div className="flex gap-2">
+                      {canBulkImport && (
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-sm flex-1 flex items-center gap-0"
+                          onClick={() => fileInputRef.current?.click()}
+                          onDrop={handleDrop}
+                          onDragOver={handleDragOver}
+                        >
+                          {isImporting ? (
+                            <span className="loading loading-spinner loading-xs" />
+                          ) : (
+                            <>
+                              <BsPlus className="h-5 w-5" />
+                              <BsPeopleFill className="h-5 w-5 mr-2" />
+                              <BsFiletypeCsv className="h-5 w-5" />
+                            </>
+                          )}
+                        </button>
+                      )}
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept=".csv"
+                        className="hidden"
+                        onChange={handleFileSelect}
+                      />
+                    </div>
                   </div>
                 ) : (
                   <p className="text-sm opacity-70">
@@ -393,6 +466,13 @@ export function AdminDrawer({
           </div>
         </div>
       </div>
+
+      <BulkImportResultModal
+        isOpen={showImportResult}
+        result={importResult}
+        error={importError}
+        onClose={() => setShowImportResult(false)}
+      />
 
       <ConfirmModal
         isOpen={confirmModalOpen}

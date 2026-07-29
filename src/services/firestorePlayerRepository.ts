@@ -73,6 +73,16 @@ export class FirestorePlayerRepository implements PlayerRepository {
     await deleteDoc(docRef)
   }
 
+  async listAll(): Promise<Player[]> {
+    const snapshot = await getDocs(this.collectionRef)
+    return snapshot.docs.map((docSnap) =>
+      fromFirestore({
+        id: docSnap.id,
+        ...docSnap.data(),
+      } as Record<string, unknown>)
+    )
+  }
+
   async searchByFamilyName(prefix: string, locale: string): Promise<Player[]> {
     const fieldPath = `locales.${locale}.familyName`
     const q = query(
