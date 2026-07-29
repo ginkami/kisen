@@ -45,7 +45,7 @@ export interface PlayerRepository {
   create(player: Player): Promise<Player>
   update(player: Player): Promise<Player>
   delete(id: string): Promise<void>
-  searchByFamilyName(prefix: string, locale: string): Promise<Player[]>
+  searchByFamilyName(prefix: string): Promise<Player[]>
 }
 
 export const PlayerRepositoryKey = Symbol('PlayerRepository')

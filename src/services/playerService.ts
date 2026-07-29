@@ -223,8 +223,8 @@ export class PlayerService {
     return this.repository.delete(id)
   }
 
-  async searchByFamilyName(prefix: string, locale: string): Promise<Player[]> {
-    return this.repository.searchByFamilyName(prefix, locale)
+  async searchByFamilyName(prefix: string): Promise<Player[]> {
+    return this.repository.searchByFamilyName(prefix)
   }
 
   async importFromCsv(file: File, createdBy: string): Promise<ImportResult> {

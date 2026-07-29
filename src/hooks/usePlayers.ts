@@ -7,7 +7,7 @@ const PLAYER_SEARCH_KEY = 'players'
 const DEBOUNCE_MS = 300
 const MIN_QUERY_LENGTH = 3
 
-export function usePlayerSearch(query: string, locale: string) {
+export function usePlayerSearch(query: string) {
   const [debouncedQuery, setDebouncedQuery] = useState(query)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -28,8 +28,8 @@ export function usePlayerSearch(query: string, locale: string) {
   }, [query])
 
   return useQuery<Player[]>({
-    queryKey: [PLAYER_SEARCH_KEY, 'search', locale, debouncedQuery],
-    queryFn: () => playerService.searchByFamilyName(debouncedQuery, locale),
+    queryKey: [PLAYER_SEARCH_KEY, 'search', debouncedQuery],
+    queryFn: () => playerService.searchByFamilyName(debouncedQuery),
     enabled: debouncedQuery.length >= MIN_QUERY_LENGTH,
     staleTime: 30_000,
   })

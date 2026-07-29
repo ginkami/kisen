@@ -107,7 +107,7 @@ export function AdminDrawer({
   const yearMonth = parseMonthInputToYearMonth(selectedYearMonth)
   const userId = firebaseUser?.uid
   const playerLocale = (i18n.language as 'ru' | 'en') ?? 'ru'
-  const { data: playerResults = [], isLoading: isSearchingPlayers } = usePlayerSearch(playerSearch, playerLocale)
+  const { data: playerResults = [], isLoading: isSearchingPlayers } = usePlayerSearch(playerSearch)
 
   const {
     data: tournaments = [],

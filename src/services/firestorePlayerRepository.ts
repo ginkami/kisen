@@ -13,6 +13,7 @@ import {
 import { db } from './firebaseConfig.ts'
 import type { Player } from '../domain/player.ts'
 import type { PlayerRepository } from './repository.ts'
+import { supportedLocales } from '../domain/locale.ts'
 import {
   datesToTimestamps,
   timestampsToDates,
@@ -83,23 +84,42 @@ export class FirestorePlayerRepository implements PlayerRepository {
     )
   }
 
-  async searchByFamilyName(prefix: string, locale: string): Promise<Player[]> {
-    const fieldPath = `locales.${locale}.familyName`
-    const q = query(
-      this.collectionRef,
-      where(fieldPath, '>=', prefix),
-      where(fieldPath, '<=', prefix + '\uf8ff'),
-      orderBy(fieldPath),
-      limit(20)
-    )
-    const snapshot = await getDocs(q)
+  async searchByFamilyName(prefix: string): Promise<Player[]> {
+    const MAX_RESULTS = 20
 
-    return snapshot.docs.map((docSnap) =>
-      fromFirestore({
-        id: docSnap.id,
-        ...docSnap.data(),
-      } as Record<string, unknown>)
-    )
+    const perLocaleQueries = supportedLocales.map((locale) => {
+      const fieldPath = `locales.${locale}.familyName`
+      const q = query(
+        this.collectionRef,
+        where(fieldPath, '>=', prefix),
+        where(fieldPath, '<=', prefix + '\uf8ff'),
+        orderBy(fieldPath),
+        limit(MAX_RESULTS)
+      )
+      return getDocs(q)
+    })
+
+    const snapshots = await Promise.all(perLocaleQueries)
+
+    const seen = new Set<string>()
+    const merged: Player[] = []
+
+    for (const snapshot of snapshots) {
+      for (const docSnap of snapshot.docs) {
+        const id = docSnap.id
+        if (seen.has(id)) continue
+        seen.add(id)
+        merged.push(
+          fromFirestore({
+            id,
+            ...docSnap.data(),
+          } as Record<string, unknown>)
+        )
+        if (merged.length >= MAX_RESULTS) return merged
+      }
+    }
+
+    return merged
   }
 }
 
