@@ -108,7 +108,7 @@ export function NewTournamentButton({
         ) : (
           <BsPlus className="h-5 w-5" />
         )}
-        <span className={variant === 'header' ? 'hidden sm:inline' : ''}>
+        <span className={variant === 'header' ? 'hidden text-sm sm:inline' : 'text-sm'}>
           {t('tournament.new')}
         </span>
       </button>

@@ -3,8 +3,7 @@ import { ConfirmModal } from './ConfirmModal.tsx'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import * as Flags from 'country-flag-icons/react/3x2'
-import { BsGear, BsX, BsCalendar2, BsSearch, BsPlus, BsPeople, BsFiletypeCsv, BsPeopleFill } from 'react-icons/bs'
+import { BsGear, BsX, BsCalendar2, BsSearch, BsPlus, BsFiletypeCsv, BsPeopleFill } from 'react-icons/bs'
 import { useAuth } from '../context/AuthContext.tsx'
 import { tournamentService } from '../services/tournamentService.ts'
 import { playerService, type ImportResult } from '../services/playerService.ts'
@@ -19,6 +18,7 @@ import { formatDateTimeShort } from '../utils/dateTime.ts'
 import { getTournamentLocale } from '../domain/tournament.ts'
 import { NewTournamentButton } from './NewTournamentButton.tsx'
 import type { Tournament, TournamentStatus } from '../domain/tournament.ts'
+import { PlayerCard } from './player/PlayerCard.tsx'
 
 interface AdminDrawerProps {
   isOpen: boolean
@@ -361,8 +361,6 @@ export function AdminDrawer({
                     {!isSearchingPlayers && playerResults.length > 0 && (
                       <div className="flex max-h-96 flex-col gap-2 overflow-y-auto">
                         {playerResults.map((player) => {
-                          const localeData = player.locales[playerLocale] ?? player.locales.ru ?? player.locales.en
-                          const Flag = Flags[player.nationality.toUpperCase() as keyof typeof Flags]
                           const isActive = player.id === selectedPlayerId
 
                           return (
@@ -380,23 +378,10 @@ export function AdminDrawer({
                                   : 'border-base-300 hover:bg-base-200',
                               ].join(' ')}
                             >
-                              <div className="flex items-center gap-2">
-                                {Flag && <Flag className="h-3 w-4 rounded-sm" />}
-                                <span className="line-clamp-1 font-medium">
-                                  {localeData?.familyName} {localeData?.givenName}
-                                </span>
-                              </div>
-                              <div className="flex items-center gap-2 text-xs opacity-70">
-                                {localeData?.location && (
-                                  <span>{localeData.location}</span>
-                                )}
-                                {player.currentRating?.value != null && (
-                                  <span>Elo: {player.currentRating.value}</span>
-                                )}
-                                {player.currentRating?.rank && (
-                                  <span>{player.currentRating.rank}</span>
-                                )}
-                              </div>
+                              <PlayerCard 
+                                player={player} 
+                                locale={playerLocale}
+                              />
                             </button>
                           )
                         })}

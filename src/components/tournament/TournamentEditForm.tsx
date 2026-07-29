@@ -121,6 +121,7 @@ function GeneralInfoSection({
           }
           placeholder={t('tournament.edit.description')}
           textarea
+          inputClassName='basic-expandable'
         />
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -168,6 +169,7 @@ function GeneralInfoSection({
           value={formState.locales[activeLocale].venue ?? ''}
           onChange={(value) => updateLocale(activeLocale, 'venue', value)}
           placeholder={t('tournament.edit.venue')}
+          inputClassName='basic-expandable'
         />
 
         <div className="form-control">

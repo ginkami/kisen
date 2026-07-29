@@ -30,7 +30,7 @@ export function ExpandableField({
     return (
       <button
         type="button"
-        className="btn btn-ghost justify-start px-2 text-primary flex items-center gap-0"
+        className={`btn btn-ghost justify-start px-2 text-primary flex items-center gap-0 expandable-field ${inputClassName ?? ''}`}
         onClick={() => setIsOpen(true)}
       >
         <BsPlus className="h-5 w-5" />

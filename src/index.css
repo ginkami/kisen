@@ -93,7 +93,6 @@
 .form-control .label {
   margin-right: 0.375rem;
 }
-*:has(>.select-rank) + button,
-*:has(>label.country) + button {
+button.expandable-field:not(.basic-expandable) {
   margin-top: 1.25rem;
 }
