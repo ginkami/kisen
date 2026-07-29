@@ -70,9 +70,12 @@ export const participantSchema = z.object({
     z.object({
       familyName: z.string().min(1),
       givenName: z.string().min(1),
+      title: z.string().optional(),
+      location: z.string().optional(),
     })
   ),
   nationality: z.string().length(2).optional(),
+  residence: z.string().length(2).optional(),
   capturedRating: playerRatingSchema,
   startingPoints: z.number().int().default(0),
 })

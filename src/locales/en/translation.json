@@ -94,8 +94,32 @@
         "general": "General",
         "settings": "Settings",
         "schedule": "Schedule",
-        "participants": "Participants",
+        "players": "Players",
         "placeholder": "This section is empty for now."
+      },
+      "participants": {
+        "title": "Tournament participants",
+        "emptyHint": "Click \"+\" to add a participant.",
+        "add": "Add participant",
+        "remove": "Remove participant",
+        "removeConfirmTitle": "Remove participant?",
+        "removeConfirm": "Are you sure you want to remove this participant?",
+        "familyName": "Family name",
+        "givenName": "Given name",
+        "ratingValue": "Rating value",
+        "rank": "Rank",
+        "country": "Country",
+        "location": "City / region",
+        "residence": "Country of residence",
+        "titleField": "Title",
+        "linkPlayer": "Link to database player",
+        "unlinkPlayer": "Unlink from database player",
+        "editPlayer": "Edit linked player",
+        "searchPlayerTitle": "Find a player in the database",
+        "linkConfirmTitle": "Copy data from player card?",
+        "linkConfirm": "Fill participant card with data from the selected player?",
+        "unlinkConfirmTitle": "Unlink player?",
+        "unlinkConfirm": "Remove the link to the database player? Participant data will be kept."
       },
       "schedule": {
         "title": "Schedule"

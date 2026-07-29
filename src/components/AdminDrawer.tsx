@@ -3,12 +3,12 @@ import { ConfirmModal } from './ConfirmModal.tsx'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { BsGear, BsX, BsCalendar2, BsSearch, BsPlus, BsFiletypeCsv, BsPeopleFill } from 'react-icons/bs'
+import { BsGear, BsX, BsCalendar2, BsPlus, BsFiletypeCsv, BsPeopleFill } from 'react-icons/bs'
 import { useAuth } from '../context/AuthContext.tsx'
 import { tournamentService } from '../services/tournamentService.ts'
 import { playerService, type ImportResult } from '../services/playerService.ts'
 import { BulkImportResultModal } from './BulkImportResultModal.tsx'
-import { usePlayerSearch } from '../hooks/usePlayers.ts'
+import { PlayerSearchPanel } from './player/PlayerSearchPanel.tsx'
 import {
   formatDateToYearMonth,
   formatYearMonthToMonthInput,
@@ -18,7 +18,6 @@ import { formatDateTimeShort } from '../utils/dateTime.ts'
 import { getTournamentLocale } from '../domain/tournament.ts'
 import { NewTournamentButton } from './NewTournamentButton.tsx'
 import type { Tournament, TournamentStatus } from '../domain/tournament.ts'
-import { PlayerCard } from './player/PlayerCard.tsx'
 
 interface AdminDrawerProps {
   isOpen: boolean
@@ -107,7 +106,6 @@ export function AdminDrawer({
   const yearMonth = parseMonthInputToYearMonth(selectedYearMonth)
   const userId = firebaseUser?.uid
   const playerLocale = (i18n.language as 'ru' | 'en') ?? 'ru'
-  const { data: playerResults = [], isLoading: isSearchingPlayers } = usePlayerSearch(playerSearch)
 
   const {
     data: tournaments = [],
@@ -329,64 +327,19 @@ export function AdminDrawer({
                         <span className="hidden text-sm sm:inline">{t('admin.newPlayer')}</span>
                       </button>
                     </div>
-                    <div className="flex gap-2">
-                      <label className="input input-sm input-bordered flex items-center gap-2 flex-1">
-                        <BsSearch className="h-4 w-4 opacity-70" />
-                        <input
-                          type="text"
-                          value={playerSearch}
-                          onChange={(e) => {
-                            setPlayerSearch(e.target.value)
-                            setSelectedPlayerId(null)
-                          }}
-                          placeholder={t('admin.searchPlayers')}
-                          className="grow bg-transparent outline-none"
-                        />
-                      </label>
-                    </div>
-
-
-                    {isSearchingPlayers && (
-                      <div className="flex justify-center py-4">
-                        <span className="loading loading-spinner loading-sm" />
-                      </div>
-                    )}
-
-                    {!isSearchingPlayers && playerSearch.length >= 3 && playerResults.length === 0 && (
-                      <p className="text-sm opacity-70">
-                        {t('admin.noPlayersFound')}
-                      </p>
-                    )}
-
-                    {!isSearchingPlayers && playerResults.length > 0 && (
-                      <div className="flex max-h-96 flex-col gap-2 overflow-y-auto">
-                        {playerResults.map((player) => {
-                          const isActive = player.id === selectedPlayerId
-
-                          return (
-                            <button
-                              key={player.id}
-                              type="button"
-                              onClick={() => {
-                                setSelectedPlayerId(player.id)
-                                handleNavigate(`/players/${player.id}/edit`)
-                              }}
-                              className={[
-                                'group flex w-full flex-col gap-1 rounded-lg border px-3 py-2 text-left transition-colors',
-                                isActive
-                                  ? 'border-primary bg-primary/10'
-                                  : 'border-base-300 hover:bg-base-200',
-                              ].join(' ')}
-                            >
-                              <PlayerCard 
-                                player={player} 
-                                locale={playerLocale}
-                              />
-                            </button>
-                          )
-                        })}
-                      </div>
-                    )}
+                    <PlayerSearchPanel
+                      query={playerSearch}
+                      onQueryChange={(value) => {
+                        setPlayerSearch(value)
+                        setSelectedPlayerId(null)
+                      }}
+                      onSelect={(player) => {
+                        setSelectedPlayerId(player.id)
+                        handleNavigate(`/players/${player.id}/edit`)
+                      }}
+                      locale={playerLocale}
+                      selectedId={selectedPlayerId}
+                    />
 
                     <div className="flex gap-2">
                       {canBulkImport && (

@@ -1,6 +1,7 @@
 import type { Player } from "../../domain";
 import * as Flags from 'country-flag-icons/react/3x2'
 import { BsGraphUp } from 'react-icons/bs'
+import { PiCrownSimple } from 'react-icons/pi'
 
 interface PlayerCardProps {
   player: Player
@@ -25,13 +26,22 @@ export function PlayerCard({ player, locale }: PlayerCardProps) {
                 {localeData?.location && (
                     <span>{localeData.location}</span>
                 )}
-                <BsGraphUp className="h-3 w-3" />
+                {(player.currentRating?.value != null || player.currentRating?.rank) && (
+                    <BsGraphUp className="h-3 w-3" />
+                )}
                 {player.currentRating?.value != null && (
                     <span>{player.currentRating.value}</span>
                 )}
                 {player.currentRating?.rank && (
                     <span>{player.currentRating.rank}</span>
                 )}
+                {localeData?.title && (
+                    <span className="flex items-center gap-1 truncate">
+                        <PiCrownSimple className="h-3 w-3" />
+                        <span className="truncate">{localeData?.title}</span>
+                    </span>
+                )}
+
             </div>
         </div>
     )

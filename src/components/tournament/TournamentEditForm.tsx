@@ -8,6 +8,7 @@ import {
   dateToLocalDatetimeInputValue,
   localDatetimeInputValueToUtcDate,
 } from '../../utils/dateTime.ts'
+import { ParticipantsSection } from './ParticipantsSection.tsx'
 import { supportedLocales, type SupportedLocale } from '../../domain/locale.ts'
 import { timeControlFormatSchema } from '../../domain/timeControl.ts'
 import { tieBreakTypeSchema } from '../../domain/tieBreak.ts'
@@ -796,6 +797,9 @@ export function TournamentEditForm({
     updateScheduleRow,
     removeScheduleRow,
     sortScheduleRows,
+    addParticipant,
+    updateParticipant,
+    removeParticipant,
     saveDraft,
     publish,
     deleteTournament,
@@ -834,7 +838,7 @@ export function TournamentEditForm({
     },
     {
       id: 'participants',
-      label: t('tournament.edit.tabs.participants'),
+      label: t('tournament.edit.tabs.players'),
       icon: BsPeople,
     },
   ]
@@ -1056,12 +1060,15 @@ export function TournamentEditForm({
         />
       )}
 
-      {activeTab === 'participants' && (
-        <div className="card bg-base-200 shadow-sm">
-          <div className="card-body opacity-70">
-            {t('tournament.edit.tabs.placeholder')}
-          </div>
-        </div>
+      {activeTab === 'participants' && formState.participants && (
+        <ParticipantsSection
+          participants={formState.participants}
+          activeLocale={scheduleLocale}
+          onLocaleChange={setScheduleLocale}
+          onAdd={addParticipant}
+          onUpdate={updateParticipant}
+          onRemove={removeParticipant}
+        />
       )}
 
       <ConfirmModal

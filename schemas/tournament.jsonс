@@ -85,11 +85,13 @@
             "locales": { // (Required) Набор локалей
                 "ru": { // [ >= 1 ] Должна быть хотя бы одна локаль. При рендеринге берутся значения для текущей локали, либо другой существующей
                     "familyName": "String", // (Required)
-                    "givenName": "String" // (Required)
+                    "givenName": "String", // (Required)
+                    "title": "String", // Звание или титул игрока
+                    "location": "String" // Место (город/посёлок) проживания
                 }
             },
             "nationality": "ISO 3166-1 alpha-2",
-            
+            "residence": "ISO 3166-1 alpha-2", // Страна проживания
             "capturedRating": { // (Required, Ref: playerRating.ts)
                 "value": "Decimal | null", // Числовое значение рейтинга. null, если отсутствует.
                 "rank": "String | null" // Ref: Ранг Кю/Дан. Значения: '20k'...'1k' (Кю), '1d'...'9d' (Дан). null, если разряда нет.

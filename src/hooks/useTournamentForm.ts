@@ -10,12 +10,14 @@ import type {
   TournamentLocale,
   TournamentSchedule,
   TournamentSettings,
+  Participant,
 } from '../domain/tournament.ts'
 import { publishedTournamentSchema } from '../domain/tournament.ts'
 import { normalizeSlug } from '../services/slugService.ts'
 import { supportedLocales, type SupportedLocale } from '../domain/locale.ts'
 import type { TimeControlFormat } from '../domain/timeControl.ts'
 import type { TieBreak, TieBreakType } from '../domain/tieBreak.ts'
+import type { PlayerRank } from '../domain/playerRating.ts'
 
 export type ScheduleRow =
   | { kind: 'round'; id: string; scheduledAt: Date | null; number: number }
@@ -121,6 +123,22 @@ function renumberRounds(rows: ScheduleRow[]): ScheduleRow[] {
   })
 }
 
+export interface ParticipantRow {
+  rowId: string
+  id: number
+  player: string | null
+  locales: Record<SupportedLocale, {
+    familyName: string
+    givenName: string
+    title: string
+    location: string
+  }>
+  nationality: string
+  residence: string
+  ratingValue: string
+  rank: PlayerRank | null
+}
+
 export interface TournamentFormState {
   slug: string
   parentEvent: string | null
@@ -130,6 +148,79 @@ export interface TournamentFormState {
   arbiter: Record<SupportedLocale, { givenName: string; familyName: string }>
   settings: TournamentSettings
   scheduleRows: ScheduleRow[]
+  participants: ParticipantRow[]
+}
+
+function createEmptyParticipantLocales(): ParticipantRow['locales'] {
+  return Object.fromEntries(
+    supportedLocales.map((locale) => [
+      locale,
+      { familyName: '', givenName: '', title: '', location: '' },
+    ])
+  ) as ParticipantRow['locales']
+}
+
+function participantsToRows(participants: Participant[]): ParticipantRow[] {
+  return participants.map((p, index) => ({
+    rowId: `existing-${index}-${p.id}`,
+    id: p.id,
+    player: p.player,
+    locales: Object.fromEntries(
+      supportedLocales.map((locale) => [
+        locale,
+        {
+          familyName: p.locales[locale]?.familyName ?? '',
+          givenName: p.locales[locale]?.givenName ?? '',
+          title: p.locales[locale]?.title ?? '',
+          location: p.locales[locale]?.location ?? '',
+        },
+      ])
+    ) as ParticipantRow['locales'],
+    nationality: p.nationality ?? '',
+    residence: p.residence ?? '',
+    ratingValue: p.capturedRating?.value?.toString() ?? '',
+    rank: p.capturedRating?.rank ?? null,
+  }))
+}
+
+function rowsToParticipants(rows: ParticipantRow[]): Participant[] {
+  const existingIds = rows.filter((r) => r.id > 0).map((r) => r.id)
+  const maxExistingId = existingIds.length > 0 ? Math.max(...existingIds) : 0
+  let nextNewId = maxExistingId + 1
+
+  return rows.map((row) => {
+    const id = row.id > 0 ? row.id : nextNewId++
+    const locales: Participant['locales'] = Object.fromEntries(
+      supportedLocales
+        .filter(
+          (locale) =>
+            row.locales[locale].familyName.trim() !== '' ||
+            row.locales[locale].givenName.trim() !== ''
+        )
+        .map((locale) => [
+          locale,
+          {
+            familyName: row.locales[locale].familyName,
+            givenName: row.locales[locale].givenName,
+            ...(row.locales[locale].title ? { title: row.locales[locale].title } : {}),
+            ...(row.locales[locale].location ? { location: row.locales[locale].location } : {}),
+          },
+        ])
+    ) as Participant['locales']
+
+    return {
+      id,
+      player: row.player,
+      locales,
+      nationality: row.nationality || undefined,
+      residence: row.residence || undefined,
+      capturedRating: {
+        value: row.ratingValue ? Number(row.ratingValue) : null,
+        rank: row.rank,
+      },
+      startingPoints: 0,
+    }
+  })
 }
 
 function createEmptyLocale(): TournamentLocale {
@@ -181,6 +272,7 @@ function tournamentToFormState(tournament: Tournament): TournamentFormState {
       tournament.schedule.events,
       tournament.schedule.rounds
     ),
+    participants: participantsToRows(tournament.participants),
   }
 }
 
@@ -199,6 +291,7 @@ function formStateToUpdateInput(
     parentEvent: string | null
     hostAssociation: string | null
     arbiter: Tournament['arbiter']
+    participants: Participant[]
     desiredSlug?: string
   } = {
     id: tournament.id,
@@ -219,6 +312,7 @@ function formStateToUpdateInput(
         ])
       ) as Tournament['arbiter']['locales'],
     },
+    participants: rowsToParticipants(state.participants),
   }
 
   if (state.slug !== tournament.slug) {
@@ -637,6 +731,65 @@ export function useTournamentForm(tournamentId: string | undefined) {
     }))
   }, [updateForm])
 
+  const addParticipant = useCallback(
+    (afterRowId?: string) => {
+      updateForm((state) => {
+        const newRow: ParticipantRow = {
+          rowId: generateRowId(),
+          id: 0,
+          player: null,
+          locales: createEmptyParticipantLocales(),
+          nationality: '',
+          residence: '',
+          ratingValue: '',
+          rank: null,
+        }
+        if (!afterRowId) {
+          return {
+            ...state,
+            participants: [...state.participants, newRow],
+          }
+        }
+        const index = state.participants.findIndex((r) => r.rowId === afterRowId)
+        if (index === -1) {
+          return {
+            ...state,
+            participants: [...state.participants, newRow],
+          }
+        }
+        const newRows = [...state.participants]
+        newRows.splice(index + 1, 0, newRow)
+        return {
+          ...state,
+          participants: newRows,
+        }
+      })
+    },
+    [updateForm]
+  )
+
+  const updateParticipant = useCallback(
+    (rowId: string, patch: Partial<ParticipantRow>) => {
+      updateForm((state) => ({
+        ...state,
+        participants: state.participants.map((row) =>
+          row.rowId === rowId ? { ...row, ...patch } : row
+        ),
+      }))
+    },
+    [updateForm]
+  )
+
+  const removeParticipant = useCallback(
+    (rowId: string) => {
+      updateForm((state) => ({
+        ...state,
+        participants: state.participants.filter((r) => r.rowId !== rowId),
+      }))
+    },
+    [updateForm]
+  )
+
   const saveMutation = useMutation({
     mutationFn: async () => {
       if (!tournament || !formState) throw new Error('Tournament not loaded')
@@ -768,5 +921,8 @@ export function useTournamentForm(tournamentId: string | undefined) {
     deleteTournament,
     clearCreateError,
     retryCreateDraft,
+    addParticipant,
+    updateParticipant,
+    removeParticipant,
   }
 }

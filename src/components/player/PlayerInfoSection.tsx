@@ -5,7 +5,7 @@ import { CountrySelect } from '../tournament/CountrySelect.tsx'
 import { LocaleTabs } from '../tournament/LocaleTabs.tsx'
 import { ExpandableField } from '../tournament/ExpandableField.tsx'
 import { AssociationPickerModal } from '../tournament/AssociationPickerModal.tsx'
-import type { PlayerFormState, PlayerFormLocaleFields } from '../../hooks/usePlayerForm.ts'
+import type { PlayerFormState, PlayerFormLocaleFields } from '../../hooks/playerFormHelpers.ts'
 import type { PlayerRank } from '../../domain/playerRating.ts'
 import type { SupportedLocale } from '../../domain/locale.ts'
 
