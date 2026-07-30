@@ -119,7 +119,9 @@
         "linkConfirmTitle": "Copy data from player card?",
         "linkConfirm": "Fill participant card with data from the selected player?",
         "unlinkConfirmTitle": "Unlink player?",
-        "unlinkConfirm": "Remove the link to the database player? Participant data will be kept."
+        "unlinkConfirm": "Remove the link to the database player? Participant data will be kept.",
+        "sortByName": "Sort by family name",
+        "sortByRating": "Sort by rating"
       },
       "schedule": {
         "title": "Schedule"

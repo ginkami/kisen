@@ -810,6 +810,28 @@ export function useTournamentForm(tournamentId: string | undefined) {
     [updateForm]
   )
 
+  const sortParticipants = useCallback(
+    (by: 'name' | 'rating', direction: 'asc' | 'desc', locale: SupportedLocale) => {
+      updateForm((state) => ({
+        ...state,
+        participants: [...state.participants].sort((a, b) => {
+          let cmp = 0
+          if (by === 'name') {
+            const aName = a.locales[locale]?.familyName ?? ''
+            const bName = b.locales[locale]?.familyName ?? ''
+            cmp = aName.localeCompare(bName, undefined, { sensitivity: 'base' })
+          } else {
+            const aVal = a.ratingValue ? Number(a.ratingValue) : -Infinity
+            const bVal = b.ratingValue ? Number(b.ratingValue) : -Infinity
+            cmp = aVal - bVal
+          }
+          return direction === 'asc' ? cmp : -cmp
+        }),
+      }))
+    },
+    [updateForm]
+  )
+
   const saveMutation = useMutation({
     mutationFn: async () => {
       if (!tournament || !formState) throw new Error('Tournament not loaded')
@@ -936,6 +958,7 @@ export function useTournamentForm(tournamentId: string | undefined) {
     updateScheduleRow,
     removeScheduleRow,
     sortScheduleRows,
+    sortParticipants,
     saveDraft,
     publish,
     deleteTournament,

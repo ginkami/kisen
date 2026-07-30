@@ -797,6 +797,7 @@ export function TournamentEditForm({
     updateScheduleRow,
     removeScheduleRow,
     sortScheduleRows,
+    sortParticipants,
     addParticipant,
     updateParticipant,
     removeParticipant,
@@ -1072,6 +1073,7 @@ export function TournamentEditForm({
           onRemove={removeParticipant}
           validationErrors={validationErrors}
           canLinkPlayers={canLinkPlayers}
+          onSort={(by, direction) => sortParticipants(by, direction, scheduleLocale)}
         />
       )}
 

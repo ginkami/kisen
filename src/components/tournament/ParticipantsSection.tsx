@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { BsPlus, BsX } from 'react-icons/bs'
+import { BsPlus, BsX, BsSortAlphaDown, BsSortAlphaDownAlt, BsSortNumericDown, BsSortNumericDownAlt } from 'react-icons/bs'
 import { ConfirmModal } from '../ConfirmModal.tsx'
 import { LocaleTabs } from './LocaleTabs.tsx'
 import { ParticipantRow } from './ParticipantRow.tsx'
@@ -14,6 +14,7 @@ interface ParticipantsSectionProps {
   onAdd: (afterRowId?: string) => void
   onUpdate: (rowId: string, patch: Partial<ParticipantRowType>) => void
   onRemove: (rowId: string) => void
+  onSort?: (by: 'name' | 'rating', direction: 'asc' | 'desc') => void
   validationErrors?: Record<string, string>
   canLinkPlayers?: boolean
 }
@@ -25,6 +26,7 @@ export function ParticipantsSection({
   onAdd,
   onUpdate,
   onRemove,
+  onSort,
   validationErrors,
   canLinkPlayers = true,
 }: ParticipantsSectionProps) {
@@ -63,6 +65,47 @@ export function ParticipantsSection({
           </h2>
           <LocaleTabs locale={activeLocale} onChange={onLocaleChange} />
         </div>
+
+        {onSort && participants.length >= 2 && (
+          <div className="flex gap-1">
+            <button
+              type="button"
+              className="btn btn-sm btn-ghost tooltip"
+              data-tip={t('tournament.edit.participants.sortByName')}
+              aria-label={t('tournament.edit.participants.sortByName')}
+              onClick={() => onSort('name', 'asc')}
+            >
+              <BsSortAlphaDown className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              className="btn btn-sm btn-ghost tooltip"
+              data-tip={t('tournament.edit.participants.sortByName')}
+              aria-label={t('tournament.edit.participants.sortByName')}
+              onClick={() => onSort('name', 'desc')}
+            >
+              <BsSortAlphaDownAlt className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              className="btn btn-sm btn-ghost tooltip"
+              data-tip={t('tournament.edit.participants.sortByRating')}
+              aria-label={t('tournament.edit.participants.sortByRating')}
+              onClick={() => onSort('rating', 'asc')}
+            >
+              <BsSortNumericDown className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              className="btn btn-sm btn-ghost tooltip"
+              data-tip={t('tournament.edit.participants.sortByRating')}
+              aria-label={t('tournament.edit.participants.sortByRating')}
+              onClick={() => onSort('rating', 'desc')}
+            >
+              <BsSortNumericDownAlt className="h-4 w-4" />
+            </button>
+          </div>
+        )}
 
         <div className="space-y-2">
           {rows.map((row) => (
