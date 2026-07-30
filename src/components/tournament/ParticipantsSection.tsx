@@ -14,6 +14,8 @@ interface ParticipantsSectionProps {
   onAdd: (afterRowId?: string) => void
   onUpdate: (rowId: string, patch: Partial<ParticipantRowType>) => void
   onRemove: (rowId: string) => void
+  validationErrors?: Record<string, string>
+  canLinkPlayers?: boolean
 }
 
 export function ParticipantsSection({
@@ -23,6 +25,8 @@ export function ParticipantsSection({
   onAdd,
   onUpdate,
   onRemove,
+  validationErrors,
+  canLinkPlayers = true,
 }: ParticipantsSectionProps) {
   const { t } = useTranslation()
   const [pendingRemoveRowId, setPendingRemoveRowId] = useState<string | null>(null)
@@ -73,6 +77,8 @@ export function ParticipantsSection({
                     row={row}
                     activeLocale={activeLocale}
                     onUpdate={(patch) => onUpdate(row.rowId, patch)}
+                    validationErrors={validationErrors}
+                    canLinkPlayers={canLinkPlayers}
                   />
                 )}
               </div>

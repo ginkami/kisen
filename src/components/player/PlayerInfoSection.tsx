@@ -218,6 +218,7 @@ export function PlayerInfoSection({
         </div>
 
         {/* Associations */}
+        {canEditAssociations || (!canEditAssociations && allAssociationIds.length > 0) && (
         <div className="form-control">
           <label className="label">
             <span className="label-text">{t('player.edit.associations')}</span>
@@ -260,6 +261,7 @@ export function PlayerInfoSection({
             />
           )}
         </div>
+        )}
       </div>
     </div>
   )

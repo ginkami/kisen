@@ -184,11 +184,20 @@ function participantsToRows(participants: Participant[]): ParticipantRow[] {
 }
 
 function rowsToParticipants(rows: ParticipantRow[]): Participant[] {
-  const existingIds = rows.filter((r) => r.id > 0).map((r) => r.id)
+  // Filter out empty participants (no locale with both familyName and givenName)
+  const nonEmpty = rows.filter((row) =>
+    supportedLocales.some(
+      (locale) =>
+        row.locales[locale]?.familyName.trim() !== '' &&
+        row.locales[locale]?.givenName.trim() !== ''
+    )
+  )
+
+  const existingIds = nonEmpty.filter((r) => r.id > 0).map((r) => r.id)
   const maxExistingId = existingIds.length > 0 ? Math.max(...existingIds) : 0
   let nextNewId = maxExistingId + 1
 
-  return rows.map((row) => {
+  return nonEmpty.map((row) => {
     const id = row.id > 0 ? row.id : nextNewId++
     const locales: Participant['locales'] = Object.fromEntries(
       supportedLocales
@@ -364,6 +373,17 @@ function validateTournamentPublishForm(
   const hasRounds = state.scheduleRows.some((row) => row.kind === 'round')
   if (!hasRounds) {
     errors.rounds = 'required'
+  }
+
+  const allParticipantsHaveNames = state.participants.every((row) =>
+    supportedLocales.some(
+      (locale) =>
+        row.locales[locale]?.familyName.trim() !== '' &&
+        row.locales[locale]?.givenName.trim() !== ''
+    )
+  )
+  if (state.participants.length > 0 && !allParticipantsHaveNames) {
+    errors.participants = 'required'
   }
 
   return errors

@@ -15,6 +15,8 @@ interface ParticipantRowProps {
   row: ParticipantRowType
   activeLocale: SupportedLocale
   onUpdate: (patch: Partial<ParticipantRowType>) => void
+  validationErrors?: Record<string, string>
+  canLinkPlayers?: boolean
 }
 
 function RankSelect({ value, onChange }: { value: PlayerRank | null; onChange: (v: PlayerRank | null) => void }) {
@@ -57,7 +59,7 @@ function playerToParticipantPatch(player: Player, _locale: SupportedLocale): Par
   }
 }
 
-export function ParticipantRow({ row, activeLocale, onUpdate }: ParticipantRowProps) {
+export function ParticipantRow({ row, activeLocale, onUpdate, validationErrors, canLinkPlayers = true }: ParticipantRowProps) {
   const { t, i18n } = useTranslation()
   const locale = activeLocale
 
@@ -129,6 +131,7 @@ export function ParticipantRow({ row, activeLocale, onUpdate }: ParticipantRowPr
   return (
     <div className="rounded-lg border bg-base-300 border-primary/30 p-3 space-y-3">
       {/* Player link controls row */}
+      {canLinkPlayers && (
       <div className="flex gap-1 items-center flex-wrap">
         <BsLink45Deg className="h-4 w-4" />
         {row.player ? (
@@ -179,6 +182,7 @@ export function ParticipantRow({ row, activeLocale, onUpdate }: ParticipantRowPr
           </div>
         )}
       </div>
+      )}
 
       {/* Family name with autocomplete popover */}
       {/* Rating + Rank */}
@@ -187,6 +191,7 @@ export function ParticipantRow({ row, activeLocale, onUpdate }: ParticipantRowPr
           <label className="label">
             <span className="label-text">
               {t('tournament.edit.participants.familyName')}
+              <span className="text-error ml-1">*</span>
             </span>
           </label>
           <input
@@ -194,12 +199,12 @@ export function ParticipantRow({ row, activeLocale, onUpdate }: ParticipantRowPr
             value={currentLocale.familyName}
             onChange={(e) => handleFamilyNameChange(e.target.value)}
             onFocus={() => {
-              if (!row.player && currentLocale.familyName.length >= 3) setShowAutocomplete(true)
+              if (canLinkPlayers && !row.player && currentLocale.familyName.length >= 3) setShowAutocomplete(true)
             }}
             onBlur={() => setTimeout(() => setShowAutocomplete(false), 150)}
-            className="input input-bordered input-sm w-full"
+            className={`input input-bordered input-sm w-full ${validationErrors?.participants ? 'input-error' : ''}`}
           />
-          {showAutocomplete && !row.player && (
+          {showAutocomplete && canLinkPlayers && !row.player && (
             <div className="absolute z-20 top-full mt-1 left-0 right-0 bg-base-100 rounded-lg shadow-lg border border-base-300 p-2 max-h-60 overflow-auto">
               <PlayerSearchPanel
                 query={currentLocale.familyName}
@@ -215,6 +220,7 @@ export function ParticipantRow({ row, activeLocale, onUpdate }: ParticipantRowPr
           <label className="label">
             <span className="label-text">
               {t('tournament.edit.participants.givenName')}
+              <span className="text-error ml-1">*</span>
             </span>
           </label>
           <input
@@ -228,7 +234,7 @@ export function ParticipantRow({ row, activeLocale, onUpdate }: ParticipantRowPr
                 },
               })
             }
-            className="input input-bordered input-sm w-full"
+            className={`input input-bordered input-sm w-full ${validationErrors?.participants ? 'input-error' : ''}`}
           />
         </div>
         <div className="form-control">

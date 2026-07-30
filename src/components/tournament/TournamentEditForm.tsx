@@ -892,6 +892,8 @@ export function TournamentEditForm({
     user?.role === 'manager' ||
     tournament?.createdBy === firebaseUser?.uid
 
+  const canLinkPlayers = user?.role === 'admin' || user?.role === 'manager'
+
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       {createError && (
@@ -1068,6 +1070,8 @@ export function TournamentEditForm({
           onAdd={addParticipant}
           onUpdate={updateParticipant}
           onRemove={removeParticipant}
+          validationErrors={validationErrors}
+          canLinkPlayers={canLinkPlayers}
         />
       )}
 
