@@ -92,6 +92,7 @@
 }
 .form-control .label {
   margin-right: 0.375rem;
+  margin-bottom: 0.125rem;
 }
 button.expandable-field:not(.basic-expandable) {
   margin-top: 1.25rem;

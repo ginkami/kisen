@@ -8,6 +8,9 @@ interface ExpandableFieldProps {
   onChange?: (value: string) => void
   placeholder?: string
   textarea?: boolean
+  containerClassName?: string
+  labelClassName?: string
+  buttonClassName?: string
   inputClassName?: string
   isEmpty?: boolean
   children?: ReactNode
@@ -20,6 +23,9 @@ export function ExpandableField({
   placeholder,
   textarea,
   inputClassName,
+  containerClassName,
+  buttonClassName,
+  labelClassName,
   isEmpty,
   children,
 }: ExpandableFieldProps) {
@@ -30,7 +36,7 @@ export function ExpandableField({
     return (
       <button
         type="button"
-        className={`btn btn-ghost justify-start px-2 text-primary flex items-center gap-0 expandable-field ${inputClassName ?? ''}`}
+        className={`btn btn-ghost justify-start px-2 text-primary flex items-center gap-0 expandable-field ${buttonClassName ?? ''}`}
         onClick={() => setIsOpen(true)}
       >
         <BsPlus className="h-5 w-5" />
@@ -40,8 +46,8 @@ export function ExpandableField({
   }
 
   return (
-    <div className="flex flex-col">
-      <label className="label">
+    <div className={`form-control ${containerClassName ?? ''}`}>
+      <label className={`label ${labelClassName ?? ''}`}>
         <span className="label-text">{label}</span>
       </label>
       {children ? (

@@ -6,7 +6,8 @@ interface CountrySelectProps {
   value: string
   onChange: (code: string) => void
   lang: string
-  placeholder?: string
+  placeholder?: string,
+  buttonClassName?: string
 }
 
 function FlagIcon({ code, className }: { code: string; className?: string }) {
@@ -20,6 +21,7 @@ export function CountrySelect({
   onChange,
   lang,
   placeholder,
+  buttonClassName
 }: CountrySelectProps) {
   const [isOpen, setIsOpen] = useState(false)
   const countries = useMemo(() => getCountryList(lang), [lang])
@@ -35,7 +37,7 @@ export function CountrySelect({
       <button
         type="button"
         tabIndex={0}
-        className="btn btn-outline w-full justify-start"
+        className={`btn btn-outline w-full justify-start ${buttonClassName ?? ''}`}
         aria-expanded={isOpen}
         onClick={() => setIsOpen((prev) => !prev)}
       >

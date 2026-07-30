@@ -122,7 +122,7 @@ function GeneralInfoSection({
           }
           placeholder={t('tournament.edit.description')}
           textarea
-          inputClassName='basic-expandable'
+          buttonClassName='basic-expandable'
         />
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -170,7 +170,7 @@ function GeneralInfoSection({
           value={formState.locales[activeLocale].venue ?? ''}
           onChange={(value) => updateLocale(activeLocale, 'venue', value)}
           placeholder={t('tournament.edit.venue')}
-          inputClassName='basic-expandable'
+          buttonClassName='basic-expandable'
         />
 
         <div className="form-control">
@@ -739,20 +739,20 @@ function ScheduleSection({
                 <button
                   type="button"
                   onClick={() => onAdd(row.id)}
-                  className="btn btn-sm btn-circle tooltip"
+                  className="btn btn-sm btn-circle btn-success tooltip"
                   data-tip={t('tournament.edit.rounds.add')}
                   aria-label={t('tournament.edit.rounds.add')}
                 >
-                  <BsPlus className="h-4 w-4 text-success" />
+                  <BsPlus className="h-4 w-4 text-primary-content" />
                 </button>
                 <button
                   type="button"
                   onClick={() => onRemove(row.id)}
-                  className="btn btn-sm btn-circle tooltip"
+                  className="btn btn-sm btn-circle btn-accent tooltip"
                   data-tip={t('tournament.edit.rounds.remove')}
                   aria-label={t('tournament.edit.rounds.remove')}
                 >
-                  <BsX className="h-4 w-4 text-error" />
+                  <BsX className="h-4 w-4 text-primary-content" />
                 </button>
               </div>
             </div>

@@ -27,9 +27,9 @@ export function PlayerSearchPanel({
   const { data: playerResults = [], isLoading: isSearchingPlayers } = usePlayerSearch(query)
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="mb-3 flex flex-col gap-2">
       {variant === 'search' && (
-        <label className="input input-sm input-bordered flex items-center gap-2 flex-1">
+        <label className="input input-sm input-bordered flex items-center gap-2">
           <BsSearch className="h-4 w-4 opacity-70" />
           <input
             type="text"

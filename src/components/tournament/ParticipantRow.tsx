@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { BsFillPersonVcardFill, BsFillPersonPlusFill, BsFillPersonXFill } from 'react-icons/bs'
+import { BsLink45Deg, BsFillPersonVcardFill, BsFillPersonPlusFill, BsFillPersonXFill } from 'react-icons/bs'
 import { CountrySelect } from './CountrySelect.tsx'
 import { ExpandableField } from './ExpandableField.tsx'
 import type { SupportedLocale } from '../../domain/locale.ts'
@@ -22,7 +22,7 @@ function RankSelect({ value, onChange }: { value: PlayerRank | null; onChange: (
     <select
       value={value ?? ''}
       onChange={(e) => onChange((e.target.value || null) as PlayerRank | null)}
-      className="select select-bordered w-full select-rank"
+      className="select select-sm select-bordered w-full select-rank"
     >
       <option value="">—</option>
       {['20k', '19k', '18k', '17k', '16k', '15k', '14k', '13k', '12k', '11k',
@@ -127,14 +127,15 @@ export function ParticipantRow({ row, activeLocale, onUpdate }: ParticipantRowPr
   }
 
   return (
-    <div className="rounded-lg border border-base-300 p-3 space-y-3">
+    <div className="rounded-lg border bg-base-300 border-primary/30 p-3 space-y-3">
       {/* Player link controls row */}
-      <div className="flex items-center gap-2 flex-wrap">
+      <div className="flex gap-1 items-center flex-wrap">
+        <BsLink45Deg className="h-4 w-4" />
         {row.player ? (
           <>
             <button
               type="button"
-              className="btn btn-sm btn-ghost tooltip"
+              className="btn btn-sm btn-ghost tooltip border-primary/10"
               data-tip={t('tournament.edit.participants.editPlayer')}
               onClick={() => setShowEditModal(true)}
             >
@@ -180,10 +181,11 @@ export function ParticipantRow({ row, activeLocale, onUpdate }: ParticipantRowPr
       </div>
 
       {/* Family name with autocomplete popover */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      {/* Rating + Rank */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-4 text-xs">
         <div className="relative form-control">
-          <label className="label py-0 pb-1">
-            <span className="label-text text-xs">
+          <label className="label">
+            <span className="label-text">
               {t('tournament.edit.participants.familyName')}
             </span>
           </label>
@@ -210,8 +212,8 @@ export function ParticipantRow({ row, activeLocale, onUpdate }: ParticipantRowPr
           )}
         </div>
         <div className="form-control">
-          <label className="label py-0 pb-1">
-            <span className="label-text text-xs">
+          <label className="label">
+            <span className="label-text">
               {t('tournament.edit.participants.givenName')}
             </span>
           </label>
@@ -229,13 +231,9 @@ export function ParticipantRow({ row, activeLocale, onUpdate }: ParticipantRowPr
             className="input input-bordered input-sm w-full"
           />
         </div>
-      </div>
-
-      {/* Rating + Rank */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div className="form-control">
-          <label className="label py-0 pb-1">
-            <span className="label-text text-xs">{t('tournament.edit.participants.ratingValue')}</span>
+          <label className="label">
+            <span className="label-text">{t('tournament.edit.participants.ratingValue')}</span>
           </label>
           <input
             type="number"
@@ -245,29 +243,30 @@ export function ParticipantRow({ row, activeLocale, onUpdate }: ParticipantRowPr
           />
         </div>
         <div className="form-control">
-          <label className="label py-0 pb-1">
-            <span className="label-text text-xs">{t('tournament.edit.participants.rank')}</span>
+          <label className="label">
+            <span className="label-text">{t('tournament.edit.participants.rank')}</span>
           </label>
           <RankSelect value={row.rank} onChange={(rank) => onUpdate({ rank })} />
         </div>
       </div>
 
       {/* Country + Location + Expandable fields */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-4 text-xs">
         <div className="form-control">
-          <label className="label py-0 pb-1">
-            <span className="label-text text-xs">{t('tournament.edit.participants.country')}</span>
+          <label className="label">
+            <span className="label-text">{t('tournament.edit.participants.country')}</span>
           </label>
           <CountrySelect
             value={row.nationality}
             onChange={(value) => onUpdate({ nationality: value })}
             lang={i18n.language === 'ru' ? 'ru' : 'en'}
             placeholder={t('tournament.edit.noCountry')}
+            buttonClassName='btn-sm'
           />
         </div>
         <div className="form-control">
-          <label className="label py-0 pb-1">
-            <span className="label-text text-xs">{t('tournament.edit.participants.location')}</span>
+          <label className="label">
+            <span className="label-text">{t('tournament.edit.participants.location')}</span>
           </label>
           <input
             type="text"
@@ -283,18 +282,18 @@ export function ParticipantRow({ row, activeLocale, onUpdate }: ParticipantRowPr
             className="input input-bordered input-sm w-full"
           />
         </div>
-      </div>
-
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <ExpandableField
           label={t('tournament.edit.participants.residence')}
           isEmpty={!row.residence}
+          buttonClassName='btn-sm'
+          inputClassName='input-sm'
         >
           <CountrySelect
             value={row.residence}
             onChange={(value) => onUpdate({ residence: value })}
             lang={i18n.language === 'ru' ? 'ru' : 'en'}
             placeholder={t('tournament.edit.noCountry')}
+            buttonClassName='btn-sm'
           />
         </ExpandableField>
         <ExpandableField
@@ -308,6 +307,8 @@ export function ParticipantRow({ row, activeLocale, onUpdate }: ParticipantRowPr
               },
             })
           }
+          buttonClassName='btn-sm'
+          inputClassName='input-sm'
         />
       </div>
 

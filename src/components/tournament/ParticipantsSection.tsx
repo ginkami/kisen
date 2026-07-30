@@ -76,27 +76,27 @@ export function ParticipantsSection({
                   />
                 )}
               </div>
-              <div className="flex gap-1 pt-1">
-                <button
-                  type="button"
-                  onClick={() => onAdd(row.rowId === 'empty-placeholder' ? undefined : row.rowId)}
-                  className="btn btn-sm btn-circle tooltip"
-                  data-tip={t('tournament.edit.participants.add')}
-                  aria-label={t('tournament.edit.participants.add')}
-                >
-                  <BsPlus className="h-4 w-4 text-success" />
-                </button>
+              <div className="flex flex-col gap-1 pt-1">
                 {row.rowId !== 'empty-placeholder' && (
                   <button
                     type="button"
                     onClick={() => setPendingRemoveRowId(row.rowId)}
-                    className="btn btn-sm btn-circle tooltip"
+                    className="btn btn-sm btn-circle btn-accent tooltip"
                     data-tip={t('tournament.edit.participants.remove')}
                     aria-label={t('tournament.edit.participants.remove')}
                   >
-                    <BsX className="h-4 w-4 text-error" />
+                    <BsX className="h-4 w-4 text-primary-content" />
                   </button>
                 )}
+                <button
+                  type="button"
+                  onClick={() => onAdd(row.rowId === 'empty-placeholder' ? undefined : row.rowId)}
+                  className="btn btn-sm btn-circle btn-success tooltip"
+                  data-tip={t('tournament.edit.participants.add')}
+                  aria-label={t('tournament.edit.participants.add')}
+                >
+                  <BsPlus className="h-4 w-4 text-primary-content" />
+                </button>
               </div>
             </div>
           ))}
