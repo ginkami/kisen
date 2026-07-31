@@ -22,27 +22,29 @@ export class AssociationService {
   }
 
   async create(input: Omit<Association, 'id' | 'slug'> & { desiredSlug?: string }): Promise<Association> {
+    const { desiredSlug, ...rest } = input
     const id = uuidv7()
-    const slug = normalizeSlug(input.desiredSlug ?? id)
+    const slug = normalizeSlug(desiredSlug ?? id)
 
-    const association: Association = {
+    const candidate = {
       id,
       slug,
-      ...input,
+      ...rest,
     }
-    associationSchema.parse(association)
+    const association = associationSchema.parse(candidate)
     return this.repository.create(association)
   }
 
   async update(input: Partial<Association> & { id: string; existing?: Association }): Promise<Association> {
-    const existing = input.existing ?? (await this.repository.getById(input.id))
+    const { existing: existingInput, ...rest } = input
+    const existing = existingInput ?? (await this.repository.getById(input.id))
     if (!existing) throw new Error(`Association with id ${input.id} not found`)
 
-    const updated: Association = {
+    const candidate = {
       ...existing,
-      ...input,
+      ...rest,
     }
-    associationSchema.parse(updated)
+    const updated = associationSchema.parse(candidate)
     return this.repository.update(updated)
   }
 

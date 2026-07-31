@@ -14,7 +14,7 @@ interface AssociationEditFormProps {
 
 export function AssociationEditForm({ associationId }: AssociationEditFormProps) {
   const { t, i18n } = useTranslation()
-  const { isAuthenticated, firebaseUser } = useAuth()
+  const { isAuthenticated, firebaseUser, user } = useAuth()
   const [activeLocale, setActiveLocale] = useState<SupportedLocale>(
     (i18n.language as SupportedLocale) ?? 'ru'
   )
@@ -116,7 +116,7 @@ export function AssociationEditForm({ associationId }: AssociationEditFormProps)
               t('association.edit.save')
             )}
           </button>
-          {association && (
+          {association && (user?.role === 'admin' || association.createdBy === firebaseUser?.uid) && (
             <button
               type="button"
               onClick={handleDelete}
