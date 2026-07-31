@@ -3,8 +3,9 @@ import { ConfirmModal } from './ConfirmModal.tsx'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { BsGear, BsX, BsCalendar2, BsPlus, BsFiletypeCsv, BsPeopleFill } from 'react-icons/bs'
+import { BsGear, BsX, BsCalendar2, BsPlus, BsFiletypeCsv, BsPeopleFill, BsFunnel } from 'react-icons/bs'
 import { useAuth } from '../context/AuthContext.tsx'
+import { useAssociationsForPanel } from '../hooks/useAssociations.ts'
 import { tournamentService } from '../services/tournamentService.ts'
 import { playerService, type ImportResult } from '../services/playerService.ts'
 import { BulkImportResultModal } from './BulkImportResultModal.tsx'
@@ -69,6 +70,22 @@ export function AdminDrawer({
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null)
   const canManagePlayers = user?.role === 'admin' || user?.role === 'manager'
   const canBulkImport = user?.role === 'admin'
+
+  // Associations
+  const [associationSearch, setAssociationSearch] = useState('')
+  const { data: associations = [], isLoading: isLoadingAssociations } = useAssociationsForPanel(
+    firebaseUser?.uid,
+    user?.role
+  )
+  const canManageAssociations = user?.role === 'admin' || user?.role === 'manager' || associations.length > 0
+  const createdAssociationCount = user ? associations.filter((a) => a.createdBy === firebaseUser?.uid).length : 0
+  const canCreateAssociation =
+    user?.role === 'admin' ||
+    (user?.role === 'manager' && createdAssociationCount === 0)
+  const filteredAssociations = associations.filter((a) => {
+    const title = a.locales[i18n.language as keyof typeof a.locales]?.title ?? ''
+    return title.toLowerCase().includes(associationSearch.toLowerCase())
+  })
   const [isImporting, setIsImporting] = useState(false)
   const [importResult, setImportResult] = useState<ImportResult | null>(null)
   const [importError, setImportError] = useState<string | null>(null)
@@ -390,15 +407,72 @@ export function AdminDrawer({
               </div>
             </div>
 
-            <div className="collapse collapse-arrow bg-base-100 mt-2">
-              <input type="radio" name="admin-accordion" />
+            <div className={`collapse collapse-arrow bg-base-100 mt-2${canManageAssociations ? '' : ' pointer-events-none opacity-50'}`}>
+              <input type="radio" name="admin-accordion" disabled={!canManageAssociations} />
               <div className="collapse-title font-medium">
                 {t('admin.associations')}
               </div>
               <div className="collapse-content">
-                <p className="text-sm opacity-70">
-                  {t('admin.associationsPlaceholder')}
-                </p>
+                {canManageAssociations ? (
+                  <div className="flex flex-col gap-2">
+                    {canCreateAssociation && (
+                      <button
+                        type="button"
+                        onClick={() => handleNavigate('/assn/new')}
+                        className="btn btn-secondary btn-sm flex-1 flex items-center gap-0"
+                      >
+                        <BsPlus className="h-5 w-5" />
+                        <span className="hidden text-sm sm:inline">{t('admin.newAssociation')}</span>
+                      </button>
+                    )}
+                    <label className="input input-sm input-bordered flex items-center gap-2">
+                      <BsFunnel className="h-4 w-4 opacity-70" />
+                      <input
+                        type="text"
+                        value={associationSearch}
+                        onChange={(e) => setAssociationSearch(e.target.value)}
+                        placeholder={t('admin.filterAssociations')}
+                        className="grow bg-transparent outline-none"
+                      />
+                    </label>
+
+                    {isLoadingAssociations && (
+                      <div className="flex justify-center py-4">
+                        <span className="loading loading-spinner loading-sm" />
+                      </div>
+                    )}
+
+                    {!isLoadingAssociations && filteredAssociations.length === 0 && (
+                      <p className="text-sm opacity-70">
+                        {t('admin.noAssociations')}
+                      </p>
+                    )}
+
+                    {!isLoadingAssociations && filteredAssociations.length > 0 && (
+                      <div className="flex max-h-96 flex-col gap-2 overflow-y-auto">
+                        {filteredAssociations.map((association) => {
+                          const title = association.locales[i18n.language as keyof typeof association.locales]?.title ?? association.slug
+                          return (
+                            <button
+                              key={association.id}
+                              type="button"
+                              onClick={() => handleNavigate(`/assn/${association.id}/edit`)}
+                              className="group flex w-full flex-col gap-1 rounded-lg border px-3 py-2 text-left transition-colors border-base-300 hover:bg-base-200"
+                            >
+                              <span className="line-clamp-1 font-medium text-sm">
+                                {title}
+                              </span>
+                            </button>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-sm opacity-70">
+                    {t('admin.associationsDisabled')}
+                  </p>
+                )}
               </div>
             </div>
           </div>

@@ -19,6 +19,10 @@ export class AssociationService {
     return this.repository.listManagedByUser(userId)
   }
 
+  async listAll(): Promise<Association[]> {
+    return this.repository.listAll()
+  }
+
   async listMyAssociations(userId: string): Promise<Association[]> {
     const [managed, created] = await Promise.all([
       this.repository.listManagedByUser(userId),

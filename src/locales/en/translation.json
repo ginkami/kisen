@@ -18,6 +18,9 @@
     "tournamentsPlaceholder": "Tournament list and management will appear here.",
     "eventsPlaceholder": "Event list and management will appear here.",
     "associationsPlaceholder": "Association list and management will appear here.",
+    "newAssociation": "Association",
+    "filterAssociations": "Filter by title...",
+    "associationsDisabled": "Not available for your role",
     "selectMonth": "Select month",
     "loadError": "Failed to load tournaments.",
     "noTournamentsForMonth": "No tournaments for this month.",
@@ -34,7 +37,8 @@
     "updated": "Updated",
     "invalid": "Invalid",
     "unsavedChangesConfirmTitle": "Unsaved changes",
-    "unsavedChangesConfirm": "You have unsaved changes. Leave this page?"
+    "unsavedChangesConfirm": "You have unsaved changes. Leave this page?",
+    "noAssociations": "No associations"
   },
   "profile": {
     "title": "Profile",

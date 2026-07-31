@@ -71,6 +71,14 @@ export class FirestoreAssociationRepository {
     const docRef = doc(db, COLLECTION_NAME, id)
     await deleteDoc(docRef)
   }
+
+  async listAll(): Promise<Association[]> {
+    const snapshot = await getDocs(this.collectionRef)
+    return snapshot.docs.map((docSnap) => ({
+      id: docSnap.id,
+      ...docSnap.data(),
+    })) as Association[]
+  }
 }
 
 export const firestoreAssociationRepository =

@@ -18,6 +18,9 @@
     "tournamentsPlaceholder": "Здесь будет список и управление турнирами.",
     "eventsPlaceholder": "Здесь будет список и управление мероприятиями.",
     "associationsPlaceholder": "Здесь будет список и управление ассоциациями.",
+    "newAssociation": "Ассоциация",
+    "filterAssociations": "Фильтр по названию...",
+    "associationsDisabled": "Недоступно для вашей роли",
     "selectMonth": "Выбрать месяц",
     "loadError": "Не удалось загрузить турниры.",
     "noTournamentsForMonth": "В этом месяце нет турниров.",
@@ -34,7 +37,8 @@
     "updated": "Обновлено",
     "invalid": "Невалидных",
     "unsavedChangesConfirmTitle": "Несохранённые изменения",
-    "unsavedChangesConfirm": "Есть несохранённые изменения. Покинуть страницу?"
+    "unsavedChangesConfirm": "Есть несохранённые изменения. Покинуть страницу?",
+    "noAssociations": "Нет ассоциаций"
   },
   "profile": {
     "title": "Профиль",
