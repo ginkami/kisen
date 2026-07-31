@@ -78,10 +78,7 @@ export function AdminDrawer({
     user?.role
   )
   const canManageAssociations = user?.role === 'admin' || user?.role === 'manager' || associations.length > 0
-  const createdAssociationCount = user ? associations.filter((a) => a.createdBy === firebaseUser?.uid).length : 0
-  const canCreateAssociation =
-    user?.role === 'admin' ||
-    (user?.role === 'manager' && createdAssociationCount === 0)
+  const canCreateAssociation = user?.role === 'admin' || user?.role === 'manager'
   const filteredAssociations = associations.filter((a) => {
     const title = a.locales[i18n.language as keyof typeof a.locales]?.title ?? ''
     return title.toLowerCase().includes(associationSearch.toLowerCase())

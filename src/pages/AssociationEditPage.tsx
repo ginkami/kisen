@@ -1,21 +1,8 @@
-import { useTranslation } from 'react-i18next'
+import { useParams } from 'react-router-dom'
+import { AssociationEditForm } from '../components/association/AssociationEditForm.tsx'
 
 export function AssociationEditPage() {
-  const { t } = useTranslation()
+  const { id } = useParams<{ id: string }>()
 
-  return (
-    <div className="mx-auto max-w-3xl space-y-6">
-      <div className="text-xs uppercase tracking-wider opacity-70">
-        {t('admin.associations')}
-      </div>
-      <h1 className="text-2xl font-bold">
-        {t('admin.newAssociation')}
-      </h1>
-      <div className="card bg-base-200 shadow-sm">
-        <div className="card-body opacity-70">
-          {t('tournament.tabs.placeholder')}
-        </div>
-      </div>
-    </div>
-  )
+  return <AssociationEditForm key={id ?? 'new'} associationId={id ?? 'new'} />
 }

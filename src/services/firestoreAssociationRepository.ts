@@ -72,6 +72,14 @@ export class FirestoreAssociationRepository {
     await deleteDoc(docRef)
   }
 
+  async getBySlug(slug: string): Promise<Association | null> {
+    const q = query(this.collectionRef, where('slug', '==', slug))
+    const snapshot = await getDocs(q)
+    if (snapshot.empty) return null
+    const docSnap = snapshot.docs[0]
+    return { id: docSnap.id, ...docSnap.data() } as Association
+  }
+
   async listAll(): Promise<Association[]> {
     const snapshot = await getDocs(this.collectionRef)
     return snapshot.docs.map((docSnap) => ({

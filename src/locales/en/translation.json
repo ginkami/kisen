@@ -131,6 +131,7 @@
         "title": "Schedule"
       },
       "slug": "URL slug",
+      "slugTaken": "This URL slug is already taken",
       "title": "Title",
       "description": "Description",
       "location": "City / region",
@@ -218,6 +219,37 @@
       "sonneborn_berger": "Sonneborn-Berger",
       "direct_encounter": "Direct encounter",
       "wins_count": "Wins count"
+    }
+  },
+  "association": {
+    "edit": {
+      "managementPanel": "Association editing",
+      "newTitle": "New association",
+      "pageTitle": "{{title}} — Association editing | shogi·world",
+      "info": "Association information",
+      "title": "Title",
+      "slug": "URL slug",
+      "description": "Description",
+      "country": "Country",
+      "location": "City / region",
+      "managersTitle": "Managing the association",
+      "creator": "creator",
+      "inviteLabel": "Invite to manage",
+      "invitePlaceholder": "Enter user's family name or email",
+      "select": "Select",
+      "noUsersFound": "No users found",
+      "slugTaken": "This URL slug is already taken",
+      "save": "Save",
+      "delete": "Delete",
+      "deleteConfirmTitle": "Delete association",
+      "deleteConfirm": "Delete the association? This action cannot be undone.",
+      "removeConfirmTitle": "Remove from management",
+      "removeConfirm": "Remove this user from managing the association?",
+      "errors": {
+        "load": "Failed to load association.",
+        "save": "Failed to save association.",
+        "delete": "Failed to delete association."
+      }
     }
   },
   "common": {

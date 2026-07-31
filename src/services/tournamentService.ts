@@ -230,6 +230,11 @@ export class TournamentService {
     return this.repository.delete(id)
   }
 
+  async slugExists(slug: string, excludeId?: string): Promise<boolean> {
+    const existing = await this.repository.getBySlug(slug)
+    return existing !== null && existing.id !== excludeId
+  }
+
   private inferStatus(
     tournament: Tournament,
     editTime: Date

@@ -1,12 +1,19 @@
 import {
+  collection,
   doc,
   getDoc,
+  getDocs,
   setDoc,
+  query,
+  where,
+  orderBy,
+  limit,
   serverTimestamp,
   type Timestamp,
 } from 'firebase/firestore'
 import { db } from './firebaseConfig.ts'
 import type { User, UserLocales } from '../types/user.ts'
+import { supportedLocales } from '../domain/locale.ts'
 
 const USERS_COLLECTION = 'users'
 
@@ -18,6 +25,83 @@ interface FirestoreUser {
   locales: UserLocales
   createdAt: Timestamp
   updatedAt: Timestamp
+}
+
+const USERS_COLLECTION_REF = collection(db, 'users')
+
+export async function searchByFamilyName(prefix: string): Promise<User[]> {
+  const MAX_RESULTS = 20
+
+  const perLocaleQueries = supportedLocales.map((locale) => {
+    const fieldPath = `locales.${locale}.familyName`
+    const q = query(
+      USERS_COLLECTION_REF,
+      where(fieldPath, '>=', prefix),
+      where(fieldPath, '<=', prefix + '\uf8ff'),
+      orderBy(fieldPath),
+      limit(MAX_RESULTS)
+    )
+    return getDocs(q)
+  })
+
+  const snapshots = await Promise.all(perLocaleQueries)
+
+  const seen = new Set<string>()
+  const merged: User[] = []
+
+  for (const snapshot of snapshots) {
+    for (const docSnap of snapshot.docs) {
+      const id = docSnap.id
+      if (seen.has(id)) continue
+      seen.add(id)
+      const data = docSnap.data() as FirestoreUser
+      merged.push({
+        id,
+        email: data.email,
+        role: data.role,
+        auth: data.auth,
+        locales: data.locales,
+        createdAt: data.createdAt.toDate(),
+        updatedAt: data.updatedAt.toDate(),
+      })
+      if (merged.length >= MAX_RESULTS) return merged
+    }
+  }
+
+  return merged
+}
+
+export async function getByEmail(email: string): Promise<User | null> {
+  const q = query(
+    USERS_COLLECTION_REF,
+    where('email', '==', email.toLowerCase())
+  )
+  const snapshot = await getDocs(q)
+  if (snapshot.empty) return null
+
+  const docSnap = snapshot.docs[0]
+  const data = docSnap.data() as FirestoreUser
+  return {
+    id: docSnap.id,
+    email: data.email,
+    role: data.role,
+    auth: data.auth,
+    locales: data.locales,
+    createdAt: data.createdAt.toDate(),
+    updatedAt: data.updatedAt.toDate(),
+  }
+}
+
+export async function getByIds(ids: string[]): Promise<User[]> {
+  if (ids.length === 0) return []
+  const users: User[] = []
+  await Promise.all(
+    ids.map(async (id) => {
+      const user = await getUserById(id)
+      if (user) users.push(user)
+    })
+  )
+  return users
 }
 
 export async function getUserById(id: string): Promise<User | null> {

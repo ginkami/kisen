@@ -19,6 +19,12 @@ service cloud.firestore {
       return isAuthenticated() && createdBy == currentUserId();
     }
 
+    function isCreatorOf(associationId) {
+      return isAuthenticated()
+        && associationId != null
+        && get(/databases/$(database)/documents/associations/$(associationId)).data.createdBy == currentUserId();
+    }
+
     function isManagerOf(associationId) {
       return isAuthenticated()
         && associationId != null
@@ -48,9 +54,9 @@ service cloud.firestore {
     // ---------- Associations (Ассоциации) ----------
     match /associations/{associationId} {
       allow read: if true;
-      allow create: if isAdmin();
-      allow update: if isAdmin() || isManagerOf(associationId);
-      allow delete: if isAdmin();
+      allow create: if isAdmin() || isAuthenticated();
+      allow update: if isAdmin() || isCreatorOf(associationId) || isManagerOf(associationId);
+      allow delete: if isAdmin() || isCreatorOf(associationId);
     }
 
     // ---------- Players (Игроки) ----------

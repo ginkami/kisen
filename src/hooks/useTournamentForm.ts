@@ -419,6 +419,30 @@ export function useTournamentForm(tournamentId: string | undefined) {
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({})
   const [initializedTournamentId, setInitializedTournamentId] = useState<string | null>(null)
 
+  // Debounced slug uniqueness check
+  const [debouncedSlug, setDebouncedSlug] = useState('')
+  const slugTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const formSlug = formState?.slug ?? ''
+
+  useEffect(() => {
+    if (slugTimerRef.current) clearTimeout(slugTimerRef.current)
+    slugTimerRef.current = setTimeout(() => {
+      setDebouncedSlug(formSlug)
+    }, 300)
+    return () => {
+      if (slugTimerRef.current) clearTimeout(slugTimerRef.current)
+    }
+  }, [formSlug])
+
+  const { data: slugExistsResult } = useQuery({
+    queryKey: ['tournament', 'slugExists', debouncedSlug],
+    queryFn: () => tournamentService.slugExists(debouncedSlug, tournamentId !== 'new' ? tournamentId : undefined),
+    enabled: debouncedSlug.trim().length >= 3,
+    staleTime: 10_000,
+  })
+
+  const slugTaken = slugExistsResult === true
+
   useEffect(() => {
     if (
       tournamentId === 'new' &&
@@ -904,24 +928,34 @@ export function useTournamentForm(tournamentId: string | undefined) {
   })
 
   const saveDraft = useCallback(() => {
+    if (slugTaken) {
+      setValidationErrors({ slug: t('tournament.edit.slugTaken') })
+      return
+    }
     saveMutation.reset()
     saveMutation.mutate()
-  }, [saveMutation])
+  }, [saveMutation, slugTaken, t])
 
   const publish = useCallback(() => {
     if (!formState) return
     const errors = validateTournamentPublishForm(formState)
+    if (slugTaken) {
+      errors.slug = 'taken'
+    }
     if (Object.keys(errors).length > 0) {
       setValidationErrors(
         Object.fromEntries(
-          Object.entries(errors).map(([key]) => [key, t('common.fieldRequired')])
+          Object.entries(errors).map(([key]) => {
+            if (key === 'slug' && errors[key] === 'taken') return [key, t('tournament.edit.slugTaken')]
+            return [key, t('common.fieldRequired')]
+          })
         )
       )
       return
     }
     publishMutation.reset()
     publishMutation.mutate()
-  }, [formState, publishMutation, t])
+  }, [formState, publishMutation, t, slugTaken])
 
   const deleteTournament = useCallback(() => {
     deleteMutation.reset()
@@ -967,5 +1001,6 @@ export function useTournamentForm(tournamentId: string | undefined) {
     addParticipant,
     updateParticipant,
     removeParticipant,
+    slugTaken,
   }
 }

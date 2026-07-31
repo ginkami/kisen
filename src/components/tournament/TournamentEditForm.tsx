@@ -229,12 +229,16 @@ function GeneralInfoSection({
 function BindingSection({
   formState,
   updateBasic,
+  validationErrors = {},
+  slugTaken = false,
 }: {
   formState: TournamentFormState
   updateBasic: <K extends keyof TournamentFormState>(
     field: K,
     value: TournamentFormState[K]
   ) => void
+  validationErrors?: Record<string, string>
+  slugTaken?: boolean
 }) {
   const { t, i18n } = useTranslation()
   const { firebaseUser } = useAuth()
@@ -284,11 +288,17 @@ function BindingSection({
               type="text"
               value={formState.slug}
               onChange={(e) => updateBasic('slug', e.target.value)}
-              className="input input-bordered join-item w-full"
+              className={`input input-bordered join-item w-full ${validationErrors.slug ? 'input-error' : ''}`}
             />
           </div>
-
-
+          {validationErrors.slug && (
+            <span className="text-error text-xs mt-1 ml-2">
+              {validationErrors.slug === 'taken' ? t('tournament.edit.slugTaken') : t('common.fieldRequired')}
+            </span>
+          )}
+          {slugTaken && !validationErrors.slug && (
+            <span className="text-error text-xs mt-1 ml-2">{t('tournament.edit.slugTaken')}</span>
+          )}
         </div>
 
         <div className="form-control">
@@ -804,6 +814,7 @@ export function TournamentEditForm({
     saveDraft,
     publish,
     deleteTournament,
+    slugTaken,
   } = useTournamentForm(tournamentId)
 
   type TabId = 'general' | 'settings' | 'schedule' | 'participants'
@@ -1030,7 +1041,7 @@ export function TournamentEditForm({
           />
 
           {canEditBinding && (
-            <BindingSection formState={formState} updateBasic={updateBasic} />
+            <BindingSection formState={formState} updateBasic={updateBasic} validationErrors={validationErrors} slugTaken={slugTaken} />
           )}
         </div>
       )}
