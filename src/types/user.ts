@@ -27,7 +27,7 @@ export interface User {
   id: string
   email: string
   role: UserRole
-  auth: UserAuth
+  auth?: UserAuth
   locales: UserLocales
   createdAt: Date
   updatedAt: Date

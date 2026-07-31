@@ -85,7 +85,7 @@ export function AssociationManagersSection({
             {managerProfiles.map((profile) => (
               <div key={profile.id} className="badge badge-lg badge-ghost gap-1">
                 {getUserDisplayName(profile)}
-                {canRemove && (
+                {(canRemove || profile.id === currentUser?.id) && (
                   <button
                     type="button"
                     onClick={() => handleRemoveClick('manager', profile.id)}

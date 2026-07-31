@@ -41,7 +41,7 @@ service cloud.firestore {
 
     // ---------- Users (Профили пользователей) ----------
     match /users/{userId} {
-      allow read: if isAuthenticated() && (currentUserId() == userId || isAdmin());
+      allow read: if isAuthenticated();
       allow create: if isAuthenticated() && currentUserId() == userId;
       allow update: if isAuthenticated() && (currentUserId() == userId || isAdmin())
         && (

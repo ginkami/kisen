@@ -96,7 +96,7 @@ export function useAssociationForm(associationId: string | undefined) {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const { firebaseUser } = useAuth()
+  const { firebaseUser, user } = useAuth()
   const { setHasUnsavedChanges } = useOutletContext<LayoutOutletContext>()
 
   const isNew = associationId === 'new'
@@ -283,6 +283,16 @@ export function useAssociationForm(associationId: string | undefined) {
       queryClient.invalidateQueries({ queryKey: ['associations'] })
       if (isNew) {
         navigate(`/assn/${saved.id}/edit`, { replace: true })
+      }
+      // If the current user removed themselves from managers, redirect to home
+      if (
+        firebaseUser &&
+        user?.role !== 'admin' &&
+        saved.createdBy !== firebaseUser.uid &&
+        !saved.managers.includes(firebaseUser.uid)
+      ) {
+        navigate('/', { replace: true })
+        return
       }
       const snapshot = associationToFormState(saved)
       setFormState(snapshot)

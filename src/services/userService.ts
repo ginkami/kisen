@@ -12,7 +12,7 @@ import {
   type Timestamp,
 } from 'firebase/firestore'
 import { db } from './firebaseConfig.ts'
-import type { User, UserLocales } from '../types/user.ts'
+import type { User, UserLocales, AuthProvider } from '../types/user.ts'
 import { supportedLocales } from '../domain/locale.ts'
 
 const USERS_COLLECTION = 'users'
@@ -28,6 +28,18 @@ interface FirestoreUser {
 }
 
 const USERS_COLLECTION_REF = collection(db, 'users')
+
+function toPublicUser(docSnap: { id: string; data: () => unknown }): User {
+  const data = docSnap.data() as FirestoreUser
+  return {
+    id: docSnap.id,
+    email: data.email,
+    role: data.role,
+    locales: data.locales,
+    createdAt: data.createdAt.toDate(),
+    updatedAt: data.updatedAt.toDate(),
+  }
+}
 
 export async function searchByFamilyName(prefix: string): Promise<User[]> {
   const MAX_RESULTS = 20
@@ -54,16 +66,7 @@ export async function searchByFamilyName(prefix: string): Promise<User[]> {
       const id = docSnap.id
       if (seen.has(id)) continue
       seen.add(id)
-      const data = docSnap.data() as FirestoreUser
-      merged.push({
-        id,
-        email: data.email,
-        role: data.role,
-        auth: data.auth,
-        locales: data.locales,
-        createdAt: data.createdAt.toDate(),
-        updatedAt: data.updatedAt.toDate(),
-      })
+      merged.push(toPublicUser(docSnap))
       if (merged.length >= MAX_RESULTS) return merged
     }
   }
@@ -79,17 +82,7 @@ export async function getByEmail(email: string): Promise<User | null> {
   const snapshot = await getDocs(q)
   if (snapshot.empty) return null
 
-  const docSnap = snapshot.docs[0]
-  const data = docSnap.data() as FirestoreUser
-  return {
-    id: docSnap.id,
-    email: data.email,
-    role: data.role,
-    auth: data.auth,
-    locales: data.locales,
-    createdAt: data.createdAt.toDate(),
-    updatedAt: data.updatedAt.toDate(),
-  }
+  return toPublicUser(snapshot.docs[0])
 }
 
 export async function getByIds(ids: string[]): Promise<User[]> {
@@ -112,17 +105,7 @@ export async function getUserById(id: string): Promise<User | null> {
     return null
   }
 
-  const data = snapshot.data() as FirestoreUser
-
-  return {
-    id: snapshot.id,
-    email: data.email,
-    role: data.role,
-    auth: data.auth,
-    locales: data.locales,
-    createdAt: data.createdAt.toDate(),
-    updatedAt: data.updatedAt.toDate(),
-  }
+  return toPublicUser(snapshot)
 }
 
 export interface CreateUserInput {
@@ -130,7 +113,7 @@ export interface CreateUserInput {
   email: string
   role?: User['role']
   passwordHash?: string | null
-  providers?: User['auth']['providers']
+  providers?: AuthProvider[]
   emailVerified?: boolean
   isActive?: boolean
   locales?: Partial<UserLocales>
