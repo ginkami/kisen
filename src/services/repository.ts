@@ -18,10 +18,8 @@ export interface TournamentRepository {
   create(tournament: Tournament): Promise<Tournament>
   update(tournament: Tournament): Promise<Tournament>
   delete(id: string): Promise<void>
-  slugExists(slug: string): Promise<boolean>
+  slugExists(slug: string): Promise<string | null>
 }
-
-export const TournamentRepositoryKey = Symbol('TournamentRepository')
 
 export interface ListEventsFilters {
   createdBy?: string

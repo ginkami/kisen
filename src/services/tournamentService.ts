@@ -231,8 +231,8 @@ export class TournamentService {
   }
 
   async slugExists(slug: string, excludeId?: string): Promise<boolean> {
-    const existing = await this.repository.getBySlug(slug)
-    return existing !== null && existing.id !== excludeId
+    const foundId = await this.repository.slugExists(slug)
+    return foundId !== null && foundId !== excludeId
   }
 
   private inferStatus(
@@ -267,8 +267,8 @@ export class TournamentService {
           `Slug must be at least ${SLUG_MIN_LENGTH} lowercase latin letters, numbers or hyphens`
         )
       }
-      const existing = await this.repository.getBySlug(normalized)
-      if (existing && existing.id !== currentTournamentId) {
+      const foundId = await this.repository.slugExists(normalized)
+      if (foundId && foundId !== currentTournamentId) {
         throw new Error('Slug already in use')
       }
       return normalized
