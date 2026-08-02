@@ -12,7 +12,7 @@ export const eventSchema = z.object({
   id: z.string().uuid(),
   slug: z.string().min(1).regex(/^[a-z0-9-]+$/),
   createdBy: z.string().min(1),
-  hostAssociation: z.string().uuid(),
+  hostAssociation: z.string().uuid().nullable(),
   updatedAt: z.date(),
   startYearMonth: z.string().length(6).regex(/^\d{6}$/),
   locales: localeSchema(eventLocaleSchema).refine(

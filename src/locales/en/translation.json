@@ -17,6 +17,7 @@
     "associations": "Associations",
     "tournamentsPlaceholder": "Tournament list and management will appear here.",
     "eventsPlaceholder": "Event list and management will appear here.",
+    "newEvent": "Event",
     "associationsPlaceholder": "Association list and management will appear here.",
     "newAssociation": "Association",
     "filterAssociations": "Filter by title...",
@@ -249,6 +250,30 @@
         "load": "Failed to load association.",
         "save": "Failed to save association.",
         "delete": "Failed to delete association."
+      }
+    }
+  },
+  "event": {
+    "edit": {
+      "managementPanel": "Event editing",
+      "newTitle": "New event",
+      "pageTitle": "{{title}} — Event editing | shogi·world",
+      "info": "Basic information",
+      "title": "Title",
+      "description": "Description",
+      "binding": "Event linking",
+      "slug": "URL slug",
+      "slugTaken": "This URL slug is already taken",
+      "hostAssociation": "Associated with",
+      "noHostAssociation": "Not specified",
+      "save": "Save",
+      "delete": "Delete",
+      "deleteConfirmTitle": "Delete event",
+      "deleteConfirm": "Delete the event? This action cannot be undone.",
+      "errors": {
+        "load": "Failed to load event.",
+        "save": "Failed to save event.",
+        "delete": "Failed to delete event."
       }
     }
   },

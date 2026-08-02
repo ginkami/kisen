@@ -34,7 +34,7 @@ export interface EventRepository {
   create(event: Event): Promise<Event>
   update(event: Event): Promise<Event>
   delete(id: string): Promise<void>
-  slugExists(slug: string): Promise<boolean>
+  slugExists(slug: string): Promise<string | null>
 }
 
 export interface PlayerRepository {

@@ -1,5 +1,5 @@
 import { uuidv7 } from 'uuidv7'
-import type { Event } from '../domain/event.ts'
+import { eventSchema, type Event } from '../domain/event.ts'
 import type { EventRepository } from './repository.ts'
 import { firestoreEventRepository } from './firestoreEventRepository.ts'
 import {
@@ -12,7 +12,7 @@ import { formatDateToYearMonth } from '../utils/yearMonth.ts'
 
 export interface CreateEventInput {
   createdBy: string
-  hostAssociation: string
+  hostAssociation: string | null
   locales: Event['locales']
   desiredSlug?: string
 }
@@ -52,16 +52,16 @@ export class EventService {
     const slug = await this.resolveSlug(input.desiredSlug)
     const now = new Date()
 
-    const event: Event = {
+    const candidate = {
       id: uuidv7(),
       slug,
       createdBy: input.createdBy,
-      hostAssociation: input.hostAssociation,
+      hostAssociation: input.hostAssociation || null,
       updatedAt: now,
       startYearMonth: formatDateToYearMonth(now),
       locales: input.locales,
     }
-
+    const event = eventSchema.parse(candidate)
     return this.repository.create(event)
   }
 
@@ -89,6 +89,15 @@ export class EventService {
 
   async delete(id: string): Promise<void> {
     return this.repository.delete(id)
+  }
+
+  async slugExists(slug: string, excludeId?: string): Promise<boolean> {
+    const foundId = await this.repository.slugExists(slug)
+    return foundId !== null && foundId !== excludeId
+  }
+
+  async listMyEvents(userId: string): Promise<Event[]> {
+    return this.repository.list({ createdBy: userId })
   }
 
   private async resolveSlug(

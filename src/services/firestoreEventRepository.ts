@@ -101,9 +101,11 @@ export class FirestoreEventRepository implements EventRepository {
     await deleteDoc(docRef)
   }
 
-  async slugExists(slug: string): Promise<boolean> {
-    const existing = await this.getBySlug(slug)
-    return existing !== null
+  async slugExists(slug: string): Promise<string | null> {
+    const q = query(this.collectionRef, where('slug', '==', slug))
+    const snapshot = await getDocs(q)
+    if (snapshot.empty) return null
+    return snapshot.docs[0].id
   }
 }
 

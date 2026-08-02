@@ -7,6 +7,7 @@ import { BsGear, BsX, BsCalendar2, BsPlus, BsFiletypeCsv, BsPeopleFill, BsFunnel
 import { useAuth } from '../context/AuthContext.tsx'
 import { useAssociationsForPanel } from '../hooks/useAssociations.ts'
 import { tournamentService } from '../services/tournamentService.ts'
+import { eventService } from '../services/eventService.ts'
 import { playerService, type ImportResult } from '../services/playerService.ts'
 import { BulkImportResultModal } from './BulkImportResultModal.tsx'
 import { PlayerSearchPanel } from './player/PlayerSearchPanel.tsx'
@@ -78,6 +79,7 @@ export function AdminDrawer({
     user?.role
   )
   const canManageAssociations = user?.role === 'admin' || user?.role === 'manager' || associations.length > 0
+
   const canCreateAssociation = user?.role === 'admin' || user?.role === 'manager'
   const filteredAssociations = associations.filter((a) => {
     const title = a.locales[i18n.language as keyof typeof a.locales]?.title ?? ''
@@ -132,6 +134,17 @@ export function AdminDrawer({
       return tournamentService.listByYearMonth(yearMonth, userId)
     },
     enabled: isAuthenticated && !!userId && isOpen,
+  })
+
+  // Events
+  const canManageEvents = user?.role === 'admin' || user?.role === 'manager'
+  const { data: events = [], isLoading: isLoadingEvents } = useQuery({
+    queryKey: ['adminEvents', yearMonth, userId],
+    queryFn: async () => {
+      if (!userId) return []
+      return eventService.listByYearMonth(yearMonth, userId)
+    },
+    enabled: isAuthenticated && !!userId && isOpen && canManageEvents,
   })
 
   const sortedTournaments = useMemo(() => {
@@ -392,15 +405,60 @@ export function AdminDrawer({
               </div>
             </div>
 
-            <div className="collapse collapse-arrow bg-base-100 mt-2">
-              <input type="radio" name="admin-accordion" />
+            <div className={`collapse collapse-arrow bg-base-100 mt-2${canManageEvents ? '' : ' pointer-events-none opacity-50'}`}>
+              <input type="radio" name="admin-accordion" disabled={!canManageEvents} />
               <div className="collapse-title font-medium">
                 {t('admin.events')}
               </div>
               <div className="collapse-content">
-                <p className="text-sm opacity-70">
-                  {t('admin.eventsPlaceholder')}
-                </p>
+                {canManageEvents ? (
+                  <div className="flex flex-col gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleNavigate('/events/new')}
+                      className="btn btn-secondary btn-sm flex-1 flex items-center gap-0"
+                    >
+                      <BsPlus className="h-5 w-5" />
+                      <span className="hidden text-sm sm:inline">{t('admin.newEvent')}</span>
+                    </button>
+
+                    {isLoadingEvents && (
+                      <div className="flex justify-center py-4">
+                        <span className="loading loading-spinner loading-sm" />
+                      </div>
+                    )}
+
+                    {!isLoadingEvents && events.length === 0 && (
+                      <p className="text-sm opacity-70">
+                        {t('admin.noEventsForMonth', { defaultValue: t('admin.eventsPlaceholder') })}
+                      </p>
+                    )}
+
+                    {!isLoadingEvents && events.length > 0 && (
+                      <div className="flex max-h-96 flex-col gap-2 overflow-y-auto">
+                        {events.map((event) => {
+                          const title = event.locales[i18n.language as keyof typeof event.locales]?.title ?? event.slug
+                          return (
+                            <button
+                              key={event.id}
+                              type="button"
+                              onClick={() => handleNavigate(`/events/${event.id}/edit`)}
+                              className="group flex w-full flex-col gap-1 rounded-lg border px-3 py-2 text-left transition-colors border-base-300 hover:bg-base-200"
+                            >
+                              <span className="line-clamp-1 font-medium text-sm">
+                                {title}
+                              </span>
+                            </button>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-sm opacity-70">
+                    {t('admin.eventsPlaceholder')}
+                  </p>
+                )}
               </div>
             </div>
 
