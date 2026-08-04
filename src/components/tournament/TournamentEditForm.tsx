@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { ConfirmModal } from '../ConfirmModal.tsx'
 import { useTranslation } from 'react-i18next'
 import { BsSliders2Vertical, BsClock, BsJournalText, BsPeople, BsPlus, BsX } from 'react-icons/bs'
@@ -8,6 +9,7 @@ import {
   dateToLocalDatetimeInputValue,
   localDatetimeInputValueToUtcDate,
 } from '../../utils/dateTime.ts'
+import { formatYearMonthToMonthInput } from '../../utils/yearMonth.ts'
 import { ParticipantsSection } from './ParticipantsSection.tsx'
 import { supportedLocales, type SupportedLocale } from '../../domain/locale.ts'
 import { timeControlFormatSchema } from '../../domain/timeControl.ts'
@@ -18,8 +20,8 @@ import type { TieBreak, TieBreakType } from '../../domain/tieBreak.ts'
 import type { TournamentLocale } from '../../domain/tournament.ts'
 import type { Event } from '../../domain/event.ts'
 import type { Association } from '../../domain/association.ts'
-import { useEventsForMonth } from '../../hooks/useEvents.ts'
 import { useMyAssociations } from '../../hooks/useAssociations.ts'
+import { eventService } from '../../services/eventService.ts'
 import { CountrySelect } from './CountrySelect.tsx'
 import { LocaleTabs } from './LocaleTabs.tsx'
 import { ExpandableField } from './ExpandableField.tsx'
@@ -231,6 +233,7 @@ function BindingSection({
   updateBasic,
   validationErrors = {},
   slugTaken = false,
+  defaultMonth,
 }: {
   formState: TournamentFormState
   updateBasic: <K extends keyof TournamentFormState>(
@@ -239,23 +242,26 @@ function BindingSection({
   ) => void
   validationErrors?: Record<string, string>
   slugTaken?: boolean
+  defaultMonth?: string
 }) {
   const { t, i18n } = useTranslation()
   const { firebaseUser } = useAuth()
   const [showEventPicker, setShowEventPicker] = useState(false)
   const [showAssociationPicker, setShowAssociationPicker] = useState(false)
-  const { data: events = [] } = useEventsForMonth()
+  const { data: selectedEvent } = useQuery({
+    queryKey: ['event', 'byId', formState.parentEvent],
+    queryFn: () => eventService.getById(formState.parentEvent!),
+    enabled: !!formState.parentEvent,
+  })
   const { data: associations = [] } = useMyAssociations(firebaseUser?.uid)
 
   const selectedEventTitle = useMemo(() => {
-    if (!formState.parentEvent) return t('tournament.edit.noParentEvent')
-    const event = events.find((item) => item.id === formState.parentEvent)
-    if (!event) return t('tournament.edit.noParentEvent')
+    if (!selectedEvent) return t('tournament.edit.noParentEvent')
     return (
-      event.locales[i18n.language as keyof Event['locales']]?.title ??
-      event.slug
+      selectedEvent.locales[i18n.language as keyof Event['locales']]?.title ??
+      selectedEvent.slug
     )
-  }, [formState.parentEvent, events, i18n.language, t])
+  }, [selectedEvent, i18n.language, t])
 
   const selectedAssociationTitle = useMemo(() => {
     if (!formState.hostAssociation)
@@ -319,6 +325,7 @@ function BindingSection({
               selectedId={formState.parentEvent}
               onSelect={(id) => updateBasic('parentEvent', id)}
               onClose={() => setShowEventPicker(false)}
+              defaultMonth={defaultMonth}
             />
           )}
         </div>
@@ -1041,7 +1048,17 @@ export function TournamentEditForm({
           />
 
           {canEditBinding && (
-            <BindingSection formState={formState} updateBasic={updateBasic} validationErrors={validationErrors} slugTaken={slugTaken} />
+            <BindingSection
+              formState={formState}
+              updateBasic={updateBasic}
+              validationErrors={validationErrors}
+              slugTaken={slugTaken}
+              defaultMonth={
+                tournament
+                  ? formatYearMonthToMonthInput(tournament.startYearMonth)
+                  : undefined
+              }
+            />
           )}
         </div>
       )}

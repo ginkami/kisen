@@ -1,11 +1,19 @@
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { BsCalendar2 } from 'react-icons/bs'
 import { useEventsForMonth } from '../../hooks/useEvents.ts'
 import type { Event } from '../../domain/event.ts'
+import {
+  formatDateToYearMonth,
+  formatYearMonthToMonthInput,
+  parseMonthInputToYearMonth,
+} from '../../utils/yearMonth.ts'
 
 interface EventPickerModalProps {
   selectedId: string | null
   onSelect: (id: string | null) => void
   onClose: () => void
+  defaultMonth?: string
 }
 
 function eventTitle(event: Event, lang: string): string {
@@ -20,14 +28,30 @@ export function EventPickerModal({
   selectedId,
   onSelect,
   onClose,
+  defaultMonth,
 }: EventPickerModalProps) {
   const { t, i18n } = useTranslation()
-  const { data: events = [], isLoading } = useEventsForMonth()
+  const [selectedMonth, setSelectedMonth] = useState(
+    defaultMonth ?? formatYearMonthToMonthInput(formatDateToYearMonth(new Date()))
+  )
+  const { data: events = [], isLoading } = useEventsForMonth(
+    parseMonthInputToYearMonth(selectedMonth)
+  )
 
   return (
     <div className="modal modal-open">
       <div className="modal-box max-w-md">
         <h3 className="font-bold text-lg mb-4">{t('tournament.edit.selectEvent')}</h3>
+        <label className="input input-sm input-bordered flex items-center gap-2 mb-3">
+          <BsCalendar2 className="h-4 w-4 opacity-70" />
+          <input
+            type="month"
+            value={selectedMonth}
+            onChange={(e) => setSelectedMonth(e.target.value)}
+            className="grow bg-transparent outline-none"
+            aria-label={t('admin.selectMonth')}
+          />
+        </label>
         {isLoading ? (
           <span className="loading loading-spinner" />
         ) : (
