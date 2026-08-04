@@ -19,6 +19,7 @@ export interface TournamentRepository {
   update(tournament: Tournament): Promise<Tournament>
   delete(id: string): Promise<void>
   slugExists(slug: string): Promise<string | null>
+  searchByTitle(prefix: string): Promise<Tournament[]>
 }
 
 export interface ListEventsFilters {
@@ -35,6 +36,7 @@ export interface EventRepository {
   update(event: Event): Promise<Event>
   delete(id: string): Promise<void>
   slugExists(slug: string): Promise<string | null>
+  searchByTitle(prefix: string): Promise<Event[]>
 }
 
 export interface PlayerRepository {

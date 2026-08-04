@@ -101,6 +101,10 @@ export class EventService {
     return this.repository.list({ createdBy: userId })
   }
 
+  async searchByTitle(prefix: string): Promise<Event[]> {
+    return this.repository.searchByTitle(prefix)
+  }
+
   async syncStartYearMonth(eventId: string): Promise<void> {
     const event = await this.repository.getById(eventId)
     if (!event) return

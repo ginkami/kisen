@@ -288,6 +288,10 @@ export class TournamentService {
     return foundId !== null && foundId !== excludeId
   }
 
+  async searchByTitle(prefix: string): Promise<Tournament[]> {
+    return this.repository.searchByTitle(prefix)
+  }
+
   private inferStatus(
     tournament: Tournament,
     editTime: Date

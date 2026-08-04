@@ -8,6 +8,7 @@ import {
   query,
   where,
   orderBy,
+  limit,
 } from 'firebase/firestore'
 import { db } from './firebaseConfig.ts'
 import type { Tournament } from '../domain/tournament.ts'
@@ -145,6 +146,44 @@ export class FirestoreTournamentRepository implements TournamentRepository {
     const snapshot = await getDocs(q)
     if (snapshot.empty) return null
     return snapshot.docs[0].id
+  }
+
+  async searchByTitle(prefix: string): Promise<Tournament[]> {
+    const MAX_RESULTS = 20
+
+    const perLocaleQueries = supportedLocales.map((locale) => {
+      const fieldPath = `locales.${locale}.title`
+      const q = query(
+        this.collectionRef,
+        where(fieldPath, '>=', prefix),
+        where(fieldPath, '<=', prefix + '\uf8ff'),
+        orderBy(fieldPath),
+        limit(MAX_RESULTS)
+      )
+      return getDocs(q)
+    })
+
+    const snapshots = await Promise.all(perLocaleQueries)
+
+    const seen = new Set<string>()
+    const merged: Tournament[] = []
+
+    for (const snapshot of snapshots) {
+      for (const docSnap of snapshot.docs) {
+        const id = docSnap.id
+        if (seen.has(id)) continue
+        seen.add(id)
+        merged.push(
+          fromFirestore({
+            id,
+            ...docSnap.data(),
+          } as Record<string, unknown>)
+        )
+        if (merged.length >= MAX_RESULTS) return merged
+      }
+    }
+
+    return merged
   }
 }
 

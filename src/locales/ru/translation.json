@@ -40,7 +40,10 @@
     "invalid": "Невалидных",
     "unsavedChangesConfirmTitle": "Несохранённые изменения",
     "unsavedChangesConfirm": "Есть несохранённые изменения. Покинуть страницу?",
-    "noAssociations": "Нет ассоциаций"
+    "noAssociations": "Нет ассоциаций",
+    "searchTournaments": "Поиск по названию...",
+    "searchEvents": "Поиск по названию...",
+    "noSearchResults": "Ничего не найдено"
   },
   "profile": {
     "title": "Профиль",

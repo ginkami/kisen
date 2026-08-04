@@ -3,9 +3,11 @@ import { ConfirmModal } from './ConfirmModal.tsx'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { BsGear, BsX, BsCalendar2, BsPlus, BsFiletypeCsv, BsPeopleFill, BsFunnel } from 'react-icons/bs'
+import { BsGear, BsX, BsCalendar2, BsPlus, BsFiletypeCsv, BsPeopleFill, BsFunnel, BsSearch } from 'react-icons/bs'
 import { useAuth } from '../context/AuthContext.tsx'
 import { useAssociationsForPanel } from '../hooks/useAssociations.ts'
+import { useTournamentSearch } from '../hooks/useTournaments.ts'
+import { useEventSearch } from '../hooks/useEvents.ts'
 import { tournamentService } from '../services/tournamentService.ts'
 import { eventService } from '../services/eventService.ts'
 import { playerService, type ImportResult } from '../services/playerService.ts'
@@ -68,6 +70,8 @@ export function AdminDrawer({
   const [selectedEventYearMonth, setSelectedEventYearMonth] = useState(() =>
     formatYearMonthToMonthInput(formatDateToYearMonth(new Date()))
   )
+  const [tournamentSearch, setTournamentSearch] = useState('')
+  const [eventSearch, setEventSearch] = useState('')
   const [confirmModalOpen, setConfirmModalOpen] = useState(false)
   const pendingNavigation = useRef<string | null>(null)
   const [playerSearch, setPlayerSearch] = useState('')
@@ -150,6 +154,18 @@ export function AdminDrawer({
     },
     enabled: isAuthenticated && !!userId && isOpen && canManageEvents,
   })
+
+  const isSearchingTournaments = tournamentSearch.trim().length >= 3
+  const {
+    data: tournamentSearchResults = [],
+    isFetching: isFetchingTournamentSearch,
+  } = useTournamentSearch(isSearchingTournaments ? tournamentSearch : '')
+
+  const isSearchingEvents = eventSearch.trim().length >= 3
+  const {
+    data: eventSearchResults = [],
+    isFetching: isFetchingEventSearch,
+  } = useEventSearch(isSearchingEvents ? eventSearch : '')
 
   const sortedTournaments = useMemo(() => {
     return [...(tournaments ?? [])].sort((a, b) => {
@@ -298,41 +314,70 @@ export function AdminDrawer({
               </div>
               <div className="collapse-content">
                 <div className="mb-3 flex flex-col gap-2">
-                  <label className="input input-sm input-bordered flex items-center gap-2">
-                    <BsCalendar2 className="h-4 w-4 opacity-70" />
-                    <input
-                      type="month"
-                      value={selectedYearMonth}
-                      onChange={(e) => setSelectedYearMonth(e.target.value)}
-                      className="grow bg-transparent outline-none"
-                      aria-label={t('admin.selectMonth')}
-                    />
-                  </label>
                   <NewTournamentButton
                     variant="drawer"
                     hasUnsavedChanges={hasUnsavedChanges}
                   />
+                    <label className="input input-sm input-bordered flex items-center gap-2">
+                      <BsCalendar2 className="h-4 w-4 opacity-70" />
+                      <input
+                        type="month"
+                        value={selectedYearMonth}
+                        onChange={(e) => setSelectedYearMonth(e.target.value)}
+                        disabled={isSearchingTournaments}
+                        className="grow bg-transparent outline-none"
+                        aria-label={t('admin.selectMonth')}
+                      />
+                    </label>
+                  <label className="input input-sm input-bordered flex items-center gap-2">
+                    <BsSearch className="h-4 w-4 opacity-70" />
+                    <input
+                      type="text"
+                      value={tournamentSearch}
+                      onChange={(e) => setTournamentSearch(e.target.value)}
+                      placeholder={t('admin.searchTournaments')}
+                      className="grow bg-transparent outline-none"
+                    />
+                  </label>
                 </div>
 
-                {isLoading && (
+                {isSearchingTournaments && isFetchingTournamentSearch && (
                   <div className="flex justify-center py-4">
                     <span className="loading loading-spinner loading-sm" />
                   </div>
                 )}
 
-                {!isLoading && error && (
+                {isSearchingTournaments && !isFetchingTournamentSearch && (
+                  <div className="flex max-h-96 flex-col gap-2 overflow-y-auto">
+                    {tournamentSearchResults.length === 0 ? (
+                      <p className="text-sm opacity-70">
+                        {t('admin.noSearchResults')}
+                      </p>
+                    ) : (
+                      tournamentSearchResults.map(renderTournamentItem)
+                    )}
+                  </div>
+                )}
+
+                {!isSearchingTournaments && isLoading && (
+                  <div className="flex justify-center py-4">
+                    <span className="loading loading-spinner loading-sm" />
+                  </div>
+                )}
+
+                {!isSearchingTournaments && !isLoading && error && (
                   <p className="text-sm text-error">
                     {t('admin.loadError')}
                   </p>
                 )}
 
-                {!isLoading && !error && sortedTournaments.length === 0 && (
+                {!isSearchingTournaments && !isLoading && !error && sortedTournaments.length === 0 && (
                   <p className="text-sm opacity-70">
                     {t('admin.noTournamentsForMonth')}
                   </p>
                 )}
 
-                {!isLoading && !error && sortedTournaments.length > 0 && (
+                {!isSearchingTournaments && !isLoading && !error && sortedTournaments.length > 0 && (
                   <div className="flex max-h-96 flex-col gap-2 overflow-y-auto">
                     {sortedTournaments.map(renderTournamentItem)}
                   </div>
@@ -417,38 +462,80 @@ export function AdminDrawer({
               <div className="collapse-content">
                 {canManageEvents ? (
                   <div className="flex flex-col gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleNavigate('/events/new')}
+                      className="btn btn-secondary btn-sm flex items-center gap-0"
+                    >
+                      <BsPlus className="h-5 w-5" />
+                      <span className="hidden text-sm sm:inline">{t('admin.newEvent')}</span>
+                    </button>
                     <label className="input input-sm input-bordered flex items-center gap-2">
                       <BsCalendar2 className="h-4 w-4 opacity-70" />
                       <input
                         type="month"
                         value={selectedEventYearMonth}
                         onChange={(e) => setSelectedEventYearMonth(e.target.value)}
+                        disabled={isSearchingEvents}
                         className="grow bg-transparent outline-none"
                         aria-label={t('admin.selectMonth')}
                       />
                     </label>
-                    <button
-                      type="button"
-                      onClick={() => handleNavigate('/events/new')}
-                      className="btn btn-secondary btn-sm flex-1 flex items-center gap-0"
-                    >
-                      <BsPlus className="h-5 w-5" />
-                      <span className="hidden text-sm sm:inline">{t('admin.newEvent')}</span>
-                    </button>
-
-                    {isLoadingEvents && (
+                    <label className="input input-sm input-bordered flex items-center gap-2">
+                      <BsSearch className="h-4 w-4 opacity-70" />
+                      <input
+                        type="text"
+                        value={eventSearch}
+                        onChange={(e) => setEventSearch(e.target.value)}
+                        placeholder={t('admin.searchEvents')}
+                        className="grow bg-transparent outline-none"
+                      />
+                    </label>
+                    {isSearchingEvents && isFetchingEventSearch && (
                       <div className="flex justify-center py-4">
                         <span className="loading loading-spinner loading-sm" />
                       </div>
                     )}
 
-                    {!isLoadingEvents && events.length === 0 && (
+                    {isSearchingEvents && !isFetchingEventSearch && (
+                      <div className="flex max-h-96 flex-col gap-2 overflow-y-auto">
+                        {eventSearchResults.length === 0 ? (
+                          <p className="text-sm opacity-70">
+                            {t('admin.noSearchResults')}
+                          </p>
+                        ) : (
+                          eventSearchResults.map((event) => {
+                            const title = event.locales[i18n.language as keyof typeof event.locales]?.title ?? event.slug
+                            return (
+                              <button
+                                key={event.id}
+                                type="button"
+                                onClick={() => handleNavigate(`/events/${event.id}/edit`)}
+                                className="group flex w-full flex-col gap-1 rounded-lg border px-3 py-2 text-left transition-colors border-base-300 hover:bg-base-200"
+                              >
+                                <span className="line-clamp-1 font-medium text-sm">
+                                  {title}
+                                </span>
+                              </button>
+                            )
+                          })
+                        )}
+                      </div>
+                    )}
+
+                    {!isSearchingEvents && isLoadingEvents && (
+                      <div className="flex justify-center py-4">
+                        <span className="loading loading-spinner loading-sm" />
+                      </div>
+                    )}
+
+                    {!isSearchingEvents && !isLoadingEvents && events.length === 0 && (
                       <p className="text-sm opacity-70">
                         {t('admin.noEventsForMonth', { defaultValue: t('admin.eventsPlaceholder') })}
                       </p>
                     )}
 
-                    {!isLoadingEvents && events.length > 0 && (
+                    {!isSearchingEvents && !isLoadingEvents && events.length > 0 && (
                       <div className="flex max-h-96 flex-col gap-2 overflow-y-auto">
                         {events.map((event) => {
                           const title = event.locales[i18n.language as keyof typeof event.locales]?.title ?? event.slug

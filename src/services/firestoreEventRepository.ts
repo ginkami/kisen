@@ -8,10 +8,12 @@ import {
   query,
   where,
   orderBy,
+  limit,
 } from 'firebase/firestore'
 import { db } from './firebaseConfig.ts'
 import type { Event } from '../domain/event.ts'
 import type { EventRepository, ListEventsFilters } from './repository.ts'
+import { supportedLocales } from '../domain/locale.ts'
 import { datesToTimestamps, timestampsToDates } from './firestoreHelpers.ts'
 
 const COLLECTION_NAME = 'events'
@@ -106,6 +108,44 @@ export class FirestoreEventRepository implements EventRepository {
     const snapshot = await getDocs(q)
     if (snapshot.empty) return null
     return snapshot.docs[0].id
+  }
+
+  async searchByTitle(prefix: string): Promise<Event[]> {
+    const MAX_RESULTS = 20
+
+    const perLocaleQueries = supportedLocales.map((locale) => {
+      const fieldPath = `locales.${locale}.title`
+      const q = query(
+        this.collectionRef,
+        where(fieldPath, '>=', prefix),
+        where(fieldPath, '<=', prefix + '\uf8ff'),
+        orderBy(fieldPath),
+        limit(MAX_RESULTS)
+      )
+      return getDocs(q)
+    })
+
+    const snapshots = await Promise.all(perLocaleQueries)
+
+    const seen = new Set<string>()
+    const merged: Event[] = []
+
+    for (const snapshot of snapshots) {
+      for (const docSnap of snapshot.docs) {
+        const id = docSnap.id
+        if (seen.has(id)) continue
+        seen.add(id)
+        merged.push(
+          fromFirestore({
+            id,
+            ...docSnap.data(),
+          } as Record<string, unknown>)
+        )
+        if (merged.length >= MAX_RESULTS) return merged
+      }
+    }
+
+    return merged
   }
 }
 

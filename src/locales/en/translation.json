@@ -40,7 +40,10 @@
     "invalid": "Invalid",
     "unsavedChangesConfirmTitle": "Unsaved changes",
     "unsavedChangesConfirm": "You have unsaved changes. Leave this page?",
-    "noAssociations": "No associations"
+    "noAssociations": "No associations",
+    "searchTournaments": "Search by title...",
+    "searchEvents": "Search by title...",
+    "noSearchResults": "Nothing found"
   },
   "profile": {
     "title": "Profile",
