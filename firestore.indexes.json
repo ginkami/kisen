@@ -89,6 +89,23 @@
       ]
     },
     {
+      "collectionGroup": "tournaments",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "parentEvent", "mode": "ASCENDING" },
+        { "fieldPath": "updatedAt", "mode": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "tournaments",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "parentEvent", "mode": "ASCENDING" },
+        { "fieldPath": "startYearMonth", "mode": "ASCENDING" },
+        { "fieldPath": "updatedAt", "mode": "DESCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "events",
       "queryScope": "COLLECTION",
       "fields": [

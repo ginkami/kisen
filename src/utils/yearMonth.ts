@@ -21,9 +21,16 @@ export function parseMonthInputToYearMonth(value: string): string {
 }
 
 export function getTournamentStartYearMonth(tournament: Tournament): string {
-  const firstRound = tournament.schedule.rounds.at(0)
-  if (firstRound) {
-    return formatDateToYearMonth(firstRound.scheduledAt)
+  const allDates: Date[] = []
+  for (const round of tournament.schedule.rounds) {
+    allDates.push(round.scheduledAt)
+  }
+  for (const event of tournament.schedule.events) {
+    if (event.scheduledAt) allDates.push(event.scheduledAt)
+  }
+  if (allDates.length > 0) {
+    const minDate = new Date(Math.min(...allDates.map((d) => d.getTime())))
+    return formatDateToYearMonth(minDate)
   }
   return formatDateToYearMonth(new Date())
 }

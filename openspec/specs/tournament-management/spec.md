@@ -18,6 +18,20 @@ The tournament entity SHALL represent the organizing country as a required ISO 3
 - **THEN** the system rejects the publish action unless `country` is a valid 2-letter code
 - **AND** the system rejects the publish action unless every locale has a non-empty `location`
 
+### Requirement: Tournament startYearMonth computation
+
+The `startYearMonth` field of a tournament SHALL be computed as the minimum `scheduledAt` date across both `schedule.rounds` and `schedule.events` arrays. If both arrays are empty, it SHALL default to the current month.
+
+#### Scenario: startYearMonth considers both rounds and events
+
+- **WHEN** a tournament has events in `schedule.events` but no rounds in `schedule.rounds`
+- **THEN** `startYearMonth` is derived from the earliest `scheduledAt` in `schedule.events`
+
+#### Scenario: startYearMonth with empty schedule
+
+- **WHEN** a tournament has no rounds and no events in its schedule
+- **THEN** `startYearMonth` defaults to the current month
+
 ### Requirement: Removed features
 The tournament entity SHALL NOT provide an online/offline flag. The tournament entity SHALL NOT support multiple arbiters.
 

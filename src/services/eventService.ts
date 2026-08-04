@@ -2,6 +2,7 @@ import { uuidv7 } from 'uuidv7'
 import { eventSchema, type Event } from '../domain/event.ts'
 import type { EventRepository } from './repository.ts'
 import { firestoreEventRepository } from './firestoreEventRepository.ts'
+import { firestoreTournamentRepository } from './firestoreTournamentRepository.ts'
 import {
   generateRandomSlug,
   isValidSlug,
@@ -98,6 +99,26 @@ export class EventService {
 
   async listMyEvents(userId: string): Promise<Event[]> {
     return this.repository.list({ createdBy: userId })
+  }
+
+  async syncStartYearMonth(eventId: string): Promise<void> {
+    const event = await this.repository.getById(eventId)
+    if (!event) return
+
+    const tournaments = await firestoreTournamentRepository.list({ parentEvent: eventId })
+    let startYearMonth: string
+    if (tournaments.length > 0) {
+      startYearMonth = tournaments.reduce(
+        (min, t) => (t.startYearMonth < min ? t.startYearMonth : min),
+        tournaments[0].startYearMonth
+      )
+    } else {
+      startYearMonth = formatDateToYearMonth(new Date())
+    }
+
+    if (event.startYearMonth !== startYearMonth) {
+      await this.repository.update({ ...event, startYearMonth, updatedAt: new Date() })
+    }
   }
 
   private async resolveSlug(

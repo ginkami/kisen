@@ -25,6 +25,7 @@
     "selectMonth": "Выбрать месяц",
     "loadError": "Не удалось загрузить турниры.",
     "noTournamentsForMonth": "В этом месяце нет турниров.",
+    "noEventsForMonth": "В этом месяце нет мероприятий.",
     "untitledTournament": "Без названия",
     "noDate": "Без даты",
     "players": "Игроки",

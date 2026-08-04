@@ -12,6 +12,7 @@ import {
 } from './slugService.ts'
 import type { TournamentRepository } from './repository.ts'
 import { firestoreTournamentRepository } from './firestoreTournamentRepository.ts'
+import { eventService } from './eventService.ts'
 import { getTournamentStartYearMonth } from '../utils/yearMonth.ts'
 import { supportedLocales } from '../domain/locale.ts'
 
@@ -139,7 +140,16 @@ export class TournamentService {
       games: [],
     }
 
-    return this.repository.create(tournament)
+    const result = await this.repository.create(tournament)
+
+    // Sync event startYearMonth if parentEvent is set
+    if (result.parentEvent) {
+      await eventService.syncStartYearMonth(result.parentEvent).catch((err) => {
+        console.warn(`Failed to sync event ${result.parentEvent} startYearMonth:`, err)
+      })
+    }
+
+    return result
   }
 
   async createDraft(input: CreateDraftInput): Promise<Tournament> {
@@ -173,7 +183,16 @@ export class TournamentService {
       games: [],
     }
 
-    return this.repository.create(tournament)
+    const created = await this.repository.create(tournament)
+
+    // Sync event startYearMonth if parentEvent is set
+    if (created.parentEvent) {
+      await eventService.syncStartYearMonth(created.parentEvent).catch((err) => {
+        console.warn(`Failed to sync event ${created.parentEvent} startYearMonth:`, err)
+      })
+    }
+
+    return created
   }
 
   async update(input: UpdateTournamentInput): Promise<Tournament> {
@@ -196,6 +215,9 @@ export class TournamentService {
       schedule: nextSchedule,
     } as Tournament)
 
+    const nextParentEvent =
+      input.parentEvent !== undefined ? input.parentEvent : existing.parentEvent
+
     const updated: Tournament = {
       ...existing,
       locales: input.locales ?? existing.locales,
@@ -209,8 +231,7 @@ export class TournamentService {
       isPublic,
       publishedRounds: input.publishedRounds ?? existing.publishedRounds,
       startYearMonth: nextStartYearMonth,
-      parentEvent:
-        input.parentEvent !== undefined ? input.parentEvent : existing.parentEvent,
+      parentEvent: nextParentEvent,
       hostAssociation:
         input.hostAssociation !== undefined
           ? input.hostAssociation
@@ -219,7 +240,31 @@ export class TournamentService {
       updatedAt: now,
     }
 
-    return this.repository.update(updated)
+    const result = await this.repository.update(updated)
+
+    // Sync event startYearMonth if parentEvent changed or schedule changed
+    const parentEventChanged = existing.parentEvent !== nextParentEvent
+    const startYearMonthChanged = existing.startYearMonth !== nextStartYearMonth
+
+    if (parentEventChanged || startYearMonthChanged) {
+      const eventsToSync = new Set<string>()
+      if (parentEventChanged && existing.parentEvent) {
+        eventsToSync.add(existing.parentEvent)
+      }
+      if (nextParentEvent) {
+        eventsToSync.add(nextParentEvent)
+      }
+      // Sync in parallel, log errors but don't throw
+      await Promise.all(
+        Array.from(eventsToSync).map((eventId) =>
+          eventService.syncStartYearMonth(eventId).catch((err) => {
+            console.warn(`Failed to sync event ${eventId} startYearMonth:`, err)
+          })
+        )
+      )
+    }
+
+    return result
   }
 
   async publish(id: string, existing?: Tournament): Promise<Tournament> {
@@ -227,7 +272,15 @@ export class TournamentService {
   }
 
   async delete(id: string): Promise<void> {
-    return this.repository.delete(id)
+    const existing = await this.repository.getById(id)
+    await this.repository.delete(id)
+
+    // Sync event startYearMonth if tournament had a parentEvent
+    if (existing?.parentEvent) {
+      await eventService.syncStartYearMonth(existing.parentEvent).catch((err) => {
+        console.warn(`Failed to sync event ${existing.parentEvent} startYearMonth:`, err)
+      })
+    }
   }
 
   async slugExists(slug: string, excludeId?: string): Promise<boolean> {

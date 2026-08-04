@@ -65,6 +65,9 @@ export function AdminDrawer({
   const [selectedYearMonth, setSelectedYearMonth] = useState(() =>
     formatYearMonthToMonthInput(formatDateToYearMonth(new Date()))
   )
+  const [selectedEventYearMonth, setSelectedEventYearMonth] = useState(() =>
+    formatYearMonthToMonthInput(formatDateToYearMonth(new Date()))
+  )
   const [confirmModalOpen, setConfirmModalOpen] = useState(false)
   const pendingNavigation = useRef<string | null>(null)
   const [playerSearch, setPlayerSearch] = useState('')
@@ -137,12 +140,13 @@ export function AdminDrawer({
   })
 
   // Events
+  const eventYearMonth = parseMonthInputToYearMonth(selectedEventYearMonth)
   const canManageEvents = user?.role === 'admin' || user?.role === 'manager'
   const { data: events = [], isLoading: isLoadingEvents } = useQuery({
-    queryKey: ['adminEvents', yearMonth, userId],
+    queryKey: ['adminEvents', eventYearMonth, userId],
     queryFn: async () => {
       if (!userId) return []
-      return eventService.listByYearMonth(yearMonth, userId)
+      return eventService.listByYearMonth(eventYearMonth, userId)
     },
     enabled: isAuthenticated && !!userId && isOpen && canManageEvents,
   })
@@ -413,6 +417,16 @@ export function AdminDrawer({
               <div className="collapse-content">
                 {canManageEvents ? (
                   <div className="flex flex-col gap-2">
+                    <label className="input input-sm input-bordered flex items-center gap-2">
+                      <BsCalendar2 className="h-4 w-4 opacity-70" />
+                      <input
+                        type="month"
+                        value={selectedEventYearMonth}
+                        onChange={(e) => setSelectedEventYearMonth(e.target.value)}
+                        className="grow bg-transparent outline-none"
+                        aria-label={t('admin.selectMonth')}
+                      />
+                    </label>
                     <button
                       type="button"
                       onClick={() => handleNavigate('/events/new')}

@@ -25,6 +25,7 @@
     "selectMonth": "Select month",
     "loadError": "Failed to load tournaments.",
     "noTournamentsForMonth": "No tournaments for this month.",
+    "noEventsForMonth": "No events for this month.",
     "untitledTournament": "Untitled",
     "noDate": "No date",
     "players": "Players",

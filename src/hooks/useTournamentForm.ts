@@ -868,6 +868,8 @@ export function useTournamentForm(tournamentId: string | undefined) {
     onSuccess: (updated) => {
       queryClient.setQueryData([TOURNAMENT_QUERY_KEY, updated.id], updated)
       queryClient.invalidateQueries({ queryKey: ['adminTournaments'] })
+      queryClient.invalidateQueries({ queryKey: ['events'] })
+      queryClient.invalidateQueries({ queryKey: ['adminEvents'] })
       const snapshot = tournamentToFormState(updated)
       setFormState(snapshot)
       setLastSavedSnapshot(JSON.stringify(snapshot))
@@ -907,6 +909,8 @@ export function useTournamentForm(tournamentId: string | undefined) {
     onSuccess: (updated) => {
       queryClient.setQueryData([TOURNAMENT_QUERY_KEY, updated.id], updated)
       queryClient.invalidateQueries({ queryKey: ['adminTournaments'] })
+      queryClient.invalidateQueries({ queryKey: ['events'] })
+      queryClient.invalidateQueries({ queryKey: ['adminEvents'] })
       const snapshot = tournamentToFormState(updated)
       setFormState(snapshot)
       setLastSavedSnapshot(JSON.stringify(snapshot))
@@ -923,6 +927,8 @@ export function useTournamentForm(tournamentId: string | undefined) {
         queryKey: [TOURNAMENT_QUERY_KEY, tournamentId],
       })
       queryClient.invalidateQueries({ queryKey: ['adminTournaments'] })
+      queryClient.invalidateQueries({ queryKey: ['events'] })
+      queryClient.invalidateQueries({ queryKey: ['adminEvents'] })
       navigate('/')
     },
   })
