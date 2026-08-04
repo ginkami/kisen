@@ -182,7 +182,6 @@ export function AdminDrawer({
       return
     }
     navigate(to)
-    onClose()
   }
 
   const handleConfirmNavigation = () => {
@@ -191,7 +190,6 @@ export function AdminDrawer({
       navigate(pendingNavigation.current)
       pendingNavigation.current = null
     }
-    onClose()
   }
 
   const handleCancelNavigation = () => {

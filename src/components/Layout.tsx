@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, Outlet, useLocation } from 'react-router-dom'
+import { Link, Outlet } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { BsBoxArrowRight, BsGear } from 'react-icons/bs'
 import { LanguageSwitcher } from './LanguageSwitcher.tsx'
@@ -8,13 +8,6 @@ import { NewTournamentButton } from './NewTournamentButton.tsx'
 import { AdminDrawer } from './AdminDrawer.tsx'
 import { useAuth } from '../context/AuthContext.tsx'
 
-function shouldAutoOpenAdmin(pathname: string) {
-  return (
-    pathname === '/tournaments/new' ||
-    /^\/tournaments\/[^/]+\/edit$/.test(pathname)
-  )
-}
-
 export interface LayoutOutletContext {
   setHasUnsavedChanges: (value: boolean) => void
 }
@@ -22,16 +15,9 @@ export interface LayoutOutletContext {
 export function Layout() {
   const { t } = useTranslation()
   const { isAuthenticated, isLoading } = useAuth()
-  const { pathname } = useLocation()
 
   const [isAdminOpen, setIsAdminOpen] = useState(false)
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
-
-  const [autoOpenDone, setAutoOpenDone] = useState(false)
-  if (!autoOpenDone && isAuthenticated && shouldAutoOpenAdmin(pathname) && window.matchMedia('(min-width: 1024px)').matches) {
-    setAutoOpenDone(true)
-    setIsAdminOpen(true)
-  }
 
   const openAdmin = () => setIsAdminOpen(true)
   const closeAdmin = () => setIsAdminOpen(false)
@@ -88,7 +74,7 @@ export function Layout() {
         <button
           type="button"
           onClick={toggleAdmin}
-          className="fixed left-0 top-1/2 z-40 -translate-y-1/2 rounded-r-box bg-secondary p-3 text-secondary-content shadow-lg"
+          className="fixed left-0 top-1/6 z-40 -translate-y-1/2 rounded-r-box bg-secondary p-3 text-secondary-content shadow-lg"
           aria-label={t('admin.title')}
         >
           <BsGear className="h-6 w-6" />
