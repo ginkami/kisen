@@ -457,6 +457,40 @@ function TimeControlSection({
   )
 }
 
+function AdvancedSettingsSection({
+  considerSente,
+  onConsiderSenteChange,
+}: {
+  considerSente: boolean
+  onConsiderSenteChange: (value: boolean) => void
+}) {
+  const { t } = useTranslation()
+
+  return (
+    <div className="card bg-base-200 shadow-sm">
+      <div className="card-body">
+        <h2 className="card-title">
+          {t('tournament.edit.advanced.title')}
+        </h2>
+
+        <div className="form-control">
+          <label className="label cursor-pointer justify-start gap-3">
+            <input
+              type="checkbox"
+              checked={considerSente}
+              onChange={(e) => onConsiderSenteChange(e.target.checked)}
+              className="toggle toggle-primary"
+            />
+            <span className="label-text">
+              {t('tournament.edit.advanced.considerSente')}
+            </span>
+          </label>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function TieBreaksSection({
   tieBreaks,
   onAdd,
@@ -810,6 +844,7 @@ export function TournamentEditForm({
     updateTimeControlField,
     addTieBreak,
     removeTieBreak,
+    updateConsiderSente,
     addScheduleRow,
     updateScheduleRow,
     removeScheduleRow,
@@ -1075,6 +1110,11 @@ export function TournamentEditForm({
             tieBreaks={formState.settings.tieBreaks}
             onAdd={addTieBreak}
             onRemove={removeTieBreak}
+          />
+
+          <AdvancedSettingsSection
+            considerSente={formState.settings.considerSente}
+            onConsiderSenteChange={updateConsiderSente}
           />
         </div>
       )}

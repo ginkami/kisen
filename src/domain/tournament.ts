@@ -123,6 +123,7 @@ export type Game = z.infer<typeof gameSchema>
 export const tournamentSettingsSchema = z.object({
   timeControl: timeControlSchema,
   tieBreaks: tieBreaksSchema,
+  considerSente: z.boolean().default(false),
 })
 
 export type TournamentSettings = z.infer<typeof tournamentSettingsSchema>
@@ -153,6 +154,7 @@ export const tournamentSchema = z.object({
   status: tournamentStatusSchema,
   isPublic: z.boolean(),
   publishedRounds: z.number().int().min(0).default(0),
+  currentRound: z.number().int().default(0),
   startYearMonth: z.string().length(6).regex(/^\d{6}$/),
   locales: localeSchema(tournamentLocaleSchema).refine(
     (locales) => Object.keys(locales).length > 0,

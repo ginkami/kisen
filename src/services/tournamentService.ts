@@ -79,6 +79,7 @@ function defaultSettings(): Tournament['settings'] {
       { type: 'buchholz' },
       { type: 'sonneborn_berger' },
     ],
+    considerSente: false,
   }
 }
 
@@ -128,6 +129,7 @@ export class TournamentService {
       status: 'draft',
       isPublic: false,
       publishedRounds: 0,
+      currentRound: 0,
       startYearMonth: getTournamentStartYearMonth({
         schedule: input.schedule,
       } as Tournament),
@@ -171,6 +173,7 @@ export class TournamentService {
       status: 'draft',
       isPublic: false,
       publishedRounds: 0,
+      currentRound: 0,
       startYearMonth: getTournamentStartYearMonth({
         schedule,
       } as Tournament),

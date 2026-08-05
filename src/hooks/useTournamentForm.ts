@@ -696,6 +696,16 @@ export function useTournamentForm(tournamentId: string | undefined) {
     [updateForm]
   )
 
+  const updateConsiderSente = useCallback(
+    (value: boolean) => {
+      updateForm((state) => ({
+        ...state,
+        settings: { ...state.settings, considerSente: value },
+      }))
+    },
+    [updateForm]
+  )
+
   const addScheduleRow = useCallback(
     (afterId?: string) => {
       updateForm((state) => {
@@ -994,6 +1004,7 @@ export function useTournamentForm(tournamentId: string | undefined) {
     setTieBreaks,
     addTieBreak,
     removeTieBreak,
+    updateConsiderSente,
     addScheduleRow,
     updateScheduleRow,
     removeScheduleRow,

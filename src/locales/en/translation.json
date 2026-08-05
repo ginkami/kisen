@@ -187,6 +187,10 @@
         "add": "Add",
         "cutCount": "Cut count"
       },
+      "advanced": {
+        "title": "Advanced",
+        "considerSente": "Consider piece color in game results"
+      },
       "rounds": {
         "number": "Round",
         "date": "Date and time",
