@@ -7,22 +7,21 @@ interface PlayerCardProps {
   player: Player
   locale: string
   points?: number
-  showToggle?: boolean
   toggleChecked?: boolean
   onToggleChange?: (checked: boolean) => void
   toggleTooltip?: string
 }
 
-export function PlayerCard({ player, locale, points, showToggle, toggleChecked, onToggleChange, toggleTooltip }: PlayerCardProps) {
+export function PlayerCard({ player, locale, points, toggleChecked, onToggleChange, toggleTooltip }: PlayerCardProps) {
     const localeData = player.locales[locale] ?? player.locales.ru ?? player.locales.en
     const Flag = Flags[player.nationality.toUpperCase() as keyof typeof Flags]
     const FlagResidence = Flags[player.residence?.toUpperCase() as keyof typeof Flags]
 
     return (
         <div className="relative">
-            {points && (<div className="badge badge-sm badge-primary absolute right-0 top-0">{points}</div>)}
-            {showToggle && (
-              <label className={`label absolute right-0 top-6 text-xs${toggleTooltip ? ' tooltip tooltip-left' : ''}`} data-tip={toggleTooltip}>
+            {typeof points === 'number' && (<div className="badge badge-sm badge-primary absolute right-0 top-0 z-10">{points}</div>)}
+            {onToggleChange && (
+              <label className={`label absolute pl-1 z-10 right-0 top-6 text-xs${toggleTooltip ? ' tooltip tooltip-left' : ''}`} data-tip={toggleTooltip}>
                 <input
                   type="checkbox"
                   checked={toggleChecked ?? true}

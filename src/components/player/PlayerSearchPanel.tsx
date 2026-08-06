@@ -69,7 +69,7 @@ export function PlayerSearchPanel({
                     : 'border-base-300 hover:bg-base-200',
                 ].join(' ')}
               >
-                <PlayerCard player={player} locale={locale} points={1} showToggle={true} />
+                <PlayerCard player={player} locale={locale} />
               </button>
             )
           })}

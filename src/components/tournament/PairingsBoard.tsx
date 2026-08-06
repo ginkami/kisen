@@ -89,7 +89,7 @@ function SortableCard({
       style={style}
       {...attributes}
       {...(isDraggable ? listeners : {})}
-      className={`rounded-lg border px-3 py-2 select-none ${
+      className={`rounded-lg border px-3 py-2 select-none w-full truncate ${
         isForfeit
           ? 'border-warning bg-warning/10 opacity-60'
           : 'border-base-300 bg-base-100'
@@ -99,7 +99,6 @@ function SortableCard({
         player={player}
         locale={locale}
         points={entry.points}
-        showToggle
         toggleChecked={!isForfeit}
         onToggleChange={onToggleForfeit}
         toggleTooltip={forfeitTooltip}
@@ -379,75 +378,79 @@ export function PairingsBoard({
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      {/* --- pairing rows --- */}
-      <div className="grid grid-cols-[1fr_auto_1fr] gap-2">
-        <div className="text-xs font-semibold opacity-60 text-center pb-1">1</div>
-        <div className="w-10" />
-        <div className="text-xs font-semibold opacity-60 text-center pb-1">2</div>
 
-        {containers.games.length > 0 ? (
-          containers.games.map((game, i) => {
-            const p1Id = containers.players1[i]
-            const p2Id = containers.players2[i]
-            const hasResult = game.result != null
-            const resultDisabled = safeRound !== safeCurrentRound
-
-            return (
-              <Row
-                key={game.id}
-                game={game}
-                p1Id={p1Id}
-                p2Id={p2Id}
-                rowIndex={i}
-                hasResult={hasResult}
-                resultDisabled={resultDisabled}
-                isPublished={isPublished}
-                forfeitIds={forfeitIds}
-                participantsMap={participantsMap}
+      <div className='grid grid-cols-1 md:grid-cols-2 md:grid-cols-[30%_70%] gap-4'>
+        {/* --- unpaired container --- */}
+        <div className="order-2 md:order-1 mb-4">
+          <h3 className="mb-2 text-lg">
+            {t('tournament.edit.pairings.unpaired')}
+          </h3>
+          <SortableContainer
+            id="unpaired"
+            items={unpairedItems}
+            className="min-h-[3rem] rounded-lg border border-dashed border-base-300 p-1 space-y-1"
+          >
+            {containers.unpaired.map((pid) => (
+              <SortableCard
+                key={pid}
+                participantId={pid}
+                participants={participantsMap}
                 locale={locale}
+                isForfeit={forfeitIds.has(pid)}
+                isDraggable={!isPublished}
+                onToggleForfeit={(checked) => handleForfeitToggle(pid, checked)}
                 forfeitTooltip={forfeitTooltip}
-                onResultCycle={handleResultCycle}
-                onForfeitToggle={handleForfeitToggle}
-                p1Items={rowItems[i]?.p1Items ?? []}
-                p2Items={rowItems[i]?.p2Items ?? []}
               />
-            )
-          })
-        ) : !isPublished ? (
-          <EmptyRow />
-        ) : (
-          <div className="col-span-3 text-sm opacity-50 py-4 text-center">—</div>
-        )}
-      </div>
-
-      {/* --- unpaired container --- */}
-      <div className="mt-4">
-        <div className="text-xs font-semibold opacity-60 mb-2">
-          {t('tournament.edit.pairings.unpaired')}
+            ))}
+            {containers.unpaired.length === 0 && (
+              <div className="text-xs opacity-40 text-center py-4 select-none">
+                {t('tournament.edit.pairings.allPaired')}
+              </div>
+            )}
+          </SortableContainer>
         </div>
-        <SortableContainer
-          id="unpaired"
-          items={unpairedItems}
-          className="min-h-[3rem] rounded-lg border border-dashed border-base-300 p-2 space-y-2"
-        >
-          {containers.unpaired.map((pid) => (
-            <SortableCard
-              key={pid}
-              participantId={pid}
-              participants={participantsMap}
-              locale={locale}
-              isForfeit={forfeitIds.has(pid)}
-              isDraggable={!isPublished}
-              onToggleForfeit={(checked) => handleForfeitToggle(pid, checked)}
-              forfeitTooltip={forfeitTooltip}
-            />
-          ))}
-          {containers.unpaired.length === 0 && (
-            <div className="text-xs opacity-40 text-center py-4 select-none">
-              {t('tournament.edit.pairings.allPaired')}
-            </div>
-          )}
-        </SortableContainer>
+        {/* --- pairing rows --- */}
+        <div className="order-1 md:order-2 items-start mb-4">
+          <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2">
+            <h3 className="text-center text-lg">☗</h3>
+            <div className="w-10" />
+            <h3 className="text-center text-lg">☖</h3>
+
+            {containers.games.length > 0 ? (
+              containers.games.map((game, i) => {
+                const p1Id = containers.players1[i]
+                const p2Id = containers.players2[i]
+                const hasResult = game.result != null
+                const resultDisabled = safeRound !== safeCurrentRound
+
+                return (
+                  <Row
+                    key={game.id}
+                    game={game}
+                    p1Id={p1Id}
+                    p2Id={p2Id}
+                    rowIndex={i}
+                    hasResult={hasResult}
+                    resultDisabled={resultDisabled}
+                    isPublished={isPublished}
+                    forfeitIds={forfeitIds}
+                    participantsMap={participantsMap}
+                    locale={locale}
+                    forfeitTooltip={forfeitTooltip}
+                    onResultCycle={handleResultCycle}
+                    onForfeitToggle={handleForfeitToggle}
+                    p1Items={rowItems[i]?.p1Items ?? []}
+                    p2Items={rowItems[i]?.p2Items ?? []}
+                  />
+                )
+              })
+            ) : !isPublished ? (
+              <EmptyRow />
+            ) : (
+              <div className="col-span-3 text-sm opacity-50 py-4 text-center">—</div>
+            )}
+          </div>
+        </div>
       </div>
 
       <DragOverlay dropAnimation={null}>
@@ -506,7 +509,7 @@ function Row({
       <SortableContainer
         id={`p1-row-${rowIndex}`}
         items={p1Items}
-        className="min-h-[3rem] rounded border border-dashed border-base-300 flex items-center justify-center"
+        className="sente-card min-h-[3rem] rounded border border-dashed border-base-300 flex items-center justify-center"
       >
         {p1Id != null ? (
           <SortableCard
@@ -524,12 +527,12 @@ function Row({
       </SortableContainer>
 
       {/* result button */}
-      <div className="w-10 flex items-center justify-center">
+      <div className="w-10 flex justify-center">
         <button
           type="button"
           onClick={() => onResultCycle(game.id)}
           disabled={resultDisabled}
-          className={`btn btn-xs btn-circle ${hasResult ? 'btn-primary' : 'btn-ghost'}`}
+          className={`btn btn-xs btn-circle ${hasResult ? 'btn-primary' : 'btn-neutral'}`}
           title={resultToSymbol(game.result)}
         >
           {resultToSymbol(game.result)}
@@ -540,7 +543,7 @@ function Row({
       <SortableContainer
         id={`p2-row-${rowIndex}`}
         items={p2Items}
-        className="min-h-[3rem] rounded border border-dashed border-base-300 flex items-center justify-center"
+        className="gote-card min-h-[3rem] rounded border border-dashed border-base-300 flex items-center justify-center"
       >
         {p2Id != null ? (
           <SortableCard

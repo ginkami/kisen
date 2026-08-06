@@ -16,6 +16,7 @@
   }
   h1, h2, h3, h4, h5, h6 {
     font-family: "PT Sans Narrow", sans-serif;
+    font-weight: bold;
   }
 }
 
@@ -28,17 +29,17 @@
   default: true;
   prefersdark: false;
   color-scheme: "light";
-  --color-base-100: #efefef;
+  --color-base-100: oklch(95.21% 0 0);
   --color-base-200: oklch(89.107% 0 0);
   --color-base-300: oklch(82.4% 0 0);
   --color-base-content: oklch(19.162% 0 0);
   --color-primary: oklch(12.95% 0.003 55.34);
-  --color-primary-content: #efefef;
+  --color-primary-content: oklch(95.21% 0 0);
   --color-secondary: oklch(76.71% 0.111 76.54);
   --color-secondary-content: oklch(12.95% 0.003 55.34) ;
   --color-accent: oklch(61.676% 0.169 23.865);
   --color-accent-content: oklch(12.95% 0.003 55.34) ;
-  --color-neutral: #594d46;
+  --color-neutral: oklch(43% 0.0197 52.14);
   --color-neutral-content: oklch(90.873% 0.007 51.902);
   --color-info: oklch(69.224% 0.097 207.284);
   --color-info-content: oklch(13.844% 0.019 207.284);
@@ -73,7 +74,7 @@
 }
 .logo::before{
   content: '·';
-  color: #f62a00;
+  color: oklch(62.48% 0.2381 31.78);
   font-size: 2rem;
   vertical-align: middle;
   position: relative;
@@ -96,4 +97,16 @@
 }
 button.expandable-field:not(.basic-expandable) {
   margin-top: 1.25rem;
+}
+.sente-card:has(+ div > button[title='<']) > div,
+div:has(> button[title='>']) + .gote-card > div {
+  background-color: oklch(65.676% 0.169 23.865);
+}
+.sente-card:has(+ div > button[title='>']) > div,
+div:has(> button[title='<']) + .gote-card > div  {
+  background-color: oklch(70.995% 0.08 174.616);
+}
+.sente-card:has(+ div > button[title='=']) > div,
+div:has(> button[title='=']) + .gote-card > div  {
+  background-color: oklch(86.71% 0.111 76.54);
 }
