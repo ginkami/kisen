@@ -6,15 +6,32 @@ import { PiCrownSimple } from 'react-icons/pi'
 interface PlayerCardProps {
   player: Player
   locale: string
+  points?: number
+  showToggle?: boolean
+  toggleChecked?: boolean
+  onToggleChange?: (checked: boolean) => void
+  toggleTooltip?: string
 }
 
-export function PlayerCard({ player, locale }: PlayerCardProps) {
+export function PlayerCard({ player, locale, points, showToggle, toggleChecked, onToggleChange, toggleTooltip }: PlayerCardProps) {
     const localeData = player.locales[locale] ?? player.locales.ru ?? player.locales.en
     const Flag = Flags[player.nationality.toUpperCase() as keyof typeof Flags]
     const FlagResidence = Flags[player.residence?.toUpperCase() as keyof typeof Flags]
 
     return (
-        <div>
+        <div className="relative">
+            {points && (<div className="badge badge-sm badge-primary absolute right-0 top-0">{points}</div>)}
+            {showToggle && (
+              <label className={`label absolute right-0 top-6 text-xs${toggleTooltip ? ' tooltip tooltip-left' : ''}`} data-tip={toggleTooltip}>
+                <input
+                  type="checkbox"
+                  checked={toggleChecked ?? true}
+                  onChange={onToggleChange ? (e) => onToggleChange(e.target.checked) : undefined}
+                  className="toggle toggle-neutral toggle-xs"
+                  disabled={!onToggleChange}
+                />
+              </label>
+            )}
             <div className="flex items-center gap-2">
                 {Flag && <Flag className="h-3 w-4 rounded-sm" />}
                 <span className="line-clamp-1 font-medium">

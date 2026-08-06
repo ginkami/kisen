@@ -11,6 +11,7 @@ import type {
   TournamentSchedule,
   TournamentSettings,
   Participant,
+  Game,
 } from '../domain/tournament.ts'
 import { publishedTournamentSchema } from '../domain/tournament.ts'
 import { normalizeSlug } from '../services/slugService.ts'
@@ -149,6 +150,8 @@ export interface TournamentFormState {
   settings: TournamentSettings
   scheduleRows: ScheduleRow[]
   participants: ParticipantRow[]
+  games: Game[]
+  currentRound: number
 }
 
 function createEmptyParticipantLocales(): ParticipantRow['locales'] {
@@ -282,6 +285,8 @@ function tournamentToFormState(tournament: Tournament): TournamentFormState {
       tournament.schedule.rounds
     ),
     participants: participantsToRows(tournament.participants),
+    games: tournament.games,
+    currentRound: tournament.currentRound,
   }
 }
 
@@ -301,6 +306,8 @@ function formStateToUpdateInput(
     hostAssociation: string | null
     arbiter: Tournament['arbiter']
     participants: Participant[]
+    games: Game[]
+    currentRound: number
     desiredSlug?: string
   } = {
     id: tournament.id,
@@ -322,6 +329,8 @@ function formStateToUpdateInput(
       ) as Tournament['arbiter']['locales'],
     },
     participants: rowsToParticipants(state.participants),
+    games: state.games,
+    currentRound: state.currentRound,
   }
 
   if (state.slug !== tournament.slug) {
@@ -978,6 +987,29 @@ export function useTournamentForm(tournamentId: string | undefined) {
     deleteMutation.mutate()
   }, [deleteMutation])
 
+  const updateGames = useCallback(
+    (round: number, gamesForRound: Game[]) => {
+      updateForm((state) => ({
+        ...state,
+        games: [
+          ...state.games.filter((g) => g.round !== round),
+          ...gamesForRound,
+        ],
+      }))
+    },
+    [updateForm]
+  )
+
+  const publishDraw = useCallback(
+    (round: number) => {
+      updateForm((state) => ({
+        ...state,
+        currentRound: round,
+      }))
+    },
+    [updateForm]
+  )
+
   return {
     tournament,
     formState,
@@ -1018,6 +1050,8 @@ export function useTournamentForm(tournamentId: string | undefined) {
     addParticipant,
     updateParticipant,
     removeParticipant,
+    updateGames,
+    publishDraw,
     slugTaken,
   }
 }

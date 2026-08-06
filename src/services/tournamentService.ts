@@ -46,6 +46,7 @@ export interface UpdateTournamentInput {
   arbiter?: Tournament['arbiter']
   participants?: Tournament['participants']
   games?: Tournament['games']
+  currentRound?: number
   status?: TournamentStatus
   publishedRounds?: number
   parentEvent?: string | null
@@ -230,6 +231,7 @@ export class TournamentService {
       arbiter: input.arbiter ?? existing.arbiter,
       participants: input.participants ?? existing.participants,
       games: input.games ?? existing.games,
+      currentRound: input.currentRound ?? existing.currentRound,
       status: nextStatus,
       isPublic,
       publishedRounds: input.publishedRounds ?? existing.publishedRounds,

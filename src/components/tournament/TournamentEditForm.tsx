@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { ConfirmModal } from '../ConfirmModal.tsx'
 import { useTranslation } from 'react-i18next'
-import { BsSliders2Vertical, BsClock, BsJournalText, BsPeople, BsPlus, BsX } from 'react-icons/bs'
+import { BsSliders2Vertical, BsClock, BsJournalText, BsPlus, BsX, Bs123 } from 'react-icons/bs'
+import { HiOutlineUserGroup } from "react-icons/hi2";
 import { useAuth } from '../../context/AuthContext.tsx'
 import { useTournamentForm } from '../../hooks/useTournamentForm.ts'
 import {
@@ -25,6 +26,7 @@ import { eventService } from '../../services/eventService.ts'
 import { CountrySelect } from './CountrySelect.tsx'
 import { LocaleTabs } from './LocaleTabs.tsx'
 import { ExpandableField } from './ExpandableField.tsx'
+import { PairingsSection } from './PairingsSection.tsx'
 import { EventPickerModal } from './EventPickerModal.tsx'
 import { AssociationPickerModal } from './AssociationPickerModal.tsx'
 
@@ -853,13 +855,15 @@ export function TournamentEditForm({
     addParticipant,
     updateParticipant,
     removeParticipant,
+    updateGames,
+    publishDraw,
     saveDraft,
     publish,
     deleteTournament,
     slugTaken,
   } = useTournamentForm(tournamentId)
 
-  type TabId = 'general' | 'settings' | 'schedule' | 'participants'
+  type TabId = 'general' | 'settings' | 'schedule' | 'participants' | 'pairings'
 
   const [activeTab, setActiveTab] = useState<TabId>('general')
   const [scheduleLocale, setScheduleLocale] = useState<SupportedLocale>(
@@ -893,7 +897,12 @@ export function TournamentEditForm({
     {
       id: 'participants',
       label: t('tournament.edit.tabs.players'),
-      icon: BsPeople,
+      icon: HiOutlineUserGroup,
+    },
+    {
+      id: 'pairings',
+      label: t('tournament.edit.tabs.pairings'),
+      icon: Bs123,
     },
   ]
 
@@ -1142,6 +1151,22 @@ export function TournamentEditForm({
           validationErrors={validationErrors}
           canLinkPlayers={canLinkPlayers}
           onSort={(by, direction) => sortParticipants(by, direction, scheduleLocale)}
+        />
+      )}
+
+      {activeTab === 'pairings' && (
+        <PairingsSection
+          games={formState.games}
+          currentRound={formState.currentRound}
+          participants={formState.participants}
+          scheduleRounds={formState.scheduleRows.filter((r): r is Extract<typeof r, { kind: 'round' }> => r.kind === 'round').map((r) => ({
+            number: r.number,
+            scheduledAt: r.scheduledAt ?? new Date(),
+          }))}
+          considerSente={formState.settings.considerSente}
+          locale={scheduleLocale}
+          updateGames={updateGames}
+          publishDraw={publishDraw}
         />
       )}
 

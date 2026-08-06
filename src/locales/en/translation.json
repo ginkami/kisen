@@ -104,6 +104,7 @@
         "settings": "Settings",
         "schedule": "Schedule",
         "players": "Players",
+        "pairings": "Pairings",
         "placeholder": "This section is empty for now."
       },
       "participants": {
@@ -196,6 +197,16 @@
         "date": "Date and time",
         "add": "Add event",
         "remove": "Remove event"
+      },
+      "pairings": {
+        "title": "Rounds",
+        "publishDraw": "Publish draw",
+        "drawPublished": "Draw published",
+        "forfeit": "Forfeit",
+        "unpaired": "Unpaired",
+        "allPaired": "All participants are paired",
+        "noRounds": "Add rounds to the competition program to manage pairings.",
+        "dropHere": "Drop here"
       },
       "program": {
         "title": "Competition program",
