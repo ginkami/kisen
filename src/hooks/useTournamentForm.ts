@@ -993,7 +993,7 @@ export function useTournamentForm(tournamentId: string | undefined) {
         ...state,
         games: [
           ...state.games.filter((g) => g.round !== round),
-          ...gamesForRound,
+          ...gamesForRound.filter((g) => g.round === round),
         ],
       }))
     },
