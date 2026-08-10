@@ -31,6 +31,7 @@ import {
   withForfeit,
   participantToPlayerLike,
   resultToSymbol,
+  calculateParticipantPoints,
 } from './pairings/pairingsModel.ts'
 
 // ---------------------------------------------------------------------------
@@ -45,6 +46,7 @@ interface PairingsBoardProps {
   considerSente: boolean
   locale: string
   onGamesChange: (games: Game[]) => void
+  updateStartingPoints?: (participantId: number, value: number) => void
 }
 
 // ---------------------------------------------------------------------------
@@ -59,6 +61,9 @@ function SortableCard({
   isDraggable,
   onToggleForfeit,
   forfeitTooltip,
+  cumulativePoints,
+  startingPoints,
+  onStartingPointsChange,
 }: {
   participantId: number
   participants: Map<number, { participant: Participant; points?: number }>
@@ -67,6 +72,9 @@ function SortableCard({
   isDraggable: boolean
   onToggleForfeit: (checked: boolean) => void
   forfeitTooltip: string
+  cumulativePoints?: number
+  startingPoints?: number
+  onStartingPointsChange?: (value: number) => void
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: `p-${participantId}` })
@@ -98,7 +106,9 @@ function SortableCard({
       <PlayerCard
         player={player}
         locale={locale}
-        points={entry.points}
+        points={cumulativePoints ?? entry.points}
+        startingPoints={startingPoints}
+        onStartingPointsChange={onStartingPointsChange}
         toggleChecked={!isForfeit}
         onToggleChange={onToggleForfeit}
         toggleTooltip={forfeitTooltip}
@@ -225,6 +235,7 @@ export function PairingsBoard({
   considerSente,
   locale,
   onGamesChange,
+  updateStartingPoints,
 }: PairingsBoardProps) {
   const { t } = useTranslation()
   const [activeId, setActiveId] = useState<string | null>(null)
@@ -294,7 +305,7 @@ export function PairingsBoard({
     (event: DragEndEvent) => {
       setActiveId(null)
       const { active, over } = event
-      if (!over || isPublished) return
+      if (!over) return
 
       const activeStr = active.id as string
       const overId = over.id as string
@@ -351,23 +362,44 @@ export function PairingsBoard({
 
   const handleResultCycle = useCallback(
     (gameId: string) => {
-      if (safeRound !== safeCurrentRound) return
       onGamesChange(withResultCycled(games, gameId))
     },
-    [games, onGamesChange, safeRound, safeCurrentRound]
+    [games, onGamesChange]
   )
 
   const handleForfeitToggle = useCallback(
     (participantId: number, checked: boolean) => {
-      if (isPublished) return
       onGamesChange(withForfeit(games, safeRound, participantId, !checked, considerSente))
     },
-    [games, safeRound, considerSente, onGamesChange, isPublished]
+    [games, safeRound, considerSente, onGamesChange]
   )
 
   const activeParticipantId = activeId?.startsWith('p-')
     ? Number(activeId.replace('p-', ''))
     : null
+
+  // Build a map of startingPoints per participant id
+  const startingPointsMap = useMemo(() => {
+    const map = new Map<number, number>()
+    for (const p of participants) {
+      if ('rowId' in p) {
+        map.set(p.id, (p as ParticipantRow).startingPoints ?? 0)
+      } else {
+        map.set(p.id, (p as Participant).startingPoints ?? 0)
+      }
+    }
+    return map
+  }, [participants])
+
+  // Cumulative points per participant for this round
+  const pointsMap = useMemo(() => {
+    const map = new Map<number, number>()
+    for (const pid of startingPointsMap.keys()) {
+      const sp = startingPointsMap.get(pid) ?? 0
+      map.set(pid, calculateParticipantPoints(games, pid, safeRound, sp))
+    }
+    return map
+  }, [games, safeRound, startingPointsMap])
 
   const forfeitTooltip = t('tournament.edit.pairings.forfeit')
 
@@ -397,9 +429,12 @@ export function PairingsBoard({
                 participants={participantsMap}
                 locale={locale}
                 isForfeit={forfeitIds.has(pid)}
-                isDraggable={!isPublished}
+                isDraggable={true}
                 onToggleForfeit={(checked) => handleForfeitToggle(pid, checked)}
                 forfeitTooltip={forfeitTooltip}
+                cumulativePoints={pointsMap.get(pid)}
+                startingPoints={startingPointsMap.get(pid)}
+                onStartingPointsChange={updateStartingPoints ? (v) => updateStartingPoints(pid, v) : undefined}
               />
             ))}
             {containers.unpaired.length === 0 && (
@@ -421,7 +456,7 @@ export function PairingsBoard({
                 const p1Id = containers.players1[i]
                 const p2Id = containers.players2[i]
                 const hasResult = game.result != null
-                const resultDisabled = safeRound !== safeCurrentRound
+                const resultDisabled = false
 
                 return (
                   <Row
@@ -432,7 +467,6 @@ export function PairingsBoard({
                     rowIndex={i}
                     hasResult={hasResult}
                     resultDisabled={resultDisabled}
-                    isPublished={isPublished}
                     forfeitIds={forfeitIds}
                     participantsMap={participantsMap}
                     locale={locale}
@@ -441,6 +475,9 @@ export function PairingsBoard({
                     onForfeitToggle={handleForfeitToggle}
                     p1Items={rowItems[i]?.p1Items ?? []}
                     p2Items={rowItems[i]?.p2Items ?? []}
+                    pointsMap={pointsMap}
+                    startingPointsMap={startingPointsMap}
+                    updateStartingPoints={updateStartingPoints}
                   />
                 )
               })
@@ -477,7 +514,6 @@ function Row({
   rowIndex,
   hasResult,
   resultDisabled,
-  isPublished,
   forfeitIds,
   participantsMap,
   locale,
@@ -486,6 +522,9 @@ function Row({
   onForfeitToggle,
   p1Items,
   p2Items,
+  pointsMap,
+  startingPointsMap,
+  updateStartingPoints,
 }: {
   game: Game
   p1Id: number | null
@@ -493,7 +532,6 @@ function Row({
   rowIndex: number
   hasResult: boolean
   resultDisabled: boolean
-  isPublished: boolean
   forfeitIds: Set<number>
   participantsMap: Map<number, { participant: Participant; points?: number }>
   locale: string
@@ -502,6 +540,9 @@ function Row({
   onForfeitToggle: (participantId: number, checked: boolean) => void
   p1Items: string[]
   p2Items: string[]
+  pointsMap?: Map<number, number>
+  startingPointsMap?: Map<number, number>
+  updateStartingPoints?: (participantId: number, value: number) => void
 }) {
   return (
     <>
@@ -517,9 +558,12 @@ function Row({
             participants={participantsMap}
             locale={locale}
             isForfeit={forfeitIds.has(p1Id)}
-            isDraggable={!isPublished && !hasResult}
+            isDraggable={true}
             onToggleForfeit={(checked) => onForfeitToggle(p1Id, checked)}
             forfeitTooltip={forfeitTooltip}
+            cumulativePoints={pointsMap?.get(p1Id)}
+            startingPoints={startingPointsMap?.get(p1Id)}
+            onStartingPointsChange={updateStartingPoints ? (v) => updateStartingPoints(p1Id, v) : undefined}
           />
         ) : (
           <span className="text-xs opacity-40 select-none">-</span>
@@ -551,9 +595,12 @@ function Row({
             participants={participantsMap}
             locale={locale}
             isForfeit={forfeitIds.has(p2Id)}
-            isDraggable={!isPublished && !hasResult}
+            isDraggable={true}
             onToggleForfeit={(checked) => onForfeitToggle(p2Id, checked)}
             forfeitTooltip={forfeitTooltip}
+            cumulativePoints={pointsMap?.get(p2Id)}
+            startingPoints={startingPointsMap?.get(p2Id)}
+            onStartingPointsChange={updateStartingPoints ? (v) => updateStartingPoints(p2Id, v) : undefined}
           />
         ) : (
           <span className="text-xs opacity-40 select-none">-</span>

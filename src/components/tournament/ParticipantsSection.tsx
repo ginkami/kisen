@@ -46,6 +46,7 @@ export function ParticipantsSection({
             residence: '',
             ratingValue: '',
             rank: null,
+            startingPoints: 0,
           },
         ]
 

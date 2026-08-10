@@ -261,6 +261,42 @@ function createEmptyGame(round: number, considerSente: boolean): Game {
   }
 }
 
+export function calculateParticipantPoints(
+  allGames: Game[],
+  participantId: number,
+  upToRound: number,
+  startingPoints: number
+): number {
+  let points = startingPoints
+  for (const g of allGames) {
+    if (g.round > upToRound) continue
+    if (g.status === 'forfeit') continue
+
+    const isPlayer1 = g.player1 === participantId
+    const isPlayer2 = g.player2 === participantId
+    if (!isPlayer1 && !isPlayer2) continue
+
+    if (g.status === 'bye') {
+      // Bye counts as a win
+      if (isPlayer1) points += 1
+      continue
+    }
+
+    if (g.result === null) continue
+
+    if (g.result === 'draw') {
+      points += 0.5
+    } else if (
+      (g.result === 'player1_won' && isPlayer1) ||
+      (g.result === 'player2_won' && isPlayer2)
+    ) {
+      points += 1
+    }
+    // else: loss = 0 points
+  }
+  return points
+}
+
 export const RESULT_SYMBOLS: Record<string, string> = {
   '?': '?',
   '>': '>',

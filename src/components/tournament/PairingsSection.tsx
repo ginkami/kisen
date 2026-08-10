@@ -15,6 +15,8 @@ interface PairingsSectionProps {
   locale: string
   updateGames: (round: number, gamesForRound: Game[]) => void
   publishDraw: (round: number) => void
+  unpublishDraw: () => void
+  updateStartingPoints: (participantId: number, value: number) => void
 }
 
 export function PairingsSection({
@@ -26,6 +28,8 @@ export function PairingsSection({
   locale,
   updateGames,
   publishDraw,
+  unpublishDraw,
+  updateStartingPoints,
 }: PairingsSectionProps) {
   const { t } = useTranslation()
   const roundCount = scheduleRounds.length
@@ -104,16 +108,27 @@ export function PairingsSection({
         {/* Header with publish button */}
         <div className="flex items-center justify-between">
           <h2 className="card-title">{t('tournament.edit.pairings.title')}</h2>
-          <button
-            type="button"
-            onClick={handlePublish}
-            disabled={!canPublish}
-            className={`btn btn-sm ${isCurrentRound ? 'btn-ghost' : canPublish ? 'btn-success' : 'btn-ghost opacity-50'}`}
-          >
-            {isCurrentRound
-              ? t('tournament.edit.pairings.drawPublished')
-              : t('tournament.edit.pairings.publishDraw')}
-          </button>
+          <div className="flex gap-2">
+            {isCurrentRound && safeCurrentRound > 0 && (
+              <button
+                type="button"
+                onClick={unpublishDraw}
+                className="btn btn-sm btn-warning"
+              >
+                {t('tournament.edit.pairings.unpublishDraw')}
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={handlePublish}
+              disabled={!canPublish}
+              className={`btn btn-sm ${isCurrentRound ? 'btn-neutral' : canPublish ? 'btn-success' : 'btn-neutral'}`}
+            >
+              {isCurrentRound
+                ? t('tournament.edit.pairings.drawPublished')
+                : t('tournament.edit.pairings.publishDraw')}
+            </button>
+          </div>
         </div>
 
         {/* Round sub-tabs */}
@@ -146,6 +161,7 @@ export function PairingsSection({
           considerSente={considerSente}
           locale={locale}
           onGamesChange={handleGamesChange}
+          updateStartingPoints={updateStartingPoints}
         />
       </div>
     </div>

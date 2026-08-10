@@ -857,6 +857,8 @@ export function TournamentEditForm({
     removeParticipant,
     updateGames,
     publishDraw,
+    unpublishDraw,
+    updateStartingPoints,
     saveDraft,
     publish,
     deleteTournament,
@@ -1167,6 +1169,8 @@ export function TournamentEditForm({
           locale={scheduleLocale}
           updateGames={updateGames}
           publishDraw={publishDraw}
+          unpublishDraw={unpublishDraw}
+          updateStartingPoints={updateStartingPoints}
         />
       )}
 

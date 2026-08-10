@@ -319,6 +319,92 @@ The locale dictionaries `src/locales/{ru,en}/translation.json` SHALL add keys un
 - **AND** `tournament.edit.pairings.title` exists and equals "Туры"
 - **AND** `tournament.edit.pairings.publishDraw`, `tournament.edit.pairings.drawPublished`, and `tournament.edit.pairings.forfeit` exist
 
+### Requirement: Unpublish draw button
+
+The `PairingsSection` SHALL display an "Отменить жеребьёвку" / "Unpublish draw" button to the left of the publish/unpublish button. The button SHALL be visible only when `safeActiveRound === safeCurrentRound && safeCurrentRound > 0`. Clicking the enabled button SHALL delete any games for `currentRound + 1` and decrement `currentRound` by 1 (minimum 0) via `useTournamentForm.unpublishDraw()`.
+
+#### Scenario: Unpublish button visible for current round
+
+- **WHEN** the active round equals `currentRound` and `currentRound > 0`
+- **THEN** the "Unpublish draw" button is visible and enabled
+
+#### Scenario: Unpublish button hidden for future rounds
+
+- **WHEN** the active round is greater than `currentRound` (next round being prepared)
+- **THEN** the "Unpublish draw" button is not displayed
+
+#### Scenario: Unpublish deletes next round games and decrements currentRound
+
+- **WHEN** the user clicks "Unpublish draw" while `currentRound = 2`
+- **THEN** any games for round `3` (`currentRound + 1`) are deleted
+- **AND** `currentRound` becomes `1`
+
+#### Scenario: Unpublish at round 1 sets currentRound to 0
+
+- **WHEN** the user clicks "Unpublish draw" while `currentRound = 1`
+- **THEN** any games for round `2` are deleted
+- **AND** `currentRound` becomes `0`
+
+### Requirement: Cumulative participant points display
+
+Each participant card in the pairings board SHALL display a cumulative points badge. Cumulative points = `participant.startingPoints` + sum of points earned from game results across all rounds up to and including the active round. Points: win (`player1_won` for player1, `player2_won` for player2) = 1, draw = 0.5, bye = 1, forfeit = 0. The badge SHALL be visible only in the pairings tab.
+
+#### Scenario: Points include startingPoints and game results
+
+- **WHEN** a participant has `startingPoints = 2` and has won one game in round 1
+- **THEN** the badge displays `3` when viewing any round ≥ 1
+
+#### Scenario: Points accumulate across rounds
+
+- **WHEN** a participant wins round 1 and draws round 2
+- **THEN** the badge displays `1.5` (plus `startingPoints`) when viewing round 2 or later
+
+#### Scenario: Bye counts as a win
+
+- **WHEN** a participant has a bye game (`status = 'bye'`) in round 1
+- **THEN** the badge includes +1 point for that round
+
+#### Scenario: Forfeit gives zero points
+
+- **WHEN** a participant has a forfeit game (`status = 'forfeit'`) in a round
+- **THEN** the badge adds 0 points for that round
+
+### Requirement: Starting points inline editing
+
+The `PlayerCard` component SHALL render an editable input bound to `participant.startingPoints` when rendered in the pairings tab. Editing the input SHALL update `startingPoints` for that participant across all rounds via `useTournamentForm.updateStartingPoints(participantId, value)`. The input SHALL display `0` when `startingPoints` is `0` or undefined. The input and points badge SHALL NOT appear in `PlayerSearchPanel` or other non-pairings call sites.
+
+#### Scenario: Editing startingPoints updates participant
+
+- **WHEN** the user types `3` in the startingPoints input for participant 5
+- **THEN** `participant[5].startingPoints` becomes `3` in `formState.participants`
+- **AND** the cumulative points badge updates immediately
+
+#### Scenario: Input shows 0 by default
+
+- **WHEN** a participant has `startingPoints = 0` or undefined
+- **THEN** the input displays `0`
+
+#### Scenario: Input hidden outside pairings tab
+
+- **WHEN** `PlayerCard` is rendered in `PlayerSearchPanel` (no `startingPoints` / `onStartingPointsChange` props)
+- **THEN** the input and points badge are not rendered
+
+### Requirement: Pairings i18n strings part 2
+
+The locale dictionaries `src/locales/{ru,en}/translation.json` SHALL add keys: `tournament.edit.pairings.unpublishDraw` and `tournament.edit.pairings.startingPoints`. All user-facing strings introduced by part 2 SHALL be translated in both `ru` and `en`.
+
+#### Scenario: Russian strings present
+
+- **WHEN** the `ru` translation file is loaded
+- **THEN** `tournament.edit.pairings.unpublishDraw` exists and equals "Отменить жеребьёвку"
+- **AND** `tournament.edit.pairings.startingPoints` exists
+
+#### Scenario: English strings present
+
+- **WHEN** the `en` translation file is loaded
+- **THEN** `tournament.edit.pairings.unpublishDraw` exists and equals "Unpublish draw"
+- **AND** `tournament.edit.pairings.startingPoints` exists
+
 #### Scenario: English strings present
 
 - **WHEN** the `en` translation file is loaded

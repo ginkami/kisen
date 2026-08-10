@@ -138,6 +138,7 @@ export interface ParticipantRow {
   residence: string
   ratingValue: string
   rank: PlayerRank | null
+  startingPoints: number
 }
 
 export interface TournamentFormState {
@@ -183,6 +184,7 @@ function participantsToRows(participants: Participant[]): ParticipantRow[] {
     residence: p.residence ?? '',
     ratingValue: p.capturedRating?.value?.toString() ?? '',
     rank: p.capturedRating?.rank ?? null,
+    startingPoints: p.startingPoints ?? 0,
   }))
 }
 
@@ -230,7 +232,7 @@ function rowsToParticipants(rows: ParticipantRow[]): Participant[] {
         value: row.ratingValue ? Number(row.ratingValue) : null,
         rank: row.rank,
       },
-      startingPoints: 0,
+    startingPoints: row.startingPoints ?? 0,
     }
   })
 }
@@ -806,6 +808,7 @@ export function useTournamentForm(tournamentId: string | undefined) {
           residence: '',
           ratingValue: '',
           rank: null,
+          startingPoints: 0,
         }
         if (!afterRowId) {
           return {
@@ -1010,6 +1013,30 @@ export function useTournamentForm(tournamentId: string | undefined) {
     [updateForm]
   )
 
+  const unpublishDraw = useCallback(() => {
+    updateForm((state) => {
+      const oldCurrentRound = state.currentRound
+      const newCurrentRound = Math.max(0, oldCurrentRound - 1)
+      return {
+        ...state,
+        currentRound: newCurrentRound,
+        games: state.games.filter((g) => g.round !== oldCurrentRound + 1),
+      }
+    })
+  }, [updateForm])
+
+  const updateStartingPoints = useCallback(
+    (participantId: number, value: number) => {
+      updateForm((state) => ({
+        ...state,
+        participants: state.participants.map((p) =>
+          p.id === participantId ? { ...p, startingPoints: value } : p
+        ),
+      }))
+    },
+    [updateForm]
+  )
+
   return {
     tournament,
     formState,
@@ -1052,6 +1079,8 @@ export function useTournamentForm(tournamentId: string | undefined) {
     removeParticipant,
     updateGames,
     publishDraw,
+    unpublishDraw,
+    updateStartingPoints,
     slugTaken,
   }
 }
