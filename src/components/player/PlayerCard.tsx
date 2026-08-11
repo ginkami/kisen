@@ -22,7 +22,7 @@ export function PlayerCard({ player, locale, points, startingPoints, onStartingP
     const FlagResidence = Flags[player.residence?.toUpperCase() as keyof typeof Flags]
 
     return (
-        <div className="relative">
+        <div className="relative player-card">
             {typeof points === 'number' && onStartingPointsChange && (
                 <label className="input input-xs p-1 w-14 round absolute right-0 -mt-px -mr-2 top-0 z-10 tooltip tooltip-left" data-tip={t('tournament.edit.pairings.startingPoints')}>
                     <input type="number" value={startingPoints ?? 0} min={0} step={1} onChange={(e) => onStartingPointsChange(Number(e.target.value) || 0)} className="wq-8" />

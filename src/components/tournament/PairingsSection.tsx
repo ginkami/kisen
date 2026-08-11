@@ -5,6 +5,7 @@ import { isRoundComplete } from './pairings/pairingsModel.ts'
 import type { Game, Participant } from '../../domain/tournament.ts'
 import type { ParticipantRow } from '../../hooks/useTournamentForm.ts'
 import type { ScheduleRound } from '../../domain/tournament.ts'
+import type { SupportedLocale } from '../../domain/locale.ts'
 
 interface PairingsSectionProps {
   games: Game[]
@@ -12,7 +13,6 @@ interface PairingsSectionProps {
   participants: Participant[] | ParticipantRow[]
   scheduleRounds: ScheduleRound[]
   considerSente: boolean
-  locale: string
   updateGames: (round: number, gamesForRound: Game[]) => void
   publishDraw: (round: number) => void
   unpublishDraw: () => void
@@ -25,13 +25,13 @@ export function PairingsSection({
   participants,
   scheduleRounds,
   considerSente,
-  locale,
   updateGames,
   publishDraw,
   unpublishDraw,
   updateStartingPoints,
 }: PairingsSectionProps) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  const locale = (i18n.language as SupportedLocale) ?? 'ru'
   const roundCount = scheduleRounds.length
 
   // Validate currentRound to avoid NaN propagation
@@ -103,12 +103,12 @@ export function PairingsSection({
   }
 
   return (
-    <div className="card bg-base-200 shadow-sm">
+    <div className="card bg-base-200 shadow-sm pairing-section">
       <div className="card-body gap-4">
         {/* Header with publish button */}
         <div className="flex items-center justify-between">
           <h2 className="card-title">{t('tournament.edit.pairings.title')}</h2>
-          <div className="flex gap-2">
+          <div className="flex gap-2 items-center">
             {isCurrentRound && safeCurrentRound > 0 && (
               <button
                 type="button"

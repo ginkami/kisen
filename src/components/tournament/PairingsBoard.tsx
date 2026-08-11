@@ -616,7 +616,7 @@ function Row({
           disabled={resultDisabled}
           className={`btn btn-xs flex ${game.handicap != null ? 'btn-warning' : ''}`}
         >
-          <span className="tooltip z-10" data-tip={t('tournament.edit.pairings.handicap')}>
+          <span className="tooltip tooltip-secondary z-10" data-tip={t('tournament.edit.pairings.handicap')}>
             {handicapToSymbol(game.handicap as string | null)}
           </span>
         </button>

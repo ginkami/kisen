@@ -1166,7 +1166,6 @@ export function TournamentEditForm({
             scheduledAt: r.scheduledAt ?? new Date(),
           }))}
           considerSente={formState.settings.considerSente}
-          locale={scheduleLocale}
           updateGames={updateGames}
           publishDraw={publishDraw}
           unpublishDraw={unpublishDraw}

@@ -98,6 +98,11 @@
 button.expandable-field:not(.basic-expandable) {
   margin-top: 1.25rem;
 }
+
+.pairing-section .player-card {
+  font-family: "PT Sans Narrow", sans-serif; 
+}
+
 .sente-card:has(+ div > button[data-val='<']) > div,
 div:has(> button[data-val='>']) + .gote-card > div {
   background-color: oklch(65.676% 0.169 23.865);
