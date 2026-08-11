@@ -98,15 +98,15 @@
 button.expandable-field:not(.basic-expandable) {
   margin-top: 1.25rem;
 }
-.sente-card:has(+ div > button[title='<']) > div,
-div:has(> button[title='>']) + .gote-card > div {
+.sente-card:has(+ div > button[data-val='<']) > div,
+div:has(> button[data-val='>']) + .gote-card > div {
   background-color: oklch(65.676% 0.169 23.865);
 }
-.sente-card:has(+ div > button[title='>']) > div,
-div:has(> button[title='<']) + .gote-card > div  {
+.sente-card:has(+ div > button[data-val='>']) > div,
+div:has(> button[data-val='<']) + .gote-card > div  {
   background-color: oklch(70.995% 0.08 174.616);
 }
-.sente-card:has(+ div > button[title='=']) > div,
-div:has(> button[title='=']) + .gote-card > div  {
+.sente-card:has(+ div > button[data-val='=']) > div,
+div:has(> button[data-val='=']) + .gote-card > div  {
   background-color: oklch(86.71% 0.111 76.54);
 }

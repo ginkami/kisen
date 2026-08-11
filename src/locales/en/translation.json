@@ -208,7 +208,8 @@
         "allPaired": "All participants are paired",
         "noRounds": "Add rounds to the competition program to manage pairings.",
         "dropHere": "Drop here",
-        "startingPoints": "Initial points"
+        "startingPoints": "Initial points",
+        "handicap": "Game with handicap"
       },
       "program": {
         "title": "Competition program",

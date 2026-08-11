@@ -1,5 +1,5 @@
 import { uuidv7 } from 'uuidv7'
-import type { Game, GameResult, Participant } from '../../../domain/tournament.ts'
+import type { Game, GameResult, Participant, Sente } from '../../../domain/tournament.ts'
 import type { ParticipantRow } from '../../../hooks/useTournamentForm.ts'
 import type { Player } from '../../../domain/player.ts'
 
@@ -372,4 +372,75 @@ export function resultToSymbol(result: GameResult | null): string {
   if (result === 'player1_won') return '>'
   if (result === 'player2_won') return '<'
   return '='
+}
+
+// ---------------------------------------------------------------------------
+// Swap players within a pairing row
+// ---------------------------------------------------------------------------
+
+export function withPlayersSwapped(
+  allGames: Game[],
+  round: number,
+  rowIndex: number
+): Game[] {
+  const otherRounds = allGames.filter((g) => g.round !== round)
+  const roundGames = gamesForRound(allGames, round)
+  const forfeits = roundGames.filter((g) => g.status === 'forfeit')
+  const pairGames = roundGames.filter((g) => g.status !== 'forfeit')
+
+  if (rowIndex < 0 || rowIndex >= pairGames.length) return allGames
+  const game = pairGames[rowIndex]
+  if (game.player2 == null) return allGames // bye — nothing to swap
+
+  const flippedSente: Sente =
+    game.sente === 'player1' ? 'player2'
+    : game.sente === 'player2' ? 'player1'
+    : 'unknown'
+
+  let flippedResult = game.result
+  if (game.result === 'player1_won') flippedResult = 'player2_won'
+  else if (game.result === 'player2_won') flippedResult = 'player1_won'
+
+  // Flip handicap sign: - (player1 gives) ↔ + (player2 gives)
+  let flippedHandicap = game.handicap
+  if (game.handicap != null) {
+    const sign = game.handicap[0] === '-' ? '+' : '-'
+    flippedHandicap = `${sign}${game.handicap.slice(1)}` as Game['handicap']
+  }
+
+  pairGames[rowIndex] = {
+    ...game,
+    player1: game.player2,
+    player2: game.player1,
+    sente: flippedSente,
+    result: flippedResult,
+    handicap: flippedHandicap,
+  }
+
+  return [...otherRounds, ...forfeits, ...pairGames]
+}
+
+// ---------------------------------------------------------------------------
+// Handicap cycling
+// ---------------------------------------------------------------------------
+
+export const HANDICAP_CODES = ['L', 'B', 'R', 'RL', '2p', '4p', '5p', '6p', '8p', '10p'] as const
+
+export const HANDICAP_CYCLE: (string | null)[] = [
+  null,
+  ...HANDICAP_CODES.map((c) => `-${c}`),
+  ...HANDICAP_CODES.map((c) => `+${c}`),
+]
+
+export function handicapToSymbol(handicap: string | null): string {
+  return handicap ?? '='
+}
+
+export function withHandicapCycled(allGames: Game[], gameId: string): Game[] {
+  return allGames.map((g) => {
+    if (g.id !== gameId) return g
+    const currentIdx = HANDICAP_CYCLE.indexOf(g.handicap as string | null)
+    const nextIdx = (currentIdx + 1) % HANDICAP_CYCLE.length
+    return { ...g, handicap: HANDICAP_CYCLE[nextIdx] as Game['handicap'] }
+  })
 }

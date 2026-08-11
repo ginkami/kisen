@@ -33,6 +33,9 @@ import {
   resultToSymbol,
   calculateParticipantPoints,
   sortRoundGamesByPairStrength,
+  withPlayersSwapped,
+  withHandicapCycled,
+  handicapToSymbol,
 } from './pairings/pairingsModel.ts'
 
 // ---------------------------------------------------------------------------
@@ -358,6 +361,18 @@ export function PairingsBoard({
         return
       }
 
+      // Detect swap: participant is in opposite column at same row index
+      const activeInP1 = containers.players1.indexOf(participantId)
+      const activeInP2 = containers.players2.indexOf(participantId)
+      const isSwap =
+        (targetContainer === 'players2' && activeInP1 === targetIndex) ||
+        (targetContainer === 'players1' && activeInP2 === targetIndex)
+
+      if (isSwap) {
+        onGamesChange(withPlayersSwapped(games, safeRound, targetIndex))
+        return
+      }
+
       const newGames = withParticipantDropped(
         games,
         participantArray,
@@ -384,6 +399,13 @@ export function PairingsBoard({
       onGamesChange(withForfeit(games, safeRound, participantId, !checked, considerSente))
     },
     [games, safeRound, considerSente, onGamesChange]
+  )
+
+  const handleHandicapCycle = useCallback(
+    (gameId: string) => {
+      onGamesChange(withHandicapCycled(games, gameId))
+    },
+    [games, onGamesChange]
   )
 
   const activeParticipantId = activeId?.startsWith('p-')
@@ -485,6 +507,7 @@ export function PairingsBoard({
                     forfeitTooltip={forfeitTooltip}
                     onResultCycle={handleResultCycle}
                     onForfeitToggle={handleForfeitToggle}
+                    onHandicapCycle={handleHandicapCycle}
                     pointsMap={pointsMap}
                     startingPointsMap={startingPointsMap}
                     updateStartingPoints={updateStartingPoints}
@@ -528,6 +551,7 @@ function Row({
   forfeitTooltip,
   onResultCycle,
   onForfeitToggle,
+  onHandicapCycle,
   pointsMap,
   startingPointsMap,
   updateStartingPoints,
@@ -544,10 +568,12 @@ function Row({
   forfeitTooltip: string
   onResultCycle: (gameId: string) => void
   onForfeitToggle: (participantId: number, checked: boolean) => void
+  onHandicapCycle: (gameId: string) => void
   pointsMap?: Map<number, number>
   startingPointsMap?: Map<number, number>
   updateStartingPoints?: (participantId: number, value: number) => void
 }) {
+  const { t } = useTranslation()
   return (
     <>
       {/* players1 slot */}
@@ -574,15 +600,25 @@ function Row({
       </DropZone>
 
       {/* result button */}
-      <div className="w-10 flex justify-center">
+      <div className="w-10 flex flex-col gap-1 items-center justify-center">
         <button
           type="button"
           onClick={() => onResultCycle(game.id)}
           disabled={resultDisabled}
-          className={`btn btn-xs btn-circle ${hasResult ? 'btn-primary' : 'btn-neutral'}`}
-          title={resultToSymbol(game.result)}
+          className={`btn btn-sm flex btn-circle ${hasResult ? 'btn-primary' : 'btn-neutral'}`}
+          data-val={resultToSymbol(game.result)}
         >
           {resultToSymbol(game.result)}
+        </button>
+        <button
+          type="button"
+          onClick={() => onHandicapCycle(game.id)}
+          disabled={resultDisabled}
+          className={`btn btn-xs flex ${game.handicap != null ? 'btn-warning' : ''}`}
+        >
+          <span className="tooltip z-10" data-tip={t('tournament.edit.pairings.handicap')}>
+            {handicapToSymbol(game.handicap as string | null)}
+          </span>
         </button>
       </div>
 

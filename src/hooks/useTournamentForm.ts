@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+﻿import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useOutletContext } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -331,7 +331,9 @@ function formStateToUpdateInput(
       ) as Tournament['arbiter']['locales'],
     },
     participants: rowsToParticipants(state.participants),
-    games: state.games,
+    games: state.settings.considerSente
+      ? state.games.map((g) => ({ ...g, sente: 'player1' as const }))
+      : state.games,
     currentRound: state.currentRound,
   }
 
@@ -510,7 +512,7 @@ export function useTournamentForm(tournamentId: string | undefined) {
     }
   }, [tournamentId, firebaseUser, user, i18n.language, navigate, createDraftRetryCount])
 
-  // Adjust state during render (React 19 pattern — no useEffect needed)
+  // Adjust state during render (React 19 pattern вЂ” no useEffect needed)
   if (tournament && initializedTournamentId !== tournament.id) {
     setInitializedTournamentId(tournament.id)
     const initial = tournamentToFormState(tournament)

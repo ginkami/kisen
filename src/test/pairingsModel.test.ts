@@ -15,6 +15,9 @@ import {
   resultToSymbol,
   calculateParticipantPoints,
   sortRoundGamesByPairStrength,
+  withPlayersSwapped,
+  withHandicapCycled,
+  HANDICAP_CYCLE,
 } from '../components/tournament/pairings/pairingsModel.ts'
 import type { Game, Participant } from '../domain/tournament.ts'
 
@@ -363,5 +366,181 @@ describe('containersFromGames sorting', () => {
     // pair with p2 (1pt, max=1) should be first
     expect(roundGames[0].player1).toBe(1)
     expect(roundGames[0].player2).toBe(2)
+  })
+})
+
+describe('withPlayersSwapped', () => {
+  it('swaps player1 and player2 in a paired game', () => {
+    const games = [
+      makeGame({ round: 1, player1: 1, player2: 2, sente: 'player1', status: 'not_started' }),
+    ]
+    const result = withPlayersSwapped(games, 1, 0)
+    expect(result[0].player1).toBe(2)
+    expect(result[0].player2).toBe(1)
+  })
+
+  it('flips sente when swapping', () => {
+    const games = [
+      makeGame({ round: 1, player1: 1, player2: 2, sente: 'player1', status: 'not_started' }),
+    ]
+    const result = withPlayersSwapped(games, 1, 0)
+    expect(result[0].sente).toBe('player2')
+  })
+
+  it('flips sente from player2 to player1', () => {
+    const games = [
+      makeGame({ round: 1, player1: 1, player2: 2, sente: 'player2', status: 'not_started' }),
+    ]
+    const result = withPlayersSwapped(games, 1, 0)
+    expect(result[0].sente).toBe('player1')
+  })
+
+  it('keeps sente unknown when unknown', () => {
+    const games = [
+      makeGame({ round: 1, player1: 1, player2: 2, sente: 'unknown', status: 'not_started' }),
+    ]
+    const result = withPlayersSwapped(games, 1, 0)
+    expect(result[0].sente).toBe('unknown')
+  })
+
+  it('flips player1_won result to player2_won', () => {
+    const games = [
+      makeGame({ round: 1, player1: 1, player2: 2, result: 'player1_won', status: 'completed' }),
+    ]
+    const result = withPlayersSwapped(games, 1, 0)
+    expect(result[0].result).toBe('player2_won')
+  })
+
+  it('flips player2_won result to player1_won', () => {
+    const games = [
+      makeGame({ round: 1, player1: 1, player2: 2, result: 'player2_won', status: 'completed' }),
+    ]
+    const result = withPlayersSwapped(games, 1, 0)
+    expect(result[0].result).toBe('player1_won')
+  })
+
+  it('keeps draw result unchanged', () => {
+    const games = [
+      makeGame({ round: 1, player1: 1, player2: 2, result: 'draw', status: 'completed' }),
+    ]
+    const result = withPlayersSwapped(games, 1, 0)
+    expect(result[0].result).toBe('draw')
+  })
+
+  it('does not swap bye game (player2=null)', () => {
+    const games = [
+      makeGame({ round: 1, player1: 1, player2: null, status: 'bye' }),
+    ]
+    const result = withPlayersSwapped(games, 1, 0)
+    expect(result[0].player1).toBe(1)
+    expect(result[0].player2).toBeNull()
+  })
+
+  it('preserves id, status, round and keeps null handicap', () => {
+    const games = [
+      makeGame({ round: 1, player1: 1, player2: 2, status: 'not_started', handicap: null }),
+    ]
+    const result = withPlayersSwapped(games, 1, 0)
+    expect(result[0].id).toBe(games[0].id)
+    expect(result[0].handicap).toBeNull()
+    expect(result[0].status).toBe('not_started')
+    expect(result[0].round).toBe(1)
+  })
+
+  it('flips handicap sign from - to +', () => {
+    const games = [
+      makeGame({ round: 1, player1: 1, player2: 2, handicap: '-L' as any }),
+    ]
+    const result = withPlayersSwapped(games, 1, 0)
+    expect(result[0].handicap).toBe('+L')
+  })
+
+  it('flips handicap sign from + to -', () => {
+    const games = [
+      makeGame({ round: 1, player1: 1, player2: 2, handicap: '+4p' as any }),
+    ]
+    const result = withPlayersSwapped(games, 1, 0)
+    expect(result[0].handicap).toBe('-4p')
+  })
+
+  it('keeps null handicap as null', () => {
+    const games = [
+      makeGame({ round: 1, player1: 1, player2: 2, handicap: null }),
+    ]
+    const result = withPlayersSwapped(games, 1, 0)
+    expect(result[0].handicap).toBeNull()
+  })
+
+  it('returns allGames unchanged if rowIndex is out of bounds', () => {
+    const games = [
+      makeGame({ round: 1, player1: 1, player2: 2 }),
+    ]
+    const result = withPlayersSwapped(games, 1, 5)
+    expect(result).toEqual(games)
+  })
+
+  it('ignores forfeit games when computing row index', () => {
+    const games = [
+      makeGame({ round: 1, player1: 3, status: 'forfeit' }),
+      makeGame({ round: 1, player1: 1, player2: 2, sente: 'player1', status: 'not_started' }),
+    ]
+    // row 0 of pair-games (non-forfeit) is the second game
+    const result = withPlayersSwapped(games, 1, 0)
+    const pairGame = result.find((g) => g.status !== 'forfeit')
+    expect(pairGame!.player1).toBe(2)
+    expect(pairGame!.player2).toBe(1)
+  })
+})
+
+describe('withHandicapCycled', () => {
+  it('cycles from null to -L', () => {
+    const games = [
+      makeGame({ round: 1, player1: 1, player2: 2, handicap: null }),
+    ]
+    const result = withHandicapCycled(games, games[0].id)
+    expect(result[0].handicap).toBe('-L')
+  })
+
+  it('cycles from -L to -B', () => {
+    const games = [
+      makeGame({ round: 1, player1: 1, player2: 2, handicap: '-L' as any }),
+    ]
+    const result = withHandicapCycled(games, games[0].id)
+    expect(result[0].handicap).toBe('-B')
+  })
+
+  it('cycles from +10p back to null', () => {
+    const games = [
+      makeGame({ round: 1, player1: 1, player2: 2, handicap: '+10p' as any }),
+    ]
+    const result = withHandicapCycled(games, games[0].id)
+    expect(result[0].handicap).toBeNull()
+  })
+
+  it('cycles through all 21 states and returns to null', () => {
+    const games = [
+      makeGame({ round: 1, player1: 1, player2: 2, handicap: null }),
+    ]
+    let current = games
+    for (let i = 0; i < HANDICAP_CYCLE.length; i++) {
+      current = withHandicapCycled(current, current[0].id)
+    }
+    expect(current[0].handicap).toBeNull()
+  })
+
+  it('does not modify other games', () => {
+    const games = [
+      makeGame({ round: 1, player1: 1, player2: 2, handicap: null }),
+      makeGame({ round: 1, player1: 3, player2: 4, handicap: null }),
+    ]
+    const result = withHandicapCycled(games, games[0].id)
+    expect(result[1].handicap).toBeNull()
+  })
+
+  it('HANDICAP_CYCLE has 21 entries', () => {
+    expect(HANDICAP_CYCLE.length).toBe(21)
+    expect(HANDICAP_CYCLE[0]).toBeNull()
+    expect(HANDICAP_CYCLE[1]).toBe('-L')
+    expect(HANDICAP_CYCLE[20]).toBe('+10p')
   })
 })
