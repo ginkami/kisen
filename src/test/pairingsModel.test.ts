@@ -13,6 +13,8 @@ import {
   withForfeit,
   isRoundComplete,
   resultToSymbol,
+  calculateParticipantPoints,
+  sortRoundGamesByPairStrength,
 } from '../components/tournament/pairings/pairingsModel.ts'
 import type { Game, Participant } from '../domain/tournament.ts'
 
@@ -270,4 +272,96 @@ describe('resultToSymbol', () => {
   it('maps player1_won → >', () => { expect(resultToSymbol('player1_won')).toBe('>') })
   it('maps player2_won → <', () => { expect(resultToSymbol('player2_won')).toBe('<') })
   it('maps draw → =', () => { expect(resultToSymbol('draw')).toBe('=') })
+})
+
+describe('calculateParticipantPoints', () => {
+  it('returns startingPoints when no games', () => {
+    expect(calculateParticipantPoints([], 1, 1, 3)).toBe(3)
+  })
+
+  it('awards 1 point for a win', () => {
+    const games = [makeGame({ round: 1, player1: 1, player2: 2, result: 'player1_won', status: 'completed' })]
+    expect(calculateParticipantPoints(games, 1, 1, 0)).toBe(1)
+    expect(calculateParticipantPoints(games, 2, 1, 0)).toBe(0)
+  })
+
+  it('awards 0.5 points for a draw', () => {
+    const games = [makeGame({ round: 1, player1: 1, player2: 2, result: 'draw', status: 'completed' })]
+    expect(calculateParticipantPoints(games, 1, 1, 0)).toBe(0.5)
+    expect(calculateParticipantPoints(games, 2, 1, 0)).toBe(0.5)
+  })
+
+  it('awards 1 point for a bye', () => {
+    const games = [makeGame({ round: 1, player1: 1, player2: null, status: 'bye' })]
+    expect(calculateParticipantPoints(games, 1, 1, 0)).toBe(1)
+  })
+
+  it('awards 0 points for a forfeit', () => {
+    const games = [makeGame({ round: 1, player1: 1, status: 'forfeit' })]
+    expect(calculateParticipantPoints(games, 1, 1, 0)).toBe(0)
+  })
+
+  it('accumulates points across rounds', () => {
+    const games = [
+      makeGame({ round: 1, player1: 1, player2: 2, result: 'player1_won', status: 'completed' }),
+      makeGame({ round: 2, player1: 1, player2: 3, result: 'draw', status: 'completed' }),
+    ]
+    expect(calculateParticipantPoints(games, 1, 2, 0)).toBe(1.5)
+  })
+
+  it('does not count games beyond upToRound', () => {
+    const games = [
+      makeGame({ round: 1, player1: 1, player2: 2, result: 'player1_won', status: 'completed' }),
+      makeGame({ round: 2, player1: 1, player2: 3, result: 'player1_won', status: 'completed' }),
+    ]
+    expect(calculateParticipantPoints(games, 1, 1, 0)).toBe(1)
+  })
+})
+
+describe('containersFromGames sorting', () => {
+  function makeP(id: number, rating: number | null, sp = 0): Participant {
+    return { ...makeParticipant(id), capturedRating: { value: rating, rank: null }, startingPoints: sp }
+  }
+
+  it('sorts unpaired by points descending then rating descending', () => {
+    const p1 = makeP(1, 1500, 0)
+    const p2 = makeP(2, 1800, 0)
+    const p3 = makeP(3, 1200, 2) // 2 startingPoints
+    const p4 = makeP(4, 900, 0)
+    const participants = [p1, p2, p3, p4]
+    // p1 and p4 are paired, p2 and p3 are unpaired
+    const games = [
+      makeGame({ round: 1, player1: 1, player2: 4, result: 'player1_won', status: 'completed' }),
+    ]
+    const containers = containersFromGames(games, participants, 1)
+    // p3: 2 sp + 0 from game = 2 pts, p2: 0 pts
+    // Sort: p3 (2 pts, rating 1200) > p2 (0 pts, rating 1800)
+    expect(containers.unpaired).toEqual([3, 2])
+  })
+
+  it('sorts unpaired by rating when points are equal', () => {
+    const p1 = makeP(1, 1500)
+    const p2 = makeP(2, 1800)
+    const containers = containersFromGames([], [p1, p2], 1)
+    // Both have 0 points, sort by rating descending
+    expect(containers.unpaired).toEqual([2, 1])
+  })
+
+  it('sorts paired rows by max pair points descending via sortRoundGamesByPairStrength', () => {
+    const p1 = makeP(1, 1600)
+    const p2 = makeP(2, 1400)
+    const p3 = makeP(3, 1700)
+    const p4 = makeP(4, 1300)
+    const participants = [p1, p2, p3, p4]
+    // pair1: p1(0pts) vs p2(1pt), pair2: p3(0pts) vs p4(0pts)
+    const games = [
+      makeGame({ round: 1, player1: 3, player2: 4, status: 'not_started' }),
+      makeGame({ round: 1, player1: 1, player2: 2, result: 'player2_won', status: 'completed' }),
+    ]
+    const sorted = sortRoundGamesByPairStrength(games, participants, 1)
+    const roundGames = sorted.filter((g) => g.round === 1)
+    // pair with p2 (1pt, max=1) should be first
+    expect(roundGames[0].player1).toBe(1)
+    expect(roundGames[0].player2).toBe(2)
+  })
 })

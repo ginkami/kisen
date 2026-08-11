@@ -319,6 +319,68 @@ The locale dictionaries `src/locales/{ru,en}/translation.json` SHALL add keys un
 - **AND** `tournament.edit.pairings.title` exists and equals "Туры"
 - **AND** `tournament.edit.pairings.publishDraw`, `tournament.edit.pairings.drawPublished`, and `tournament.edit.pairings.forfeit` exist
 
+## Part 3 Additions
+
+### Requirement: Pairings board — sorting and drop zones (updated from Part 1)
+
+The unpaired container SHALL be automatically sorted by descending cumulative points (primary criterion) and descending `capturedRating.value` (secondary criterion). Sorting of the unpaired container SHALL be applied on every render via `containersFromGames`.
+
+Paired rows SHALL be automatically sorted by descending max cumulative points of the pair (primary criterion) and descending max `capturedRating.value` of the pair (secondary criterion). Sorting of paired rows SHALL be applied in `handleDragEnd` via `sortRoundGamesByPairStrength` after each drop operation, modifying the `games` array in `formState`. Bye-plays in the current round SHALL NOT contribute points when sorting paired rows (via `excludeByesInRound` parameter).
+
+For pairing rows (`p1-row-N`, `p2-row-N`), the component SHALL use `DropZone` (useDroppable only, no SortableContext) to prevent @dnd-kit from reordering cards within individual columns independently. The `unpaired` container SHALL use `SortableContainer` (useDroppable + SortableContext) to allow internal reordering.
+
+Cards SHALL remain draggable at all times regardless of publication status or result presence. When a card belonging to a pair with a non-null `result` is unpairеd (moved to `unpaired`), the game SHALL be deleted from `games`. Dropping a card into an occupied slot SHALL append a new bye row at the end instead of swapping with the existing card.
+
+#### Scenario: Unpaired cards sorted by points then rating
+
+- **WHEN** the unpaired container contains participants A (3 points, rating 1500), B (3 points, rating 1800), C (5 points, rating 1200)
+- **THEN** the display order is C (5 pts), B (3 pts, 1800), A (3 pts, 1500)
+
+#### Scenario: Paired rows sorted by max pair points then max pair rating
+
+- **WHEN** two pairs exist: pair1 (A: 2 pts/1600, B: 4 pts/1400) and pair2 (C: 3 pts/1700, D: 1 pts/1300)
+- **THEN** pair1 (max 4 pts) is displayed above pair2 (max 3 pts)
+
+#### Scenario: Bye in current round excluded from sorting
+
+- **WHEN** a participant has a bye in the current round (no opponent yet)
+- **THEN** the bye does not contribute +1 point to their sorting position
+
+#### Scenario: Drop in occupied slot appends new row
+
+- **WHEN** the user drops a card into a `players1` slot that already has a card
+- **THEN** a new bye row is appended at the end with the dropped card as player1
+
+### Requirement: Auto-forfeit for late joiners in past rounds
+
+When a new participant is added via `addParticipant` and `currentRound > 0`, the system SHALL automatically create forfeit games for that participant in all rounds `1..currentRound`. Each forfeit game SHALL have `player1` = new participant id, `player2 = null`, `status = 'forfeit'`, `result = 'player2_won'`, `sente = considerSente ? 'player1' : 'unknown'`, and `round` = the respective round number.
+
+#### Scenario: New participant added mid-tournament gets forfeits for past rounds
+
+- **WHEN** a new participant is added while `currentRound = 3`
+- **THEN** forfeit games are created for rounds 1, 2, and 3 for that participant
+- **AND** each game has `status = 'forfeit'` and `result = 'player2_won'`
+
+#### Scenario: New participant added before first round gets no forfeits
+
+- **WHEN** a new participant is added while `currentRound = 0`
+- **THEN** no forfeit games are created
+
+### Requirement: Persistent forfeit in unpaired for next round
+
+When a participant has a forfeit game in the current round and the next round is opened, the participant SHALL appear in the `unpaired` container with the forfeit game preserved in `games` for the new round. The forfeit game SHALL NOT be deleted when switching to a new round.
+
+#### Scenario: Forfeit participant appears in unpaired with forfeit game in next round
+
+- **WHEN** a participant has a forfeit game in round 2 and the user opens round 3
+- **THEN** the participant appears in the `unpaired` container for round 3
+- **AND** a forfeit game exists for that participant in round 3
+
+#### Scenario: Forfeit participant can still be paired in next round
+
+- **WHEN** a participant with a forfeit in round 2 is dragged into `players1` in round 3
+- **THEN** the forfeit game for round 3 is removed (replaced by a normal pairing game)
+
 ### Requirement: Unpublish draw button
 
 The `PairingsSection` SHALL display an "Отменить жеребьёвку" / "Unpublish draw" button to the left of the publish/unpublish button. The button SHALL be visible only when `safeActiveRound === safeCurrentRound && safeCurrentRound > 0`. Clicking the enabled button SHALL delete any games for `currentRound + 1` and decrement `currentRound` by 1 (minimum 0) via `useTournamentForm.unpublishDraw()`.

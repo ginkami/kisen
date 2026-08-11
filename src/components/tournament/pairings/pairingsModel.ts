@@ -38,8 +38,24 @@ export function containersFromGames(
       unpaired.push(p.id)
     }
   }
-  // Ensure forfeit participants are in unpaired (they should be, since they're not in pairGames)
-  // unpaired already includes them since forfeit games are excluded from pairedIds
+
+  // Build lookup maps for sorting
+  const ratingMap = new Map<number, number>()
+  const startingPointsMap = new Map<number, number>()
+  for (const p of participants) {
+    ratingMap.set(p.id, p.capturedRating?.value ?? -Infinity)
+    startingPointsMap.set(p.id, p.startingPoints ?? 0)
+  }
+
+  // Sort unpaired by descending cumulative points, then descending rating
+  unpaired.sort((a, b) => {
+    const aPoints = calculateParticipantPoints(allGames, a, round, startingPointsMap.get(a) ?? 0)
+    const bPoints = calculateParticipantPoints(allGames, b, round, startingPointsMap.get(b) ?? 0)
+    if (aPoints !== bPoints) return bPoints - aPoints
+    const aRating = ratingMap.get(a) ?? -Infinity
+    const bRating = ratingMap.get(b) ?? -Infinity
+    return bRating - aRating
+  })
 
   const players1: (number | null)[] = pairGames.map((g) => g.player1)
   const players2: (number | null)[] = pairGames.map((g) => g.player2)
@@ -85,13 +101,10 @@ export function withParticipantDropped(
       // Empty slot — place participant as player1
       updatedRoundGames[targetIndex] = { ...target, player1: participantId }
     } else if (target.player1 !== participantId) {
-      // Slot occupied by someone else — swap: move existing player1 to a new bye row, place participant here
-      const existingPlayer1 = target.player1
-      updatedRoundGames[targetIndex] = { ...target, player1: participantId }
-      // Add the displaced player as a new bye game
+      // Slot occupied by someone else — append new bye row at end
       updatedRoundGames.push({
         ...createEmptyGame(round, considerSente),
-        player1: existingPlayer1,
+        player1: participantId,
         status: 'bye',
       })
     }
@@ -110,12 +123,10 @@ export function withParticipantDropped(
         status: 'not_started',
       }
     } else if (target.player2 != null && target.player2 !== participantId) {
-      // Slot occupied — displace existing player2 into a new bye
-      const existingPlayer2 = target.player2
-      updatedRoundGames[targetIndex] = { ...target, player2: participantId, status: 'not_started' }
+      // Slot occupied — append new bye row at end
       updatedRoundGames.push({
         ...createEmptyGame(round, considerSente),
-        player1: existingPlayer2,
+        player1: participantId,
         status: 'bye',
       })
     }
@@ -265,7 +276,8 @@ export function calculateParticipantPoints(
   allGames: Game[],
   participantId: number,
   upToRound: number,
-  startingPoints: number
+  startingPoints: number,
+  excludeByesInRound?: number
 ): number {
   let points = startingPoints
   for (const g of allGames) {
@@ -277,6 +289,8 @@ export function calculateParticipantPoints(
     if (!isPlayer1 && !isPlayer2) continue
 
     if (g.status === 'bye') {
+      // Skip bye in the excluded round (hypothetical point not yet earned)
+      if (excludeByesInRound != null && g.round === excludeByesInRound) continue
       // Bye counts as a win
       if (isPlayer1) points += 1
       continue
@@ -295,6 +309,53 @@ export function calculateParticipantPoints(
     // else: loss = 0 points
   }
   return points
+}
+
+export function sortRoundGamesByPairStrength(
+  allGames: Game[],
+  participants: Participant[],
+  round: number
+): Game[] {
+  const otherRounds = allGames.filter((g) => g.round !== round)
+  let roundGames = gamesForRound(allGames, round)
+
+  // Separate forfeit from pair games
+  const forfeits = roundGames.filter((g) => g.status === 'forfeit')
+  const pairGames = roundGames.filter((g) => g.status !== 'forfeit')
+
+  const ratingMap = new Map<number, number>()
+  const startingPointsMap = new Map<number, number>()
+  for (const p of participants) {
+    ratingMap.set(p.id, p.capturedRating?.value ?? -Infinity)
+    startingPointsMap.set(p.id, p.startingPoints ?? 0)
+  }
+
+  pairGames.sort((a, b) => {
+    const aSp1 = startingPointsMap.get(a.player1) ?? 0
+    const aSp2 = a.player2 != null ? (startingPointsMap.get(a.player2) ?? 0) : aSp1
+    const aMaxPts = Math.max(
+      calculateParticipantPoints(allGames, a.player1, round, aSp1, round),
+      a.player2 != null ? calculateParticipantPoints(allGames, a.player2, round, aSp2, round) : -Infinity
+    )
+    const bSp1 = startingPointsMap.get(b.player1) ?? 0
+    const bSp2 = b.player2 != null ? (startingPointsMap.get(b.player2) ?? 0) : bSp1
+    const bMaxPts = Math.max(
+      calculateParticipantPoints(allGames, b.player1, round, bSp1, round),
+      b.player2 != null ? calculateParticipantPoints(allGames, b.player2, round, bSp2, round) : -Infinity
+    )
+    if (aMaxPts !== bMaxPts) return bMaxPts - aMaxPts
+    const aMaxRating = Math.max(
+      ratingMap.get(a.player1) ?? -Infinity,
+      a.player2 != null ? (ratingMap.get(a.player2) ?? -Infinity) : -Infinity
+    )
+    const bMaxRating = Math.max(
+      ratingMap.get(b.player1) ?? -Infinity,
+      b.player2 != null ? (ratingMap.get(b.player2) ?? -Infinity) : -Infinity
+    )
+    return bMaxRating - aMaxRating
+  })
+
+  return [...otherRounds, ...forfeits, ...pairGames]
 }
 
 export const RESULT_SYMBOLS: Record<string, string> = {

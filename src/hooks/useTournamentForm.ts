@@ -799,9 +799,31 @@ export function useTournamentForm(tournamentId: string | undefined) {
   const addParticipant = useCallback(
     (afterRowId?: string) => {
       updateForm((state) => {
+        // Generate a unique positive integer id for the new participant.
+        // This is needed so forfeit games can reference the participant immediately.
+        const existingIds = state.participants.map((p) => p.id).filter((id) => id > 0)
+        const maxId = existingIds.length > 0 ? Math.max(...existingIds) : 0
+        const newId = maxId + 1
+
+        const forfeitGames: Game[] = []
+        if (state.currentRound > 0) {
+          for (let r = 1; r <= state.currentRound; r++) {
+            forfeitGames.push({
+              id: crypto.randomUUID(),
+              player1: newId,
+              player2: null,
+              sente: state.settings.considerSente ? 'player1' : 'unknown',
+              handicap: null,
+              result: 'player2_won',
+              status: 'forfeit',
+              round: r,
+            })
+          }
+        }
+
         const newRow: ParticipantRow = {
           rowId: generateRowId(),
-          id: 0,
+          id: newId,
           player: null,
           locales: createEmptyParticipantLocales(),
           nationality: '',
@@ -810,10 +832,12 @@ export function useTournamentForm(tournamentId: string | undefined) {
           rank: null,
           startingPoints: 0,
         }
+        const updatedGames = [...state.games, ...forfeitGames]
         if (!afterRowId) {
           return {
             ...state,
             participants: [...state.participants, newRow],
+            games: updatedGames,
           }
         }
         const index = state.participants.findIndex((r) => r.rowId === afterRowId)
@@ -821,6 +845,7 @@ export function useTournamentForm(tournamentId: string | undefined) {
           return {
             ...state,
             participants: [...state.participants, newRow],
+            games: updatedGames,
           }
         }
         const newRows = [...state.participants]
@@ -828,6 +853,7 @@ export function useTournamentForm(tournamentId: string | undefined) {
         return {
           ...state,
           participants: newRows,
+          games: updatedGames,
         }
       })
     },

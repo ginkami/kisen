@@ -32,6 +32,7 @@ import {
   participantToPlayerLike,
   resultToSymbol,
   calculateParticipantPoints,
+  sortRoundGamesByPairStrength,
 } from './pairings/pairingsModel.ts'
 
 // ---------------------------------------------------------------------------
@@ -142,8 +143,7 @@ function DragOverlayCard({
 
 // ---------------------------------------------------------------------------
 // SortableContainer — useDroppable OUTSIDE, SortableContext INSIDE
-// This is the correct pattern from @dnd-kit Multiple Containers example.
-// useDroppable and SortableContext must be on SEPARATE DOM nodes.
+// Used ONLY for the unpaired container (allows sorting within).
 // ---------------------------------------------------------------------------
 
 function SortableContainer({
@@ -166,6 +166,32 @@ function SortableContainer({
       <SortableContext items={items} strategy={verticalListSortingStrategy}>
         {children}
       </SortableContext>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// DropZone — useDroppable only, no SortableContext.
+// Used for pairing rows (p1-row-N, p2-row-N) to prevent @dnd-kit from
+// reordering cards within individual columns independently.
+// ---------------------------------------------------------------------------
+
+function DropZone({
+  id,
+  children,
+  className,
+}: {
+  id: string
+  children: React.ReactNode
+  className?: string
+}) {
+  const { setNodeRef, isOver } = useDroppable({ id })
+  return (
+    <div
+      ref={setNodeRef}
+      className={`${className ?? ''} ${isOver ? 'ring-2 ring-primary ring-inset' : ''}`}
+    >
+      {children}
     </div>
   )
 }
@@ -231,7 +257,7 @@ export function PairingsBoard({
   games,
   participants,
   round,
-  currentRound,
+  currentRound: _currentRound,
   considerSente,
   locale,
   onGamesChange,
@@ -242,9 +268,6 @@ export function PairingsBoard({
 
   // Ensure round/currentRound are valid numbers
   const safeRound = Number.isFinite(round) ? round : 1
-  const safeCurrentRound = Number.isFinite(currentRound) ? currentRound : 0
-  const isPublished = safeRound <= safeCurrentRound
-
   const { participantsMap, participantArray } = useParticipantData(participants, locale)
 
   const containers = useMemo(
@@ -265,17 +288,6 @@ export function PairingsBoard({
     () => containers.unpaired.map((id) => `p-${id}`),
     [containers.unpaired]
   )
-
-  const rowItems = useMemo(() => {
-    return containers.games.map((_, i) => {
-      const p1 = containers.players1[i]
-      const p2 = containers.players2[i]
-      return {
-        p1Items: p1 != null ? [`p-${p1}`] : [],
-        p2Items: p2 != null ? [`p-${p2}`] : [],
-      }
-    })
-  }, [containers])
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -355,9 +367,9 @@ export function PairingsBoard({
         targetIndex,
         considerSente
       )
-      onGamesChange(newGames)
+      onGamesChange(sortRoundGamesByPairStrength(newGames, participantArray, safeRound))
     },
-    [games, containers, participantArray, safeRound, considerSente, onGamesChange, isPublished]
+    [games, containers, participantArray, safeRound, considerSente, onGamesChange]
   )
 
   const handleResultCycle = useCallback(
@@ -473,18 +485,14 @@ export function PairingsBoard({
                     forfeitTooltip={forfeitTooltip}
                     onResultCycle={handleResultCycle}
                     onForfeitToggle={handleForfeitToggle}
-                    p1Items={rowItems[i]?.p1Items ?? []}
-                    p2Items={rowItems[i]?.p2Items ?? []}
                     pointsMap={pointsMap}
                     startingPointsMap={startingPointsMap}
                     updateStartingPoints={updateStartingPoints}
                   />
                 )
               })
-            ) : !isPublished ? (
-              <EmptyRow />
             ) : (
-              <div className="col-span-3 text-sm opacity-50 py-4 text-center">—</div>
+              <EmptyRow />
             )}
           </div>
         </div>
@@ -520,8 +528,6 @@ function Row({
   forfeitTooltip,
   onResultCycle,
   onForfeitToggle,
-  p1Items,
-  p2Items,
   pointsMap,
   startingPointsMap,
   updateStartingPoints,
@@ -538,8 +544,6 @@ function Row({
   forfeitTooltip: string
   onResultCycle: (gameId: string) => void
   onForfeitToggle: (participantId: number, checked: boolean) => void
-  p1Items: string[]
-  p2Items: string[]
   pointsMap?: Map<number, number>
   startingPointsMap?: Map<number, number>
   updateStartingPoints?: (participantId: number, value: number) => void
@@ -547,9 +551,8 @@ function Row({
   return (
     <>
       {/* players1 slot */}
-      <SortableContainer
+      <DropZone
         id={`p1-row-${rowIndex}`}
-        items={p1Items}
         className="sente-card min-h-[3rem] rounded border border-dashed border-base-300 flex items-center justify-center"
       >
         {p1Id != null ? (
@@ -568,7 +571,7 @@ function Row({
         ) : (
           <span className="text-xs opacity-40 select-none">-</span>
         )}
-      </SortableContainer>
+      </DropZone>
 
       {/* result button */}
       <div className="w-10 flex justify-center">
@@ -584,9 +587,8 @@ function Row({
       </div>
 
       {/* players2 slot */}
-      <SortableContainer
+      <DropZone
         id={`p2-row-${rowIndex}`}
-        items={p2Items}
         className="gote-card min-h-[3rem] rounded border border-dashed border-base-300 flex items-center justify-center"
       >
         {p2Id != null ? (
@@ -605,7 +607,7 @@ function Row({
         ) : (
           <span className="text-xs opacity-40 select-none">-</span>
         )}
-      </SortableContainer>
+      </DropZone>
     </>
   )
 }
@@ -618,21 +620,19 @@ function EmptyRow() {
   const { t } = useTranslation()
   return (
     <>
-      <SortableContainer
+      <DropZone
         id="p1-row-0"
-        items={[]}
         className="min-h-[3rem] rounded border border-dashed border-base-300 flex items-center justify-center text-xs opacity-40"
       >
         <span className="select-none">{t('tournament.edit.pairings.dropHere')}</span>
-      </SortableContainer>
+      </DropZone>
       <div className="w-10" />
-      <SortableContainer
+      <DropZone
         id="p2-row-0"
-        items={[]}
         className="min-h-[3rem] rounded border border-dashed border-base-300 flex items-center justify-center text-xs opacity-40"
       >
         <span className="select-none">{t('tournament.edit.pairings.dropHere')}</span>
-      </SortableContainer>
+      </DropZone>
     </>
   )
 }
