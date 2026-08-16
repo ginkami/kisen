@@ -101,7 +101,7 @@ function SortableCard({
       style={style}
       {...attributes}
       {...(isDraggable ? listeners : {})}
-      className={`rounded-lg border px-3 py-2 select-none w-full truncate ${
+      className={`rounded-lg border px-3 py-1 select-none w-full truncate ${
         isForfeit
           ? 'border-warning bg-warning/10 opacity-60'
           : 'border-base-300 bg-base-100'
@@ -138,7 +138,7 @@ function DragOverlayCard({
   if (!entry) return null
   const player = participantToPlayerLike(entry.participant, locale)
   return (
-    <div className="rounded-lg border border-primary bg-primary/10 px-3 py-2 shadow-2xl w-64">
+    <div className="rounded-lg border border-primary bg-primary/10 px-3 py-1 shadow-2xl w-64">
       <PlayerCard player={player} locale={locale} points={entry.points} />
     </div>
   )
@@ -605,7 +605,7 @@ function Row({
           type="button"
           onClick={() => onResultCycle(game.id)}
           disabled={resultDisabled}
-          className={`btn btn-sm flex btn-circle ${hasResult ? 'btn-primary' : 'btn-neutral'}`}
+          className={`btn btn-sm flex btn-circle relative z-1 ${hasResult ? 'btn-primary' : 'btn-neutral'}`}
           data-val={resultToSymbol(game.result)}
         >
           {resultToSymbol(game.result)}
@@ -614,7 +614,7 @@ function Row({
           type="button"
           onClick={() => onHandicapCycle(game.id)}
           disabled={resultDisabled}
-          className={`btn btn-xs flex ${game.handicap != null ? 'btn-warning' : ''}`}
+          className={`btn btn-xs -mt-2.5 btn-circle flex ${game.handicap != null ? 'btn-warning' : ''}`}
         >
           <span className="tooltip tooltip-secondary z-10" data-tip={t('tournament.edit.pairings.handicap')}>
             {handicapToSymbol(game.handicap as string | null)}

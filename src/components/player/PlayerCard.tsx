@@ -24,7 +24,7 @@ export function PlayerCard({ player, locale, points, startingPoints, onStartingP
     return (
         <div className="relative player-card">
             {typeof points === 'number' && onStartingPointsChange && (
-                <label className="input input-xs p-1 w-14 round absolute right-0 -mt-px -mr-2 top-0 z-10 tooltip tooltip-left" data-tip={t('tournament.edit.pairings.startingPoints')}>
+                <label className="input input-xs p-1 w-14 round absolute right-0 -mt-[2px] -mr-2 top-0 z-10 tooltip tooltip-left" data-tip={t('tournament.edit.pairings.startingPoints')}>
                     <input type="number" value={startingPoints ?? 0} min={0} step={1} onChange={(e) => onStartingPointsChange(Number(e.target.value) || 0)} className="wq-8" />
                     <span className={`badge badge-xs badge-primary tooltip tooltip-left tooltip-secondary -mr-1 -ml-5`} data-tip={t('tournament.tieBreak.points')}>{points}</span>
                 </label>
@@ -33,7 +33,7 @@ export function PlayerCard({ player, locale, points, startingPoints, onStartingP
                 <span className="badge badge-xs badge-primary tooltip tooltip-left absolute right-0 top-0 z-10 -mr-2" data-tip={t('tournament.tieBreak.points')}>{points}</span>
             )}
             {onToggleChange && (
-              <label className={`label absolute pl-1 z-10 right-0 top-6 mt-px text-xs${toggleTooltip ? ' tooltip tooltip-left' : ''}`} data-tip={toggleTooltip}>
+              <label className={`label absolute pl-1 z-10 right-0 top-6 -mt-px text-xs${toggleTooltip ? ' tooltip tooltip-left' : ''}`} data-tip={toggleTooltip}>
                 <input
                   type="checkbox"
                   checked={toggleChecked ?? true}
@@ -45,7 +45,7 @@ export function PlayerCard({ player, locale, points, startingPoints, onStartingP
             )}
             <div className="flex items-center gap-2">
                 {Flag && <Flag className="h-3 w-4 rounded-sm" />}
-                <span className="line-clamp-1 font-medium">
+                <span className="line-clamp-1 font-medium name">
                     {localeData?.familyName} {localeData?.givenName}
                 </span>
             </div>
