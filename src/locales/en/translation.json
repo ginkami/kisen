@@ -105,6 +105,7 @@
         "schedule": "Schedule",
         "players": "Players",
         "pairings": "Pairings",
+        "crosstable": "Crosstable",
         "placeholder": "This section is empty for now."
       },
       "participants": {
@@ -210,6 +211,14 @@
         "dropHere": "Drop here",
         "startingPoints": "Initial points",
         "handicap": "Game with handicap"
+      },
+      "crosstable": {
+        "name": "Name",
+        "residence": "Residence",
+        "rating": "Rating",
+        "sp": "SP",
+        "spTooltip": "Starting points — the participant's initial points before the tournament",
+        "points": "Pts"
       },
       "program": {
         "title": "Competition program",

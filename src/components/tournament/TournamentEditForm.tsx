@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { ConfirmModal } from '../ConfirmModal.tsx'
 import { useTranslation } from 'react-i18next'
-import { BsSliders2Vertical, BsClock, BsJournalText, BsPlus, BsX, Bs123 } from 'react-icons/bs'
+import { BsSliders2Vertical, BsClock, BsJournalText, BsPlus, BsX, Bs123, BsGrid3X2 } from 'react-icons/bs'
 import { HiOutlineUserGroup } from "react-icons/hi2";
 import { useAuth } from '../../context/AuthContext.tsx'
 import { useTournamentForm } from '../../hooks/useTournamentForm.ts'
@@ -27,6 +27,7 @@ import { CountrySelect } from './CountrySelect.tsx'
 import { LocaleTabs } from './LocaleTabs.tsx'
 import { ExpandableField } from './ExpandableField.tsx'
 import { PairingsSection } from './PairingsSection.tsx'
+import { CrosstableSection } from './CrosstableSection.tsx'
 import { EventPickerModal } from './EventPickerModal.tsx'
 import { AssociationPickerModal } from './AssociationPickerModal.tsx'
 
@@ -865,7 +866,7 @@ export function TournamentEditForm({
     slugTaken,
   } = useTournamentForm(tournamentId)
 
-  type TabId = 'general' | 'settings' | 'schedule' | 'participants' | 'pairings'
+  type TabId = 'general' | 'settings' | 'schedule' | 'participants' | 'pairings' | 'crosstable'
 
   const [activeTab, setActiveTab] = useState<TabId>('general')
   const [scheduleLocale, setScheduleLocale] = useState<SupportedLocale>(
@@ -905,6 +906,11 @@ export function TournamentEditForm({
       id: 'pairings',
       label: t('tournament.edit.tabs.pairings'),
       icon: Bs123,
+    },
+    {
+      id: 'crosstable',
+      label: t('tournament.edit.tabs.crosstable'),
+      icon: BsGrid3X2,
     },
   ]
 
@@ -1169,6 +1175,17 @@ export function TournamentEditForm({
           updateGames={updateGames}
           publishDraw={publishDraw}
           unpublishDraw={unpublishDraw}
+          updateStartingPoints={updateStartingPoints}
+        />
+      )}
+
+      {activeTab === 'crosstable' && (
+        <CrosstableSection
+          games={formState.games}
+          participants={formState.participants}
+          roundCount={formState.scheduleRows.filter((r): r is Extract<typeof r, { kind: 'round' }> => r.kind === 'round').length}
+          considerSente={formState.settings.considerSente}
+          tieBreaks={formState.settings.tieBreaks}
           updateStartingPoints={updateStartingPoints}
         />
       )}

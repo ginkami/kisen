@@ -11,3 +11,7 @@ export function getCountryList(lang: string) {
     .map(([code, name]) => ({ code, name }))
     .sort((a, b) => a.name.localeCompare(b.name, lang))
 }
+
+export function getCountryName(code: string, lang: string): string {
+  return countries.getName(code, lang, { select: 'official' }) ?? code.toUpperCase()
+}
