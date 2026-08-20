@@ -100,15 +100,8 @@ button.expandable-field:not(.basic-expandable) {
 }
 
 .pairing-section .player-card {
-  font-family: "PT Sans Narrow", sans-serif; 
   font-family: "PT Sans", sans-serif;
 }
-
-.pairing-section .player-card .name {
-  font-family: "PT Sans Narrow", sans-serif; 
-  font-family: "PT Sans", sans-serif;
-}
-
 
 .sente-card:has(+ div > button[data-val='<']) > div,
 div:has(> button[data-val='>']) + .gote-card > div {
@@ -121,4 +114,35 @@ div:has(> button[data-val='<']) + .gote-card > div  {
 .sente-card:has(+ div > button[data-val='=']) > div,
 div:has(> button[data-val='=']) + .gote-card > div  {
   background-color: oklch(86.71% 0.111 76.54);
+}
+
+@media (max-width: 479px) {
+  .logo {
+    font-size: 1rem;
+    margin-left: -1rem;
+  }
+  .logo::before{
+    font-size: 1.5rem;
+    left: 3.7rem;
+    top: -.05rem;
+  }
+  .logo::after{
+    font-size: .6rem;
+    margin-left: .1rem;
+  }
+  
+  .drop-zone-card .player-card {
+    font-family: "PT Sans Narrow", sans-serif !important; 
+    font-size: 80%;
+  }
+  .drop-zone-card .flag,
+  .drop-zone-card .location,
+  .drop-zone-card .graphup,
+  .drop-zone-card .player-title
+  {
+    display: none;
+  }
+  .drop-zone-card > div[role='button'] {
+    padding-left: 0.25rem;
+  }
 }

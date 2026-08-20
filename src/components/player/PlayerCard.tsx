@@ -44,27 +44,27 @@ export function PlayerCard({ player, locale, points, startingPoints, onStartingP
               </label>
             )}
             <div className="flex items-center gap-2">
-                {Flag && <Flag className="h-3 w-4 rounded-sm" />}
+                {Flag && <Flag className="h-3 w-4 rounded-sm flag" />}
                 <span className="line-clamp-1 font-medium name">
                     {localeData?.familyName} {localeData?.givenName}
                 </span>
             </div>
             <div className="flex items-center gap-2 text-xs opacity-70">
-                {FlagResidence && <FlagResidence className="h-3 w-3 rounded-sm" />}
+                {FlagResidence && <FlagResidence className="h-3 w-3 rounded-sm flag" />}
                 {localeData?.location && (
-                    <span>{localeData.location}</span>
+                    <span className="location">{localeData.location}</span>
                 )}
                 {(player.currentRating?.value != null || player.currentRating?.rank) && (
-                    <BsGraphUp className="h-3 w-3" />
+                    <BsGraphUp className="h-3 w-3 graphup" />
                 )}
                 {player.currentRating?.value != null && (
-                    <span>{player.currentRating.value}</span>
+                    <span className="rating">{player.currentRating.value}</span>
                 )}
                 {player.currentRating?.rank && (
-                    <span>{player.currentRating.rank}</span>
+                    <span className="rank">{player.currentRating.rank}</span>
                 )}
                 {localeData?.title && (
-                    <span className="flex items-center gap-1 truncate">
+                    <span className="flex items-center gap-1 truncate player-title">
                         <PiCrownSimple className="h-3 w-3" />
                         <span className="truncate">{localeData?.title}</span>
                     </span>

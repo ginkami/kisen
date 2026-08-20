@@ -153,14 +153,14 @@ export function CrosstableSection({
   }
 
   return (
-    <div className="overflow-auto max-h-[70vh]">
-      <table className="table table-xs w-auto">
+    <div className="table-container w-[calc(100vw-32px)] md:w-auto overflow-x-auto">
+      <table className="table table-xs w-auto table-fixed">
         <thead>
           <tr>
             <th className="sticky top-0 left-0 z-30 bg-base-100 p-0" style={{ minWidth: COL_NO }} />
             <th className="sticky top-0 bg-base-100 z-30 p-0" style={{ left: OFF_FLAG, minWidth: COL_FLAG }} />
             <th className="sticky top-0 bg-base-100 z-30 p-0" style={{ left: OFF_RANK, minWidth: COL_RANK }} />
-            <th className="sticky top-0 bg-base-100 z-30 whitespace-nowrap p-0" style={{ left: OFF_NAME }}>{t('tournament.edit.crosstable.name')}</th>
+            <th className="sticky top-0 shadow-[5px_0_10px_-2px_rgba(0,0,0,0.1)] bg-base-100 z-30 whitespace-nowrap p-0" style={{ left: OFF_NAME }}>{t('tournament.edit.crosstable.name')}</th>
             <th className="sticky top-0 z-20 bg-base-100 whitespace-nowrap">{t('tournament.edit.crosstable.residence')}</th>
             <th className="sticky top-0 z-20 bg-base-100 whitespace-nowrap text-right">{t('tournament.edit.crosstable.rating')}</th>
             {Array.from({ length: roundCount }, (_, i) => i + 1).map((r) => (
@@ -211,7 +211,7 @@ export function CrosstableSection({
                     </span>
                   )}
                 </td>
-                <td className="sticky bg-base-100 z-10 whitespace-nowrap max-w-[10rem] truncate font-medium p-0" style={{ left: OFF_NAME }}>{loc?.familyName}, {loc?.givenName}</td>
+                <td className="sticky shadow-[5px_0_10px_-2px_rgba(0,0,0,0.1)] bg-base-100 z-10 whitespace-nowrap max-w-[10rem] truncate font-medium p-0" style={{ left: OFF_NAME }}>{loc?.familyName}, {loc?.givenName}</td>
                 <td className="whitespace-nowrap">
                   {resDiff && ResFlag && <span className="tooltip tooltip-top mr-1" data-tip={getCountryName(res, locale)}><ResFlag className="h-3 w-3 rounded-sm inline" /></span>}
                   {loc?.location || ''}

@@ -579,7 +579,7 @@ function Row({
       {/* players1 slot */}
       <DropZone
         id={`p1-row-${rowIndex}`}
-        className="sente-card min-h-[3rem] rounded border border-dashed border-base-300 flex items-center justify-center"
+        className="sente-card drop-zone-card min-h-[3rem] rounded border border-dashed border-base-300 flex items-center justify-center"
       >
         {p1Id != null ? (
           <SortableCard
@@ -625,7 +625,7 @@ function Row({
       {/* players2 slot */}
       <DropZone
         id={`p2-row-${rowIndex}`}
-        className="gote-card min-h-[3rem] rounded border border-dashed border-base-300 flex items-center justify-center"
+        className="gote-card drop-zone-card min-h-[3rem] rounded border border-dashed border-base-300 flex items-center justify-center"
       >
         {p2Id != null ? (
           <SortableCard
