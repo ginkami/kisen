@@ -18,6 +18,7 @@ import { normalizeSlug } from '../services/slugService.ts'
 import { supportedLocales, type SupportedLocale } from '../domain/locale.ts'
 import type { TimeControlFormat } from '../domain/timeControl.ts'
 import type { TieBreak, TieBreakType } from '../domain/tieBreak.ts'
+import { normalizeGamesSente } from '../components/tournament/crosstable/crosstableModel.ts'
 import type { PlayerRank } from '../domain/playerRating.ts'
 
 export type ScheduleRow =
@@ -714,6 +715,7 @@ export function useTournamentForm(tournamentId: string | undefined) {
       updateForm((state) => ({
         ...state,
         settings: { ...state.settings, considerSente: value },
+        games: normalizeGamesSente(state.games, value),
       }))
     },
     [updateForm]
@@ -1055,10 +1057,11 @@ export function useTournamentForm(tournamentId: string | undefined) {
 
   const updateStartingPoints = useCallback(
     (participantId: number, value: number) => {
+      const clamped = Math.max(0, Math.floor(Number.isFinite(value) ? value : 0))
       updateForm((state) => ({
         ...state,
         participants: state.participants.map((p) =>
-          p.id === participantId ? { ...p, startingPoints: value } : p
+          p.id === participantId ? { ...p, startingPoints: clamped } : p
         ),
       }))
     },

@@ -25,7 +25,7 @@ export function PlayerCard({ player, locale, points, startingPoints, onStartingP
         <div className="relative player-card">
             {typeof points === 'number' && onStartingPointsChange && (
                 <label className="input input-xs p-1 w-14 round absolute right-0 -mt-[2px] -mr-2 top-0 z-10 tooltip tooltip-left" data-tip={t('tournament.edit.pairings.startingPoints')}>
-                    <input type="number" value={startingPoints ?? 0} min={0} step={1} onChange={(e) => onStartingPointsChange(Number(e.target.value) || 0)} className="wq-8" />
+                    <input type="number" value={startingPoints ?? 0} min={0} step={1} onChange={(e) => onStartingPointsChange(Number(e.target.value) || 0)} onKeyDown={(e) => { if (e.key === '-') e.preventDefault() }} className="wq-8" />
                     <span className={`badge badge-xs badge-primary tooltip tooltip-left tooltip-secondary -mr-1 -ml-5`} data-tip={t('tournament.tieBreak.points')}>{points}</span>
                 </label>
             )}

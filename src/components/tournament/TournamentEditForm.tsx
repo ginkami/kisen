@@ -1184,9 +1184,11 @@ export function TournamentEditForm({
           games={formState.games}
           participants={formState.participants}
           roundCount={formState.scheduleRows.filter((r): r is Extract<typeof r, { kind: 'round' }> => r.kind === 'round').length}
+          currentRound={formState.currentRound}
           considerSente={formState.settings.considerSente}
           tieBreaks={formState.settings.tieBreaks}
           updateStartingPoints={updateStartingPoints}
+          updateGames={updateGames}
         />
       )}
 

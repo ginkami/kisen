@@ -1,4 +1,5 @@
-﻿import type { Game, GameResult } from '../../../domain/tournament.ts'
+import { uuidv7 } from 'uuidv7'
+import type { Game, GameResult } from '../../../domain/tournament.ts'
 import type { TieBreak, TieBreakType } from '../../../domain/tieBreak.ts'
 import type { PlayerRank } from '../../../domain/playerRating.ts'
 import { calculateParticipantPoints } from '../pairings/pairingsModel.ts'
@@ -253,4 +254,210 @@ function resultPointsForParticipant(game: Game, participantId: number): number {
   if (raw === 'player1_won' && game.player1 === participantId) return 1
   if (raw === 'player2_won' && game.player2 === participantId) return 1
   return 0
+}
+
+// ---------------------------------------------------------------------------
+// Inline cell editing: grammar, parsing, serialization, synchronization
+// ---------------------------------------------------------------------------
+
+export interface ParsedCell {
+  oppPlace: number
+  isSente: boolean   // meaningful only when considerSente == true
+  result: GameResult | null
+  handicap: string | null
+}
+
+const HANDICAP_CODE_LIST = ['L', 'B', 'R', 'RL', '2p', '4p', '5p', '6p', '8p', '10p']
+
+function parseHandicap(tail: string): string | null {
+  if (tail.length < 2) return null
+  const sign = tail[0]
+  if (sign !== '-' && sign !== '+') return null
+  const code = tail.slice(1)
+  if (!HANDICAP_CODE_LIST.includes(code)) return null
+  return `${sign}${code}`
+}
+
+/**
+ * Grammar: '^'? oppNum result? handicap?  |  '+' (bye)  |  '-' (forfeit)
+ * Backtracking: result+handicap first, then handicap alone (no result).
+ */
+export function parseCellInput(
+  input: string,
+  considerSente: boolean
+): ParsedCell | 'bye' | 'forfeit' | null {
+  const s = input.trim()
+  if (s === '+') return 'bye'
+  if (s === '-') return 'forfeit'
+
+  let rest = s
+  let isSente = false
+  if (rest.startsWith('^')) {
+    if (!considerSente) return null
+    isSente = true
+    rest = rest.slice(1)
+  }
+
+  const numMatch = rest.match(/^(\d{1,3})/)
+  if (!numMatch) return null
+  const oppPlace = parseInt(numMatch[1], 10)
+  if (oppPlace === 0) return null
+  rest = rest.slice(numMatch[1].length)
+
+  // Try: result? handicap?
+  let result: GameResult | null = null
+  let handicap: string | null = null
+  let tail = rest
+  if (tail.length > 0) {
+    const c = tail[0]
+    if (c === '+' || c === '-' || c === '=') {
+      result = c === '+' ? 'player1_won' : c === '-' ? 'player2_won' : 'draw'
+      tail = tail.slice(1)
+    }
+  }
+  if (tail.length > 0) {
+    handicap = parseHandicap(tail)
+    if (handicap == null) {
+      // Backtrack: maybe the first char was a handicap sign, not a result
+      if (result != null) {
+        const altHandicap = parseHandicap(rest)
+        if (altHandicap != null) {
+          return { oppPlace, isSente, result: null, handicap: altHandicap }
+        }
+      }
+      return null
+    }
+  }
+  if (tail.length === 0 && result == null && rest.length > 0) {
+    // 'rest' started with a handicap sign but no result was parsed and tail empty вЂ”
+    // handled above; here nothing left to do
+  }
+  return { oppPlace, isSente, result, handicap }
+}
+
+/** Normalize all games sente field: player1 when considerSente=true, unknown otherwise.
+ *  Returns the same array reference if no changes are needed. */
+export function normalizeGamesSente(games: Game[], considerSente: boolean): Game[] {
+  const target: Game['sente'] = considerSente ? 'player1' : 'unknown'
+  return games.some((g) => g.sente !== target)
+    ? games.map((g) => ({ ...g, sente: target }))
+    : games
+}
+/** Prefix regex: every valid partial input for on-the-fly filtering. */
+export const CELL_PARTIAL_RE = /^(\+|-|\^|\^?\d{1,3}[+\-=]?[-+]?(L|B|R(L)?|[24568]p?|1(0p?)?)?)?$/
+
+/** Serialize button content into input text. */
+export function gameToCellInput(
+  game: Game | undefined,
+  pid: number,
+  oppPlace: number | null,
+  considerSente: boolean
+): string {
+  if (!game) return ''
+  if (game.status === 'bye' && game.player1 === pid) return '+'
+  if (game.status === 'forfeit') return '-'
+  const isP1 = game.player1 === pid
+  let prefix = ''
+  if (considerSente) {
+    const playerIsSente = (isP1 && game.sente === 'player1') || (!isP1 && game.sente === 'player2')
+    prefix = playerIsSente ? '^' : ''
+  }
+  const raw = game.result
+  let sym = ''
+  if (raw === 'draw') sym = '='
+  else if ((raw === 'player1_won' && isP1) || (raw === 'player2_won' && !isP1)) sym = '+'
+  else if (raw != null) sym = '-'
+  const num = oppPlace != null ? String(oppPlace) : ''
+  const hc = game.handicap ? handicapForView(game.handicap, isP1) : ''
+  return `${prefix}${num}${sym}${hc}`
+}
+
+export function handicapForView(handicap: string, isP1: boolean): string {
+  if (isP1) return handicap
+  const sign = handicap[0] === '-' ? '+' : '-'
+  return sign + handicap.slice(1)
+}
+
+/**
+ * Apply a cell edit with full round synchronization.
+ * Returns null when input is invalid/empty (caller keeps previous games).
+ */
+export function withCellEdited(
+  allGames: Game[],
+  participants: { id: number; startingPoints: number }[],
+  tieBreaks: TieBreak[],
+  pid: number,
+  round: number,
+  input: string,
+  considerSente: boolean
+): Game[] | null {
+  if (input.trim() === '') return null
+  const parsed = parseCellInput(input, considerSente)
+  if (parsed === null) return null
+
+  const standings = computeStandings(allGames, participants, tieBreaks, round)
+  const idByPlace = new Map<number, number>()
+  for (const s of standings) idByPlace.set(s.place, s.participantId)
+
+  const otherRounds = allGames.filter((g) => g.round !== round)
+  let roundGames = allGames.filter((g) => g.round === round)
+
+  if (parsed === 'bye' || parsed === 'forfeit') {
+    // Remove the player's current game (former opponent becomes unpaired)
+    roundGames = roundGames.filter(
+      (g) => !(g.player1 === pid || g.player2 === pid)
+    )
+    roundGames.push({
+      id: uuidv7(),
+      player1: pid,
+      player2: null,
+      sente: considerSente ? 'player1' : 'unknown',
+      handicap: null,
+      result: parsed === 'forfeit' ? 'player2_won' : null,
+      status: parsed === 'forfeit' ? 'forfeit' : 'bye',
+      round,
+    })
+    return [...otherRounds, ...roundGames]
+  }
+
+  // Resolve opponent
+  const oppId = idByPlace.get(parsed.oppPlace)
+  if (oppId == null || oppId === pid) return null
+
+  // Remove edited player's game and the new opponent's game
+  roundGames = roundGames.filter(
+    (g) =>
+      !(g.player1 === pid || g.player2 === pid) &&
+      !(g.player1 === oppId || g.player2 === oppId)
+  )
+
+  // player1/player2 by the ^ rule
+  const pIsP1 = considerSente ? parsed.isSente : true
+  const player1 = pIsP1 ? pid : oppId
+  const player2 = pIsP1 ? oppId : pid
+
+  // Result from edited player's perspective в†’ player1 perspective
+  let result: GameResult | null = null
+  if (parsed.result != null) {
+    if (parsed.result === 'draw') result = 'draw'
+    else if (pIsP1) result = parsed.result // edited player is player1 вЂ” as-is
+    else result = parsed.result === 'player1_won' ? 'player2_won' : 'player1_won'
+  }
+
+  const sente: Game['sente'] = considerSente ? 'player1' : 'unknown'
+
+  roundGames.push({
+    id: uuidv7(),
+    player1,
+    player2,
+    sente,
+    handicap: parsed.handicap != null
+      ? (pIsP1 ? parsed.handicap : handicapForView(parsed.handicap, false)) as Game['handicap']
+      : null,
+    result,
+    status: 'not_started',
+    round,
+  })
+
+  return [...otherRounds, ...roundGames]
 }

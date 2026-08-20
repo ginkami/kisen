@@ -1,9 +1,14 @@
-﻿import { useMemo } from 'react'
+﻿import { useMemo, useState, useCallback, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import * as Flags from 'country-flag-icons/react/3x2'
 import { PiCrownSimple } from 'react-icons/pi'
+import { BsCheckLg } from 'react-icons/bs'
 import { getCountryName } from '../../utils/countries.ts'
-import { rankToColor, TIEBREAK_ABBR, computeStandings } from './crosstable/crosstableModel.ts'
+import {
+  rankToColor, TIEBREAK_ABBR, computeStandings,
+  parseCellInput, gameToCellInput, withCellEdited, CELL_PARTIAL_RE,
+  handicapForView,
+} from './crosstable/crosstableModel.ts'
 import type { Game } from '../../domain/tournament.ts'
 import type { TieBreak } from '../../domain/tieBreak.ts'
 import type { SupportedLocale } from '../../domain/locale.ts'
@@ -13,9 +18,11 @@ interface CrosstableSectionProps {
   games: Game[]
   participants: ParticipantRow[]
   roundCount: number
+  currentRound: number
   considerSente: boolean
   tieBreaks: TieBreak[]
   updateStartingPoints: (participantId: number, value: number) => void
+  updateGames: (round: number, gamesForRound: Game[]) => void
 }
 
 const COL_NO = 28, COL_FLAG = 20, COL_RANK = 45
@@ -24,10 +31,13 @@ const OFF_RANK = OFF_FLAG + COL_FLAG
 const OFF_NAME = OFF_RANK + COL_RANK
 
 export function CrosstableSection({
-  games, participants, roundCount, considerSente, tieBreaks, updateStartingPoints,
+  games, participants, roundCount, currentRound, considerSente, tieBreaks, updateStartingPoints, updateGames,
 }: CrosstableSectionProps) {
   const { t, i18n } = useTranslation()
   const locale = (i18n.language as SupportedLocale) ?? 'ru'
+  const [editing, setEditing] = useState<{ pid: number; round: number } | null>(null)
+  const [editValue, setEditValue] = useState('')
+  const commitFlagRef = useRef(false)
 
   const standings = useMemo(
     () => computeStandings(
@@ -55,13 +65,73 @@ export function CrosstableSection({
     return games.find((g) => g.round === round && (g.player1 === pid || g.player2 === pid))
   }
 
-  function roundCell(pid: number, round: number) {
+  const commitEdit = useCallback(() => {
+    if (!editing) return
+    const { pid, round } = editing
+    const result = withCellEdited(games, participants.map((p) => ({ id: p.id, startingPoints: p.startingPoints ?? 0 })), tieBreaks, pid, round, editValue, considerSente)
+    if (result != null) {
+      updateGames(round, result.filter((g) => g.round === round))
+    }
+    setEditing(null)
+    setEditValue('')
+    commitFlagRef.current = false
+  }, [editing, editValue, games, participants, tieBreaks, considerSente, updateGames])
+
+  function handleOpenEditor(pid: number, round: number) {
     const g = findGame(pid, round)
-    if (!g) return <span className="text-xs opacity-40 pl-2">-</span>
+    const oppId = g ? (g.player1 === pid ? g.player2 : g.player1) : null
+    const oppPlace = oppId != null ? (placeById.get(oppId) ?? null) : null
+    setEditing({ pid, round })
+    setEditValue(gameToCellInput(g, pid, oppPlace, considerSente))
+    commitFlagRef.current = false
+  }
+
+  function roundCell(pid: number, round: number, currentRound: number) {
+    const isEditing = editing?.pid === pid && editing?.round === round
+    const canEdit = round <= currentRound + 1
+
+    if (isEditing) {
+      return (
+        <span className="inline-flex items-center gap-0.5">
+          <input
+            type="text"
+            autoFocus
+            value={editValue}
+            onChange={(e) => { const v = e.target.value.replace(/[lbr]/g, (c) => c.toUpperCase()); if (CELL_PARTIAL_RE.test(v)) setEditValue(v) }}
+            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); commitEdit() } }}
+            onBlur={(e) => { if (e.relatedTarget?.closest?.('[data-confirm-edit]')) return; commitEdit() }}
+            className="input input-xs w-20 font-mono"
+          />
+          <button
+            type="button"
+            data-confirm-edit="true"
+            onClick={() => { commitFlagRef.current = true; commitEdit() }}
+            className="btn btn-xs btn-ghost"
+          >
+            <BsCheckLg className="h-3 w-3" />
+          </button>
+        </span>
+      )
+    }
+
+    const g = findGame(pid, round)
+    if (!g) {
+      if (round > currentRound + 1)
+        return <span className="text-xs opacity-40 pl-2">-</span>
+      return (
+        <button type="button" className="btn btn-xs btn-ghost font-mono" onClick={canEdit ? () => handleOpenEditor(pid, round) : undefined}>
+          -
+        </button>
+      )
+    }
     if (g.status === 'bye' && g.player1 === pid)
-      return <button type="button" className="btn btn-xs btn-ghost font-mono">+</button>
+      return (
+        <button type="button" className="btn btn-xs btn-ghost font-mono" onClick={canEdit ? () => handleOpenEditor(pid, round) : undefined}>+</button>
+      )
     if (g.status === 'forfeit')
-      return <button type="button" className="btn btn-xs btn-ghost font-mono">-</button>
+      return (
+        <button type="button" className="btn btn-xs btn-ghost font-mono" onClick={canEdit ? () => handleOpenEditor(pid, round) : undefined}>-</button>
+      )
     const isP1 = g.player1 === pid
     const oppId = isP1 ? g.player2 : g.player1
     const oppPlace = oppId != null ? (placeById.get(oppId) ?? '?') : '?'
@@ -74,10 +144,10 @@ export function CrosstableSection({
       ? (isP1 && g.sente === 'player1') || (!isP1 && g.sente === 'player2') ? '☗' : '☖'
       : ''
     return (
-      <button type="button" className="btn btn-xs gap-0.5 btn-ghost font-mono whitespace-nowrap">
-        {sente && <span className="">{sente}</span>}
-        <span className={` ${cls}`}>{oppPlace}{sym}</span>
-        {g.handicap != null && <span className="badge badge-xs bg-base-200">{g.handicap}</span>}
+      <button type="button" className="btn btn-xs gap-0.5 btn-ghost font-mono whitespace-nowrap" onClick={canEdit ? () => handleOpenEditor(pid, round) : undefined}>
+        {sente && <span>{sente}</span>}
+        <span className={cls}>{oppPlace}{sym}</span>
+        {g.handicap != null && <span className="badge badge-xs bg-base-200">{handicapForView(g.handicap as string, isP1)}</span>}
       </button>
     )
   }
@@ -148,10 +218,10 @@ export function CrosstableSection({
                 </td>
                 <td className="text-right font-mono">{p.ratingValue || ''}</td>
                 {Array.from({ length: roundCount }, (_, i) => i + 1).map((r) => (
-                  <td key={r} className="text-left p-0.5 w-1">{roundCell(s.participantId, r)}</td>
+                  <td key={r} className="text-left p-0.5 w-1">{roundCell(s.participantId, r, currentRound)}</td>
                 ))}
                 <td className="text-center w-1">
-                  <input type="number" min={0} step={1} value={p.startingPoints ?? 0} onChange={(e) => updateStartingPoints(s.participantId, Number(e.target.value) || 0)} className="input input-xs w-12 text-center" />
+                  <input type="number" min={0} step={1} value={p.startingPoints ?? 0} onChange={(e) => updateStartingPoints(s.participantId, Number(e.target.value) || 0)} onKeyDown={(e) => { if (e.key === '-') e.preventDefault() }} className="input input-xs w-12 text-center" />
                 </td>
                 {tieBreaks.map((tb) => (
                   <td key={tb.type} className="text-right font-mono w-1">{tb.type === 'points' ? s.points : s.tieBreakValues[tb.type]}</td>
