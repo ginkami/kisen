@@ -74,7 +74,7 @@ export function Layout() {
         <button
           type="button"
           onClick={toggleAdmin}
-          className="fixed left-0 top-1/6 z-40 -translate-y-1/2 rounded-r-box bg-secondary p-3 text-secondary-content shadow-lg"
+          className="fixed left-0 top-17 z-40 -translate-y-1/2 rounded-r-box bg-secondary p-3 text-secondary-content shadow-lg"
           aria-label={t('admin.title')}
         >
           <BsGear className="h-6 w-6" />

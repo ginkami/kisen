@@ -966,7 +966,7 @@ export function TournamentEditForm({
   const canLinkPlayers = user?.role === 'admin' || user?.role === 'manager'
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
+    <div className="mx-auto max-w-7xl space-y-6">
       {createError && (
         <div className="alert alert-error">
           <div>
