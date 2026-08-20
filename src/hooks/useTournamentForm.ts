@@ -517,6 +517,8 @@ export function useTournamentForm(tournamentId: string | undefined) {
   if (tournament && initializedTournamentId !== tournament.id) {
     setInitializedTournamentId(tournament.id)
     const initial = tournamentToFormState(tournament)
+    // For Debug
+    if (import.meta.env.DEV) (window as any).__tournament = tournament
     setFormState(initial)
     setLastSavedSnapshot(JSON.stringify(initial))
   }
