@@ -485,38 +485,55 @@ export function PairingsBoard({
             <div className="w-10" />
             <h3 className="text-center text-lg">☖</h3>
 
-            {containers.games.length > 0 ? (
-              containers.games.map((game, i) => {
-                const p1Id = containers.players1[i]
-                const p2Id = containers.players2[i]
-                const hasResult = game.result != null
-                const resultDisabled = false
+            {(() => {
+              const gameRows = containers.games.length
+              const placedParticipants =
+                containers.players1.filter((x) => x != null).length +
+                containers.players2.filter((x) => x != null).length
+              const totalParticipants = placedParticipants + containers.unpaired.length
+              const neededRows = Math.ceil(totalParticipants / 2)
+              const extraRows = Math.max(1, neededRows - gameRows)
 
-                return (
-                  <Row
-                    key={game.id}
-                    game={game}
-                    p1Id={p1Id}
-                    p2Id={p2Id}
-                    rowIndex={i}
-                    hasResult={hasResult}
-                    resultDisabled={resultDisabled}
-                    forfeitIds={forfeitIds}
-                    participantsMap={participantsMap}
-                    locale={locale}
-                    forfeitTooltip={forfeitTooltip}
-                    onResultCycle={handleResultCycle}
-                    onForfeitToggle={handleForfeitToggle}
-                    onHandicapCycle={handleHandicapCycle}
-                    pointsMap={pointsMap}
-                    startingPointsMap={startingPointsMap}
-                    updateStartingPoints={updateStartingPoints}
-                  />
-                )
-              })
-            ) : (
-              <EmptyRow />
-            )}
+              return (
+                <>
+                  {gameRows > 0 ? (
+                    containers.games.map((game, i) => {
+                      const p1Id = containers.players1[i]
+                      const p2Id = containers.players2[i]
+                      const hasResult = game.result != null
+                      const resultDisabled = false
+
+                      return (
+                        <Row
+                          key={game.id}
+                          game={game}
+                          p1Id={p1Id}
+                          p2Id={p2Id}
+                          rowIndex={i}
+                          hasResult={hasResult}
+                          resultDisabled={resultDisabled}
+                          forfeitIds={forfeitIds}
+                          participantsMap={participantsMap}
+                          locale={locale}
+                          forfeitTooltip={forfeitTooltip}
+                          onResultCycle={handleResultCycle}
+                          onForfeitToggle={handleForfeitToggle}
+                          onHandicapCycle={handleHandicapCycle}
+                          pointsMap={pointsMap}
+                          startingPointsMap={startingPointsMap}
+                          updateStartingPoints={updateStartingPoints}
+                        />
+                      )
+                    })
+                  ) : (
+                    <EmptyRow rowIndex={0} />
+                  )}
+                  {Array.from({ length: extraRows }, (_, j) => (
+                    <EmptyRow key={`extra-${j}`} rowIndex={gameRows + j} />
+                  ))}
+                </>
+              )
+            })()}
           </div>
         </div>
       </div>
@@ -574,6 +591,9 @@ function Row({
   updateStartingPoints?: (participantId: number, value: number) => void
 }) {
   const { t } = useTranslation()
+  const isLoneGame = game.player2 == null
+  const effectiveResultDisabled = resultDisabled || isLoneGame
+
   return (
     <>
       {/* players1 slot */}
@@ -595,7 +615,7 @@ function Row({
             onStartingPointsChange={updateStartingPoints ? (v) => updateStartingPoints(p1Id, v) : undefined}
           />
         ) : (
-          <span className="text-xs opacity-40 select-none">-</span>
+          <span className="text-xs opacity-40 select-none">{t('tournament.edit.pairings.dropHere')}</span>
         )}
       </DropZone>
 
@@ -604,7 +624,7 @@ function Row({
         <button
           type="button"
           onClick={() => onResultCycle(game.id)}
-          disabled={resultDisabled}
+          disabled={effectiveResultDisabled}
           className={`btn btn-sm flex btn-circle relative z-1 ${hasResult ? 'btn-primary' : 'btn-neutral'}`}
           data-val={resultToSymbol(game.result)}
         >
@@ -613,7 +633,7 @@ function Row({
         <button
           type="button"
           onClick={() => onHandicapCycle(game.id)}
-          disabled={resultDisabled}
+          disabled={effectiveResultDisabled}
           className={`btn btn-xs -mt-2.5 btn-circle flex ${game.handicap != null ? 'btn-warning' : ''}`}
         >
           <span className="tooltip tooltip-secondary z-10" data-tip={t('tournament.edit.pairings.handicap')}>
@@ -641,7 +661,7 @@ function Row({
             onStartingPointsChange={updateStartingPoints ? (v) => updateStartingPoints(p2Id, v) : undefined}
           />
         ) : (
-          <span className="text-xs opacity-40 select-none">-</span>
+          <span className="text-xs opacity-40 select-none">{t('tournament.edit.pairings.dropHere')}</span>
         )}
       </DropZone>
     </>
@@ -652,22 +672,22 @@ function Row({
 // Empty placeholder row
 // ---------------------------------------------------------------------------
 
-function EmptyRow() {
+function EmptyRow({ rowIndex }: { rowIndex: number }) {
   const { t } = useTranslation()
   return (
     <>
       <DropZone
-        id="p1-row-0"
+        id={`p1-row-${rowIndex}`}
         className="min-h-[3rem] rounded border border-dashed border-base-300 flex items-center justify-center text-xs opacity-40"
       >
         <span className="select-none">{t('tournament.edit.pairings.dropHere')}</span>
       </DropZone>
       <div className="w-10" />
       <DropZone
-        id="p2-row-0"
+        id={`p2-row-${rowIndex}`}
         className="min-h-[3rem] rounded border border-dashed border-base-300 flex items-center justify-center text-xs opacity-40"
       >
-        <span className="select-none">{t('tournament.edit.pairings.dropHere')}</span>
+        <span className="select-none">&nbsp;</span>
       </DropZone>
     </>
   )

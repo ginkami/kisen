@@ -211,7 +211,7 @@ The `PairingsSection` header SHALL contain a right-aligned "Опубликова
 
 ### Requirement: Pairings board layout and drag-and-drop
 
-The `PairingsBoard` for a round SHALL render three drop containers: `unpaired`, `players1`, and `players2`. Each container holds draggable participant cards derived from `tournament.participants`. Cards SHALL be draggable between containers using `@dnd-kit`. Dropping a card into `players1` or `players2` at a specific row position forms a pair with the card in the opposite column at the same row. Dropping a card into the `unpaired` container SHALL remove that participant from any game in the round and append the card to the bottom of the `unpaired` container. When the active round equals `currentRound + 1` (the next round to be prepared), opening the round SHALL initialize all participants into the `unpaired` container if no games exist for that round yet.
+The `PairingsBoard` for a round SHALL render three drop containers: `unpaired`, `players1`, and `players2`. Each container holds draggable participant cards derived from `tournament.participants`. Cards SHALL be draggable between containers using `@dnd-kit`. Dropping a card into `players1` or `players2` at a specific row position forms a pair with the card in the opposite column at the same row; when the target row holds a lone game, the completed game SHALL have `result = null` and `status = 'not_started'`, so the row's result and handicap controls become enabled. When the target row is empty, the dropped participant SHALL be stored as `player1` of a new lone game regardless of which column (`players1` or `players2`) received the drop. Dropping a card into the `unpaired` container SHALL remove that participant from any game in the round and append the card to the bottom of the `unpaired` container. When the active round equals `currentRound + 1` (the next round to be prepared), opening the round SHALL initialize all participants into the `unpaired` container if no games exist for that round yet.
 
 
 When a card is dragged from `players1` at row N and dropped onto `players2` at the same row N (or vice versa), the system SHALL swap the two players in the game instead of creating a new bye. The swap SHALL exchange `player1` and `player2` on the game, flip `sente` (`player1` <-> `player2`, `unknown` unchanged), and flip a non-null result (`player1_won` <-> `player2_won`, `draw` unchanged). The swap SHALL be triggered when the drop target is a `p1-row-N` or `p2-row-N` zone AND the dragged participant currently occupies the opposite column at the same row index.
@@ -228,12 +228,19 @@ When a card is dragged from `players1` at row N and dropped onto `players2` at t
 #### Scenario: Dragging a card to players2 completes a pair
 
 - **WHEN** the user drags a participant into `players2` opposite an existing `players1` card
-- **THEN** the existing game for that row has its `player2` set to the dropped participant and its `status` set to `'not_started'`
+- **THEN** the existing game for that row has its `player2` set to the dropped participant, its `status` set to `'not_started'`, and its `result` reset to `null` (clearing any previous lone-game bye result), so the row's result and handicap buttons become enabled
 
-#### Scenario: Dragging a paired card back to unpaired removes the game
+#### Scenario: Dragging a paired card back to unpaired keeps the partner in the row
 
-- **WHEN** the user drags a participant from a paired slot back into `unpaired`
-- **THEN** the `Game` containing that participant is removed from `games` (or reverted to a single-participant `bye` game if the opponent remains in `players1`)
+- **WHEN** the user drags one member of a pair back to `unpaired`
+- **THEN** the remaining partner stays in the same row as a lone game with lone-game field values
+- **AND** the game is deleted only when the last player of a lone game is moved to `unpaired`
+
+#### Scenario: Empty players2 zone shows no drop hint
+
+- **WHEN** an empty pairing row is rendered
+- **THEN** its `players1` zone displays the drop hint
+- **AND** its `players2` zone displays no hint while remaining a valid drop target
 
 #### Scenario: Dropping at a position reorders pairs
 
@@ -514,3 +521,47 @@ Each pairing row in the `PairingsBoard` SHALL render a handicap button between t
 
 - **WHEN** the user hovers over the handicap button
 - **THEN** a DaisyUI tooltip displays "Игра с форой" (ru locale) or "Game with handicap" (en locale)
+## Part 5 Additions
+
+### Requirement: Lone game invariant
+
+Any pairings-board game with no opponent (player2 == null) that is not an auto-forfeit game (status == 'forfeit') SHALL have status: 'bye', esult: 'player1_won', and handicap: null. The pairings model SHALL establish this invariant whenever it creates or mutates a lone game (drop into an empty row of either column, removal of an opponent from a pair). The result and handicap buttons SHALL be disabled for lone rows.
+
+#### Scenario: Lone game created by drop has invariant shape
+
+- **WHEN** a participant is dropped into an empty row of players1 or players2
+- **THEN** the created game has player2 = null, status = 'bye', esult = 'player1_won', handicap = null
+
+#### Scenario: Invariant restored when a pair is broken
+
+- **WHEN** one member of a pair is moved to unpaired
+- **THEN** the remaining lone game has status = 'bye', esult = 'player1_won', handicap = null
+
+#### Scenario: Forfeit games are exempt
+
+- **WHEN** a late joiner's auto-forfeit game exists (player2 = null, status = 'forfeit', esult = 'player2_won')
+- **THEN** the system does not rewrite its fields to lone-game values
+
+#### Scenario: Handicap button disabled for lone games
+
+- **WHEN** a row renders a lone game (player2 == null)
+- **THEN** the handicap button for that row is disabled (same disabled condition as the result button)
+
+### Requirement: Pairings card draggability
+
+Participant cards on the pairings board SHALL remain draggable at all times - regardless of publication status, a recorded Game.result or Game.handicap, or lone-game status. No card lock based on game state SHALL be applied. The result and handicap buttons keep their own disabled conditions and are unaffected by this requirement.
+
+#### Scenario: Cards with a recorded result remain draggable
+
+- **WHEN** a paired game has esult = 'player1_won'
+- **THEN** both participant cards of the pair can be dragged (to unpaired or into another row)
+
+#### Scenario: Dragging out of a scored pair applies pair-break normalization
+
+- **WHEN** one member of a pair with a recorded result is dragged to unpaired
+- **THEN** the remaining partner stays in the row as a lone game with lone-game field values (see the Lone game invariant requirement)
+
+#### Scenario: Lone game cards stay draggable
+
+- **WHEN** a lone game has esult = 'player1_won' (bye point)
+- **THEN** the participant card of that lone game remains draggable

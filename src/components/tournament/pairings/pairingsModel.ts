@@ -12,6 +12,26 @@ export interface Containers {
   games: Game[]        // ordered games for this round (1:1 with players1/players2 rows)
 }
 
+// --- Lone-game invariant ---
+
+/**
+ * Enforces the lone-game invariant: any game with `player2 == null` that is
+ * NOT an auto-forfeit (`status === 'forfeit'`) must carry
+ * `status: 'bye'`, `result: 'player1_won'`, `handicap: null`.
+ *
+ * Forfeit games are exempt — they legitimately have `player2 == null` with
+ * `status: 'forfeit'` and `result: 'player2_won'`.
+ */
+export function applyLoneGameInvariant(game: Game): Game {
+  if (game.player2 != null || game.status === 'forfeit') return game
+  return {
+    ...game,
+    status: 'bye',
+    result: 'player1_won',
+    handicap: null,
+  }
+}
+
 // --- Pure helpers ---
 
 export function gamesForRound(games: Game[], round: number): Game[] {
@@ -47,15 +67,18 @@ export function containersFromGames(
     startingPointsMap.set(p.id, p.startingPoints ?? 0)
   }
 
-  // Sort unpaired by descending cumulative points, then descending rating
+  // Sort unpaired by descending cumulative points (before this round), then descending rating
   unpaired.sort((a, b) => {
-    const aPoints = calculateParticipantPoints(allGames, a, round, startingPointsMap.get(a) ?? 0)
-    const bPoints = calculateParticipantPoints(allGames, b, round, startingPointsMap.get(b) ?? 0)
+    const aPoints = calculateParticipantPoints(allGames, a, round - 1, startingPointsMap.get(a) ?? 0)
+    const bPoints = calculateParticipantPoints(allGames, b, round - 1, startingPointsMap.get(b) ?? 0)
     if (aPoints !== bPoints) return bPoints - aPoints
     const aRating = ratingMap.get(a) ?? -Infinity
     const bRating = ratingMap.get(b) ?? -Infinity
     return bRating - aRating
   })
+
+  // Sort paired rows by descending max pair points (before this round), then descending max pair rating
+  pairGames.sort((a, b) => comparePairStrength(a, b, allGames, startingPointsMap, ratingMap, round))
 
   const players1: (number | null)[] = pairGames.map((g) => g.player1)
   const players2: (number | null)[] = pairGames.map((g) => g.player2)
@@ -65,7 +88,7 @@ export function containersFromGames(
 
 export function withParticipantDropped(
   allGames: Game[],
-  _participants: Participant[],
+  participants: Participant[],
   round: number,
   participantId: number,
   targetContainer: 'unpaired' | 'players1' | 'players2',
@@ -75,34 +98,58 @@ export function withParticipantDropped(
   const otherRoundsGames = allGames.filter((g) => g.round !== round)
   const roundGames = gamesForRound(allGames, round)
 
-  // Remove participant from any non-forfeit game in this round
-  let updatedRoundGames = roundGames
-    .filter((g) => g.status !== 'forfeit' || g.player1 !== participantId)
+  // Separate forfeits from non-forfeit games; forfeits stay outside row indexing
+  const forfeits = roundGames.filter((g) => g.status === 'forfeit')
+  let pairGames = roundGames.filter((g) => g.status !== 'forfeit')
+
+  // Build lookup maps for sorting
+  const ratingMap = new Map<number, number>()
+  const startingPointsMap = new Map<number, number>()
+  for (const p of participants) {
+    ratingMap.set(p.id, p.capturedRating?.value ?? -Infinity)
+    startingPointsMap.set(p.id, p.startingPoints ?? 0)
+  }
+
+  // Sort pair games by pair strength (same comparator as display)
+  pairGames.sort((a, b) => comparePairStrength(a, b, allGames, startingPointsMap, ratingMap, round))
+
+  // Remove participant from any existing game.
+  // When breaking a pair, the remaining partner stays as a lone game (player1).
+  pairGames = pairGames
     .map((g) => {
-      if (g.player1 === participantId) return { ...g, player1: 0 }
-      if (g.player2 === participantId) return { ...g, player2: null, status: 'bye' as const }
+      if (g.player1 === participantId) {
+        if (g.player2 != null) {
+          // Breaking a pair: partner becomes player1 of a lone game
+          return applyLoneGameInvariant({ ...g, player1: g.player2, player2: null })
+        }
+        // Removing the only player from a bye game — mark for removal
+        return { ...g, player1: 0 }
+      }
+      if (g.player2 === participantId) {
+        // Removing player2 from a pair — game becomes a lone game
+        return applyLoneGameInvariant({ ...g, player2: null })
+      }
       return g
     })
     // Remove games where player1 was zeroed out (card being moved)
     .filter((g) => g.player1 !== 0)
 
   if (targetContainer === 'unpaired') {
-    // Just remove from games — already done above
-    return [...otherRoundsGames, ...updatedRoundGames]
+    return [...otherRoundsGames, ...forfeits, ...pairGames]
   }
 
   if (targetContainer === 'players1') {
     // Ensure targetIndex row exists
-    while (updatedRoundGames.length <= targetIndex) {
-      updatedRoundGames.push(createEmptyGame(round, considerSente))
+    while (pairGames.length <= targetIndex) {
+      pairGames.push(createEmptyGame(round, considerSente))
     }
-    const target = updatedRoundGames[targetIndex]
+    const target = pairGames[targetIndex]
     if (target.player1 === 0 || target.player1 == null) {
-      // Empty slot — place participant as player1
-      updatedRoundGames[targetIndex] = { ...target, player1: participantId }
+      // Empty slot — place participant as player1 with lone-game invariant
+      pairGames[targetIndex] = applyLoneGameInvariant({ ...target, player1: participantId })
     } else if (target.player1 !== participantId) {
       // Slot occupied by someone else — append new bye row at end
-      updatedRoundGames.push({
+      pairGames.push({
         ...createEmptyGame(round, considerSente),
         player1: participantId,
         status: 'bye',
@@ -111,20 +158,27 @@ export function withParticipantDropped(
   }
 
   if (targetContainer === 'players2') {
-    while (updatedRoundGames.length <= targetIndex) {
-      updatedRoundGames.push(createEmptyGame(round, considerSente))
+    while (pairGames.length <= targetIndex) {
+      pairGames.push(createEmptyGame(round, considerSente))
     }
-    const target = updatedRoundGames[targetIndex]
-    if (target.player2 == null && target.player1 !== 0 && target.player1 !== participantId) {
-      // Pair completion
-      updatedRoundGames[targetIndex] = {
+    const target = pairGames[targetIndex]
+    if ((target.player1 === 0 || target.player1 == null) && target.player1 !== participantId) {
+      // Empty row — create lone game with participant as player1
+      pairGames[targetIndex] = applyLoneGameInvariant({
+        ...target,
+        player1: participantId,
+      })
+    } else if (target.player2 == null && target.player1 !== 0 && target.player1 !== participantId) {
+      // Pair completion — reset result to null (clear stale bye result)
+      pairGames[targetIndex] = {
         ...target,
         player2: participantId,
         status: 'not_started',
+        result: null,
       }
     } else if (target.player2 != null && target.player2 !== participantId) {
       // Slot occupied — append new bye row at end
-      updatedRoundGames.push({
+      pairGames.push({
         ...createEmptyGame(round, considerSente),
         player1: participantId,
         status: 'bye',
@@ -133,9 +187,9 @@ export function withParticipantDropped(
   }
 
   // Clean up: remove empty games (player1 === 0)
-  updatedRoundGames = updatedRoundGames.filter((g) => g.player1 !== 0)
+  pairGames = pairGames.filter((g) => g.player1 !== 0)
 
-  return [...otherRoundsGames, ...updatedRoundGames]
+  return [...otherRoundsGames, ...forfeits, ...pairGames]
 }
 
 export function withResultCycled(
@@ -272,6 +326,44 @@ function createEmptyGame(round: number, considerSente: boolean): Game {
   }
 }
 
+/**
+ * Shared comparator for pairing rows: descending max pair points (earned
+ * strictly before `round`), then descending max pair rating.
+ * Used by both `containersFromGames` (render) and `withParticipantDropped`
+ * (mutation) so display and storage order cannot diverge.
+ */
+export function comparePairStrength(
+  a: Game,
+  b: Game,
+  allGames: Game[],
+  startingPointsMap: Map<number, number>,
+  ratingMap: Map<number, number>,
+  round: number
+): number {
+  const aSp1 = startingPointsMap.get(a.player1) ?? 0
+  const aSp2 = a.player2 != null ? (startingPointsMap.get(a.player2) ?? 0) : aSp1
+  const aMaxPts = Math.max(
+    calculateParticipantPoints(allGames, a.player1, round - 1, aSp1),
+    a.player2 != null ? calculateParticipantPoints(allGames, a.player2, round - 1, aSp2) : -Infinity
+  )
+  const bSp1 = startingPointsMap.get(b.player1) ?? 0
+  const bSp2 = b.player2 != null ? (startingPointsMap.get(b.player2) ?? 0) : bSp1
+  const bMaxPts = Math.max(
+    calculateParticipantPoints(allGames, b.player1, round - 1, bSp1),
+    b.player2 != null ? calculateParticipantPoints(allGames, b.player2, round - 1, bSp2) : -Infinity
+  )
+  if (aMaxPts !== bMaxPts) return bMaxPts - aMaxPts
+  const aMaxRating = Math.max(
+    ratingMap.get(a.player1) ?? -Infinity,
+    a.player2 != null ? (ratingMap.get(a.player2) ?? -Infinity) : -Infinity
+  )
+  const bMaxRating = Math.max(
+    ratingMap.get(b.player1) ?? -Infinity,
+    b.player2 != null ? (ratingMap.get(b.player2) ?? -Infinity) : -Infinity
+  )
+  return bMaxRating - aMaxRating
+}
+
 export function calculateParticipantPoints(
   allGames: Game[],
   participantId: number,
@@ -330,30 +422,7 @@ export function sortRoundGamesByPairStrength(
     startingPointsMap.set(p.id, p.startingPoints ?? 0)
   }
 
-  pairGames.sort((a, b) => {
-    const aSp1 = startingPointsMap.get(a.player1) ?? 0
-    const aSp2 = a.player2 != null ? (startingPointsMap.get(a.player2) ?? 0) : aSp1
-    const aMaxPts = Math.max(
-      calculateParticipantPoints(allGames, a.player1, round, aSp1, round),
-      a.player2 != null ? calculateParticipantPoints(allGames, a.player2, round, aSp2, round) : -Infinity
-    )
-    const bSp1 = startingPointsMap.get(b.player1) ?? 0
-    const bSp2 = b.player2 != null ? (startingPointsMap.get(b.player2) ?? 0) : bSp1
-    const bMaxPts = Math.max(
-      calculateParticipantPoints(allGames, b.player1, round, bSp1, round),
-      b.player2 != null ? calculateParticipantPoints(allGames, b.player2, round, bSp2, round) : -Infinity
-    )
-    if (aMaxPts !== bMaxPts) return bMaxPts - aMaxPts
-    const aMaxRating = Math.max(
-      ratingMap.get(a.player1) ?? -Infinity,
-      a.player2 != null ? (ratingMap.get(a.player2) ?? -Infinity) : -Infinity
-    )
-    const bMaxRating = Math.max(
-      ratingMap.get(b.player1) ?? -Infinity,
-      b.player2 != null ? (ratingMap.get(b.player2) ?? -Infinity) : -Infinity
-    )
-    return bMaxRating - aMaxRating
-  })
+  pairGames.sort((a, b) => comparePairStrength(a, b, allGames, startingPointsMap, ratingMap, round))
 
   return [...otherRounds, ...forfeits, ...pairGames]
 }
