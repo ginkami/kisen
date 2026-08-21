@@ -68,7 +68,7 @@ export function CrosstableSection({
   const commitEdit = useCallback(() => {
     if (!editing) return
     const { pid, round } = editing
-    const result = withCellEdited(games, participants.map((p) => ({ id: p.id, startingPoints: p.startingPoints ?? 0 })), tieBreaks, pid, round, editValue, considerSente)
+    const result = withCellEdited(games, participants.map((p) => ({ id: p.id, startingPoints: p.startingPoints ?? 0 })), tieBreaks, pid, round, editValue, considerSente, currentRound)
     if (result != null) {
       updateGames(round, result.filter((g) => g.round === round))
     }
@@ -126,7 +126,7 @@ export function CrosstableSection({
     }
     if (g.status === 'bye' && g.player1 === pid)
       return (
-        <button type="button" className="btn btn-xs btn-ghost font-mono" onClick={canEdit ? () => handleOpenEditor(pid, round) : undefined}>+</button>
+        <button type="button" className="btn btn-xs btn-ghost font-mono" onClick={canEdit ? () => handleOpenEditor(pid, round) : undefined}>{g.result === 'draw' ? '=' : '+'}</button>
       )
     if (g.status === 'forfeit')
       return (

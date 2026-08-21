@@ -19,6 +19,7 @@ import { supportedLocales, type SupportedLocale } from '../domain/locale.ts'
 import type { TimeControlFormat } from '../domain/timeControl.ts'
 import type { TieBreak, TieBreakType } from '../domain/tieBreak.ts'
 import { normalizeGamesSente } from '../components/tournament/crosstable/crosstableModel.ts'
+import { normalizeGame } from '../components/tournament/pairings/pairingsModel.ts'
 import type { PlayerRank } from '../domain/playerRating.ts'
 
 export type ScheduleRow =
@@ -513,7 +514,7 @@ export function useTournamentForm(tournamentId: string | undefined) {
     }
   }, [tournamentId, firebaseUser, user, i18n.language, navigate, createDraftRetryCount])
 
-  // Adjust state during render (React 19 pattern вЂ” no useEffect needed)
+  // Adjust state during render (React 19 pattern — no useEffect needed)
   if (tournament && initializedTournamentId !== tournament.id) {
     setInitializedTournamentId(tournament.id)
     const initial = tournamentToFormState(tournament)
@@ -1028,7 +1029,9 @@ export function useTournamentForm(tournamentId: string | undefined) {
         ...state,
         games: [
           ...state.games.filter((g) => g.round !== round),
-          ...gamesForRound.filter((g) => g.round === round),
+          ...gamesForRound
+            .filter((g) => g.round === round)
+            .map((g) => normalizeGame(g, state.currentRound)),
         ],
       }))
     },
@@ -1040,6 +1043,7 @@ export function useTournamentForm(tournamentId: string | undefined) {
       updateForm((state) => ({
         ...state,
         currentRound: round,
+        games: state.games.map((g) => normalizeGame(g, round)),
       }))
     },
     [updateForm]
@@ -1052,7 +1056,9 @@ export function useTournamentForm(tournamentId: string | undefined) {
       return {
         ...state,
         currentRound: newCurrentRound,
-        games: state.games.filter((g) => g.round !== oldCurrentRound + 1),
+        games: state.games
+          .filter((g) => g.round !== oldCurrentRound + 1)
+          .map((g) => normalizeGame(g, newCurrentRound)),
       }
     })
   }, [updateForm])

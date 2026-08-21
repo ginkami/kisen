@@ -13,9 +13,10 @@ interface PlayerCardProps {
   toggleChecked?: boolean
   onToggleChange?: (checked: boolean) => void
   toggleTooltip?: string
+  toggleDisabled?: boolean
 }
 
-export function PlayerCard({ player, locale, points, startingPoints, onStartingPointsChange, toggleChecked, onToggleChange, toggleTooltip }: PlayerCardProps) {
+export function PlayerCard({ player, locale, points, startingPoints, onStartingPointsChange, toggleChecked, onToggleChange, toggleTooltip, toggleDisabled }: PlayerCardProps) {
     const { t } = useTranslation()
     const localeData = player.locales[locale] ?? player.locales.ru ?? player.locales.en
     const Flag = Flags[player.nationality.toUpperCase() as keyof typeof Flags]
@@ -39,7 +40,7 @@ export function PlayerCard({ player, locale, points, startingPoints, onStartingP
                   checked={toggleChecked ?? true}
                   onChange={onToggleChange ? (e) => onToggleChange(e.target.checked) : undefined}
                   className="toggle toggle-neutral toggle-xs -mr-2"
-                  disabled={!onToggleChange}
+                  disabled={!onToggleChange || toggleDisabled}
                 />
               </label>
             )}

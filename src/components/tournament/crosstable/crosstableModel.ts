@@ -2,7 +2,7 @@ import { uuidv7 } from 'uuidv7'
 import type { Game, GameResult } from '../../../domain/tournament.ts'
 import type { TieBreak, TieBreakType } from '../../../domain/tieBreak.ts'
 import type { PlayerRank } from '../../../domain/playerRating.ts'
-import { calculateParticipantPoints } from '../pairings/pairingsModel.ts'
+import { calculateParticipantPoints, deriveGameStatus } from '../pairings/pairingsModel.ts'
 
 // ---------------------------------------------------------------------------
 // Rank badge colors
@@ -168,7 +168,7 @@ function calcWinsCount(games: Game[], participantId: number, upToRound: number):
     const isP1 = g.player1 === participantId
     const isP2 = g.player2 === participantId
     if (!isP1 && !isP2) continue
-    if (g.status === 'bye' && isP1) { wins++; continue }
+    if (g.status === 'bye' && isP1 && g.result !== 'draw') { wins++; continue }
     if (resultPointsForParticipant(g, participantId) === 1) wins++
   }
   return wins
@@ -288,6 +288,7 @@ export function parseCellInput(
 ): ParsedCell | 'bye' | 'forfeit' | null {
   const s = input.trim()
   if (s === '+') return 'bye'
+  if (s === '=') return 'bye_draw'
   if (s === '-') return 'forfeit'
 
   let rest = s
@@ -329,7 +330,7 @@ export function parseCellInput(
     }
   }
   if (tail.length === 0 && result == null && rest.length > 0) {
-    // 'rest' started with a handicap sign but no result was parsed and tail empty вЂ”
+    // 'rest' started with a handicap sign but no result was parsed and tail empty —
     // handled above; here nothing left to do
   }
   return { oppPlace, isSente, result, handicap }
@@ -344,7 +345,7 @@ export function normalizeGamesSente(games: Game[], considerSente: boolean): Game
     : games
 }
 /** Prefix regex: every valid partial input for on-the-fly filtering. */
-export const CELL_PARTIAL_RE = /^(\+|-|\^|\^?\d{1,3}[+\-=]?[-+]?(L|B|R(L)?|[24568]p?|1(0p?)?)?)?$/
+export const CELL_PARTIAL_RE = /^(\+|=|-|\^|\^?\d{1,3}[+\-=]?[-+]?(L|B|R(L)?|[24568]p?|1(0p?)?)?)?$/
 
 /** Serialize button content into input text. */
 export function gameToCellInput(
@@ -354,7 +355,7 @@ export function gameToCellInput(
   considerSente: boolean
 ): string {
   if (!game) return ''
-  if (game.status === 'bye' && game.player1 === pid) return '+'
+  if (game.status === 'bye' && game.player1 === pid) return game.result === 'draw' ? '=' : '+'
   if (game.status === 'forfeit') return '-'
   const isP1 = game.player1 === pid
   let prefix = ''
@@ -389,7 +390,8 @@ export function withCellEdited(
   pid: number,
   round: number,
   input: string,
-  considerSente: boolean
+  considerSente: boolean,
+  currentRound: number = 0,
 ): Game[] | null {
   if (input.trim() === '') return null
   const parsed = parseCellInput(input, considerSente)
@@ -402,7 +404,7 @@ export function withCellEdited(
   const otherRounds = allGames.filter((g) => g.round !== round)
   let roundGames = allGames.filter((g) => g.round === round)
 
-  if (parsed === 'bye' || parsed === 'forfeit') {
+  if (parsed === 'bye' || parsed === 'bye_draw' || parsed === 'forfeit') {
     // Remove the player's current game (former opponent becomes unpaired)
     roundGames = roundGames.filter(
       (g) => !(g.player1 === pid || g.player2 === pid)
@@ -413,7 +415,7 @@ export function withCellEdited(
       player2: null,
       sente: considerSente ? 'player1' : 'unknown',
       handicap: null,
-      result: parsed === 'forfeit' ? 'player2_won' : null,
+      result: parsed === 'forfeit' ? 'player2_won' : parsed === 'bye_draw' ? 'draw' : 'player1_won',
       status: parsed === 'forfeit' ? 'forfeit' : 'bye',
       round,
     })
@@ -436,11 +438,11 @@ export function withCellEdited(
   const player1 = pIsP1 ? pid : oppId
   const player2 = pIsP1 ? oppId : pid
 
-  // Result from edited player's perspective в†’ player1 perspective
+  // Result from edited player's perspective → player1 perspective
   let result: GameResult | null = null
   if (parsed.result != null) {
     if (parsed.result === 'draw') result = 'draw'
-    else if (pIsP1) result = parsed.result // edited player is player1 вЂ” as-is
+    else if (pIsP1) result = parsed.result // edited player is player1 — as-is
     else result = parsed.result === 'player1_won' ? 'player2_won' : 'player1_won'
   }
 
@@ -455,7 +457,7 @@ export function withCellEdited(
       ? (pIsP1 ? parsed.handicap : handicapForView(parsed.handicap, false)) as Game['handicap']
       : null,
     result,
-    status: 'not_started',
+    status: deriveGameStatus({ player1: player1, player2: player2, result, status: 'not_started', round } as Game, currentRound),
     round,
   })
 

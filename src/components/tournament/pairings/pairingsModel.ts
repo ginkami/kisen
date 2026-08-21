@@ -1,5 +1,5 @@
 import { uuidv7 } from 'uuidv7'
-import type { Game, GameResult, Participant, Sente } from '../../../domain/tournament.ts'
+import type { Game, GameResult, GameStatus, Participant, Sente } from '../../../domain/tournament.ts'
 import type { ParticipantRow } from '../../../hooks/useTournamentForm.ts'
 import type { Player } from '../../../domain/player.ts'
 
@@ -30,6 +30,53 @@ export function applyLoneGameInvariant(game: Game): Game {
     result: 'player1_won',
     handicap: null,
   }
+}
+
+// --- Game status lifecycle ---
+
+/**
+ * Derives the game status from the game's own fields and the tournament's currentRound.
+ * - forfeit stays forfeit (stored state)
+ * - lone non-forfeit (player2 == null) stays bye (stored state)
+ * - paired with result → completed
+ * - paired without result in active round → live
+ * - paired without result otherwise → not_started
+ */
+export function deriveGameStatus(game: Game, currentRound: number): GameStatus {
+  if (game.status === 'forfeit') return 'forfeit'
+  if (game.player2 == null) return 'bye'
+  if (game.result != null) return 'completed'
+  return game.round === currentRound ? 'live' : 'not_started'
+}
+
+/**
+ * Normalizes a game: derives status and re-applies the lone-game invariant.
+ * Returns the same reference when nothing changes.
+ */
+export function normalizeGame(game: Game, currentRound: number): Game {
+  // Forfeit games: status stays forfeit, no changes needed
+  if (game.status === 'forfeit') return game
+
+  // Bye games: enforce lone-game invariant
+  if (game.player2 == null) {
+    const validByeResult = game.result === 'player1_won' || game.result === 'draw'
+    const result: GameResult | null = validByeResult ? game.result : 'player1_won'
+    if (game.status !== 'bye' || game.handicap !== null || !validByeResult) {
+      return { ...game, status: 'bye', result, handicap: null }
+    }
+    return game
+  }
+
+  // Paired games: derive status
+  const derivedStatus: GameStatus =
+    game.result != null ? 'completed'
+    : game.round === currentRound ? 'live'
+    : 'not_started'
+
+  if (derivedStatus !== game.status) {
+    return { ...game, status: derivedStatus }
+  }
+  return game
 }
 
 // --- Pure helpers ---
@@ -93,13 +140,14 @@ export function withParticipantDropped(
   participantId: number,
   targetContainer: 'unpaired' | 'players1' | 'players2',
   targetIndex: number,
-  considerSente: boolean
+  considerSente: boolean,
+  currentRound: number = 0,
 ): Game[] {
   const otherRoundsGames = allGames.filter((g) => g.round !== round)
   const roundGames = gamesForRound(allGames, round)
 
   // Separate forfeits from non-forfeit games; forfeits stay outside row indexing
-  const forfeits = roundGames.filter((g) => g.status === 'forfeit')
+  let forfeits = roundGames.filter((g) => g.status === 'forfeit')
   let pairGames = roundGames.filter((g) => g.status !== 'forfeit')
 
   // Build lookup maps for sorting
@@ -135,8 +183,28 @@ export function withParticipantDropped(
     .filter((g) => g.player1 !== 0)
 
   if (targetContainer === 'unpaired') {
+    // Past-round forfeit: dropping into unpaired of a past round creates a forfeit game
+    if (round < currentRound) {
+      const hasForfeit = forfeits.some((g) => g.player1 === participantId)
+      if (!hasForfeit) {
+        forfeits.push({
+          id: uuidv7(),
+          player1: participantId,
+          player2: null,
+          sente: considerSente ? 'player1' : 'unknown',
+          handicap: null,
+          result: 'player2_won',
+          status: 'forfeit',
+          round,
+        })
+      }
+    }
     return [...otherRoundsGames, ...forfeits, ...pairGames]
   }
+
+  // Joining a pair: remove the participant's forfeit game for this round
+  // (a participant cannot have two games in the same round).
+  forfeits = forfeits.filter((g) => g.player1 !== participantId)
 
   if (targetContainer === 'players1') {
     // Ensure targetIndex row exists
@@ -169,13 +237,12 @@ export function withParticipantDropped(
         player1: participantId,
       })
     } else if (target.player2 == null && target.player1 !== 0 && target.player1 !== participantId) {
-      // Pair completion — reset result to null (clear stale bye result)
-      pairGames[targetIndex] = {
+      // Pair completion — reset result to null (clear stale bye result), derive status
+      pairGames[targetIndex] = normalizeGame({
         ...target,
         player2: participantId,
-        status: 'not_started',
         result: null,
-      }
+      }, currentRound)
     } else if (target.player2 != null && target.player2 !== participantId) {
       // Slot occupied — append new bye row at end
       pairGames.push({
@@ -194,14 +261,28 @@ export function withParticipantDropped(
 
 export function withResultCycled(
   allGames: Game[],
-  gameId: string
+  gameId: string,
+  direction: 1 | -1 = 1,
+  currentRound: number = 0,
 ): Game[] {
-  const cycle: (GameResult | null)[] = [null, 'player1_won', 'player2_won', 'draw']
   return allGames.map((g) => {
     if (g.id !== gameId) return g
+
+    // Bye rows: cycle only between 'player1_won' and 'draw'
+    if (g.player2 == null && g.status !== 'forfeit') {
+      const byeCycle: GameResult[] = ['player1_won', 'draw']
+      const currentIdx = byeCycle.indexOf(g.result as GameResult)
+      const startIdx = currentIdx === -1 ? 0 : currentIdx
+      const nextIdx = (startIdx + direction + byeCycle.length) % byeCycle.length
+      return normalizeGame({ ...g, result: byeCycle[nextIdx] }, currentRound)
+    }
+
+    // Paired rows: 4-state cycle
+    const cycle: (GameResult | null)[] = [null, 'player1_won', 'player2_won', 'draw']
     const currentIdx = cycle.indexOf(g.result)
-    const nextIdx = (currentIdx + 1) % cycle.length
-    return { ...g, result: cycle[nextIdx] }
+    const startIdx = currentIdx === -1 ? 0 : currentIdx
+    const nextIdx = (startIdx + direction + cycle.length) % cycle.length
+    return normalizeGame({ ...g, result: cycle[nextIdx] }, currentRound)
   })
 }
 
@@ -383,8 +464,10 @@ export function calculateParticipantPoints(
     if (g.status === 'bye') {
       // Skip bye in the excluded round (hypothetical point not yet earned)
       if (excludeByesInRound != null && g.round === excludeByesInRound) continue
-      // Bye counts as a win
-      if (isPlayer1) points += 1
+      // Bye contributes its result value: draw = 0.5, win/absent = 1
+      if (isPlayer1) {
+        points += g.result === 'draw' ? 0.5 : 1
+      }
       continue
     }
 
@@ -449,44 +532,35 @@ export function resultToSymbol(result: GameResult | null): string {
 
 export function withPlayersSwapped(
   allGames: Game[],
-  round: number,
-  rowIndex: number
+  gameId: string,
 ): Game[] {
-  const otherRounds = allGames.filter((g) => g.round !== round)
-  const roundGames = gamesForRound(allGames, round)
-  const forfeits = roundGames.filter((g) => g.status === 'forfeit')
-  const pairGames = roundGames.filter((g) => g.status !== 'forfeit')
+  const target = allGames.find((g) => g.id === gameId)
+  if (!target || target.player2 == null) return allGames // bye or not found — nothing to swap
 
-  if (rowIndex < 0 || rowIndex >= pairGames.length) return allGames
-  const game = pairGames[rowIndex]
-  if (game.player2 == null) return allGames // bye — nothing to swap
-
-  const flippedSente: Sente =
-    game.sente === 'player1' ? 'player2'
-    : game.sente === 'player2' ? 'player1'
-    : 'unknown'
-
-  let flippedResult = game.result
-  if (game.result === 'player1_won') flippedResult = 'player2_won'
-  else if (game.result === 'player2_won') flippedResult = 'player1_won'
+  let flippedResult = target.result
+  if (target.result === 'player1_won') flippedResult = 'player2_won'
+  else if (target.result === 'player2_won') flippedResult = 'player1_won'
 
   // Flip handicap sign: - (player1 gives) ↔ + (player2 gives)
-  let flippedHandicap = game.handicap
-  if (game.handicap != null) {
-    const sign = game.handicap[0] === '-' ? '+' : '-'
-    flippedHandicap = `${sign}${game.handicap.slice(1)}` as Game['handicap']
+  let flippedHandicap = target.handicap
+  if (target.handicap != null) {
+    const sign = target.handicap[0] === '-' ? '+' : '-'
+    flippedHandicap = `${sign}${target.handicap.slice(1)}` as Game['handicap']
   }
 
-  pairGames[rowIndex] = {
-    ...game,
-    player1: game.player2,
-    player2: game.player1,
-    sente: flippedSente,
-    result: flippedResult,
-    handicap: flippedHandicap,
-  }
-
-  return [...otherRounds, ...forfeits, ...pairGames]
+  // sente stays attached to the position (unchanged) — under the project invariant
+  // (sente ≡ 'player1' when considerSente), the sente holder swaps with the cards.
+  return allGames.map((g) => {
+    if (g.id !== gameId) return g
+    return {
+      ...g,
+      player1: target.player2,
+      player2: target.player1,
+      sente: target.sente,
+      result: flippedResult,
+      handicap: flippedHandicap,
+    }
+  })
 }
 
 // ---------------------------------------------------------------------------
@@ -505,11 +579,64 @@ export function handicapToSymbol(handicap: string | null): string {
   return handicap ?? '='
 }
 
-export function withHandicapCycled(allGames: Game[], gameId: string): Game[] {
+export function withHandicapCycled(
+  allGames: Game[],
+  gameId: string,
+  direction: 1 | -1 = 1,
+): Game[] {
   return allGames.map((g) => {
     if (g.id !== gameId) return g
     const currentIdx = HANDICAP_CYCLE.indexOf(g.handicap as string | null)
-    const nextIdx = (currentIdx + 1) % HANDICAP_CYCLE.length
+    const startIdx = currentIdx === -1 ? 0 : currentIdx
+    const nextIdx = (startIdx + direction + HANDICAP_CYCLE.length) % HANDICAP_CYCLE.length
     return { ...g, handicap: HANDICAP_CYCLE[nextIdx] as Game['handicap'] }
   })
+}
+
+export function withHandicapReset(allGames: Game[], gameId: string): Game[] {
+  const target = allGames.find((g) => g.id === gameId)
+  if (!target || target.handicap === null) return allGames
+  return allGames.map((g) => {
+    if (g.id !== gameId) return g
+    return { ...g, handicap: null }
+  })
+}
+
+/**
+ * Idempotent auto-forfeits for participants with no game in a past round.
+ * Returns the same array reference when nothing to add.
+ */
+export function withAutoForfeits(
+  allGames: Game[],
+  participants: Participant[],
+  round: number,
+  currentRound: number,
+  considerSente: boolean,
+): Game[] {
+  // Only applies to past rounds
+  if (round >= currentRound) return allGames
+
+  const roundGames = gamesForRound(allGames, round)
+  const covered = new Set<number>()
+  for (const g of roundGames) {
+    covered.add(g.player1)
+    if (g.player2 != null) covered.add(g.player2)
+  }
+
+  const missing = participants.filter((p) => !covered.has(p.id))
+  if (missing.length === 0) return allGames
+
+  const otherRounds = allGames.filter((g) => g.round !== round)
+  const newForfeits: Game[] = missing.map((p) => ({
+    id: uuidv7(),
+    player1: p.id,
+    player2: null,
+    sente: considerSente ? 'player1' : 'unknown',
+    handicap: null,
+    result: 'player2_won' as const,
+    status: 'forfeit' as const,
+    round,
+  }))
+
+  return [...otherRounds, ...roundGames, ...newForfeits]
 }

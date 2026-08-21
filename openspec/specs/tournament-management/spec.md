@@ -211,10 +211,10 @@ The `PairingsSection` header SHALL contain a right-aligned "Опубликова
 
 ### Requirement: Pairings board layout and drag-and-drop
 
-The `PairingsBoard` for a round SHALL render three drop containers: `unpaired`, `players1`, and `players2`. Each container holds draggable participant cards derived from `tournament.participants`. Cards SHALL be draggable between containers using `@dnd-kit`. Dropping a card into `players1` or `players2` at a specific row position forms a pair with the card in the opposite column at the same row; when the target row holds a lone game, the completed game SHALL have `result = null` and `status = 'not_started'`, so the row's result and handicap controls become enabled. When the target row is empty, the dropped participant SHALL be stored as `player1` of a new lone game regardless of which column (`players1` or `players2`) received the drop. Dropping a card into the `unpaired` container SHALL remove that participant from any game in the round and append the card to the bottom of the `unpaired` container. When the active round equals `currentRound + 1` (the next round to be prepared), opening the round SHALL initialize all participants into the `unpaired` container if no games exist for that round yet.
+The `PairingsBoard` for a round SHALL render three drop containers: `unpaired`, `players1`, and `players2`. Each container holds draggable participant cards derived from `tournament.participants`. Cards SHALL be draggable between containers using `@dnd-kit`. Dropping a card into `players1` or `players2` at a specific row position forms a pair with the card in the opposite column at the same row; when the target row holds a lone game, the completed game SHALL have `result = null` and a status derived by the game-status lifecycle rule (see the Game status lifecycle requirement), so the row's result and handicap controls become enabled. When the target row is empty, the dropped participant SHALL be stored as `player1` of a new lone game regardless of which column (`players1` or `players2`) received the drop. Dropping a card into the `unpaired` container SHALL remove that participant from any game in the round and append the card to the bottom of the `unpaired` container; when the active round is a past round (strictly earlier than `currentRound`), the participant SHALL instead receive a forfeit game for that round (see the Auto-forfeit for unpaired participants in past rounds requirement). When the active round equals `currentRound + 1` (the next round to be prepared), opening the round SHALL initialize all participants into the `unpaired` container if no games exist for that round yet. When a participant who currently has a forfeit game (`status = 'forfeit'`) is dropped into `players1` or `players2`, the forfeit game SHALL be removed so that the participant has exactly one game in the round (the newly formed pair). A participant SHALL NOT have two games in the same round.
 
 
-When a card is dragged from `players1` at row N and dropped onto `players2` at the same row N (or vice versa), the system SHALL swap the two players in the game instead of creating a new bye. The swap SHALL exchange `player1` and `player2` on the game, flip `sente` (`player1` <-> `player2`, `unknown` unchanged), and flip a non-null result (`player1_won` <-> `player2_won`, `draw` unchanged). The swap SHALL be triggered when the drop target is a `p1-row-N` or `p2-row-N` zone AND the dragged participant currently occupies the opposite column at the same row index.
+When a card is dragged from `players1` at row N and dropped onto `players2` at the same row N (or vice versa), the system SHALL swap the two players in the game instead of creating a new bye. The swap SHALL exchange `player1` and `player2` on the game, keep `sente` attached to the position (unchanged — the player in position `player1` is sente when `considerSente` is true), and flip a non-null result (`player1_won` ↔ `player2_won`, `draw` unchanged). The swap SHALL be triggered when the drop target is a `p1-row-N` or `p2-row-N` zone AND the dragged participant currently occupies the opposite column at the same row index. The swap SHALL target the game displayed at that row (identified by game id), independent of the storage order of `games`. The sente symbols ☗/☖ in the crosstable SHALL reflect the swap immediately (no save required), because `sente` remains `'player1'` under the project invariant and `formStateToUpdateInput` forcing `sente='player1'` on save is a no-op.
 #### Scenario: Next round initializes unpaired
 
 - **WHEN** the user opens the round `currentRound + 1` for the first time and no games exist for that round
@@ -252,8 +252,8 @@ When a card is dragged from `players1` at row N and dropped onto `players2` at t
 
 - **WHEN** the user drags the `players1` card from row N and drops it onto the `players2` drop zone of the same row N
 - **THEN** the game at row N has `player1` and `player2` exchanged
-- **AND** `sente` is flipped (`player1` -> `player2`, `player2` -> `player1`, `unknown` unchanged)
-- **AND** if the game had a non-null `result`, it is flipped (`player1_won` <-> `player2_won`; `draw` unchanged)
+- **AND** `sente` is attached to the position (unchanged � the player in position `player1` is sente when `considerSente` is true)
+- **AND** if the game had a non-null `result`, it is flipped (`player1_won` - `player2_won`; `draw` unchanged)
 
 #### Scenario: Swap preserves game identity
 
@@ -261,18 +261,30 @@ When a card is dragged from `players1` at row N and dropped onto `players2` at t
 - **THEN** only `player1`, `player2`, `sente`, and `result` fields change; all other fields remain unchanged
 ### Requirement: Pairings result button
 
-Between each `players1`/`players2` row pair the board SHALL render a result button that cycles through `?` → `>` → `<` → `=`. The symbols map to `Game.result` as `null` / `'player1_won'` / `'player2_won'` / `'draw'`. Result buttons SHALL be disabled when the active round is not equal to `currentRound`.
+Between each `players1`/`players2` row pair the board SHALL render a result button. For paired rows (both players present), the button cycles through `?` → `>` → `<` → `=` (4 states). The symbols map to `Game.result` as `null` / `'player1_won'` / `'player2_won'` / `'draw'`. For bye rows (lone game, `player2 == null`, `status != 'forfeit'`), the button cycles between `>` (`'player1_won'`) and `=` (`'draw'`), keeping `status: 'bye'`. Right-click (`onContextMenu` with `preventDefault()`) reverses the cycle direction. The result button SHALL be disabled only when `status === 'forfeit'`.
 
-#### Scenario: Cycling the result
+#### Scenario: Cycling the result forward
 
-- **WHEN** the user clicks the result button of a pair whose `result` is `null`
+- **WHEN** the user left-clicks the result button of a pair whose `result` is `null`
 - **THEN** the result becomes `'player1_won'` and the button shows `>`
-- **AND** subsequent clicks cycle to `'player2_won'` (`<`), then `'draw'` (`=`), then back to `null` (`?`)
+- **AND** subsequent left-clicks cycle to `'player2_won'` (`<`), then `'draw'` (`=`), then back to `null` (`?`)
 
-#### Scenario: Result button disabled before publication
+#### Scenario: Cycling the result backward
 
-- **WHEN** the active round is not equal to `currentRound`
-- **THEN** all result buttons in that round's board are disabled
+- **WHEN** the user right-clicks the result button of a pair whose `result` is `'draw'`
+- **THEN** the result becomes `'player2_won'` and the button shows `<`
+- **AND** subsequent right-clicks cycle to `'player1_won'` (`>`), then `null` (`?`), then back to `'draw'` (`=`)
+
+#### Scenario: Bye result cycling
+
+- **WHEN** the user clicks the result button of a bye row whose `result` is `'player1_won'`
+- **THEN** the result becomes `'draw'` and the button shows `=`
+- **AND** the next click returns to `'player1_won'` and the button shows `>`
+
+#### Scenario: Result button disabled for forfeit rows
+
+- **WHEN** a row has `status === 'forfeit'`
+- **THEN** the result button for that row is disabled
 
 ### Requirement: Pairings card lock after result
 
@@ -499,23 +511,34 @@ The locale dictionaries `src/locales/{ru,en}/translation.json` SHALL add keys: `
 
 ### Requirement: Handicap cycling button
 
-Each pairing row in the `PairingsBoard` SHALL render a handicap button between the `players1` and `players2` slots (adjacent to the result button). The button SHALL display the current `Game.handicap` value as a short code string, or `=` when `handicap` is `null`. Clicking the button SHALL cycle `Game.handicap` through the sequence: `null -> -L -> -B -> -R -> -RL -> -2p -> -4p -> -5p -> -6p -> -8p -> -10p -> +L -> +B -> +R -> +RL -> +2p -> +4p -> +5p -> +6p -> +8p -> +10p -> null`. The button SHALL carry a DaisyUI tooltip reading "Игра с форой" (ru) / "Game with handicap" (en). The handicap button SHALL be disabled when the result button is disabled (i.e. the same `disabled` condition applies).
+Each pairing row in the `PairingsBoard` SHALL render a handicap button between the `players1` and `players2` slots (adjacent to the result button). The button SHALL display the current `Game.handicap` value as a short code string, or `=` when `handicap` is `null`. Left-clicking the button SHALL cycle `Game.handicap` forward through the sequence: `null -> -L -> -B -> -R -> -RL -> -2p -> -4p -> -5p -> -6p -> -8p -> -10p -> +L -> +B -> +R -> +RL -> +2p -> +4p -> +5p -> +6p -> +8p -> +10p -> null`. Right-click (`onContextMenu` with `preventDefault()`) SHALL cycle backward through the same sequence. Double-click SHALL reset `handicap` to `null`; single clicks SHALL be deferred ~250 ms so that a double-click does not first advance the cycle. The button SHALL carry a DaisyUI tooltip reading "Игра с форой" (ru) / "Game with handicap" (en). The handicap button SHALL be disabled for lone games (`player2 == null`, covering both bye and forfeit rows).
 
 #### Scenario: Cycling from no handicap to first handicap code
 
-- **WHEN** the user clicks the handicap button of a game whose `handicap` is `null`
+- **WHEN** the user left-clicks the handicap button of a game whose `handicap` is `null`
 - **THEN** `game.handicap` becomes `'-L'`
 - **AND** the button displays `-L`
 
 #### Scenario: Cycling through all codes wraps around
 
-- **WHEN** the user clicks the handicap button repeatedly through all 21 states
+- **WHEN** the user left-clicks the handicap button repeatedly through all 21 states
 - **THEN** after `'+10p'` the next click returns `handicap` to `null` and the button displays `=`
 
-#### Scenario: Handicap button disabled in locked state
+#### Scenario: Right-click cycles backward
 
-- **WHEN** the result button for a row is disabled
-- **THEN** the handicap button in the same row is also disabled
+- **WHEN** the user right-clicks the handicap button of a game whose `handicap` is `'-L'`
+- **THEN** `game.handicap` becomes `null` and the button displays `=`
+
+#### Scenario: Double-click resets handicap
+
+- **WHEN** the user double-clicks the handicap button of a game whose `handicap` is `'+4p'`
+- **THEN** `game.handicap` becomes `null` and the button displays `=`
+- **AND** the deferred single-click timer is cancelled and the cycle does not advance
+
+#### Scenario: Handicap button disabled for lone games
+
+- **WHEN** a row renders a lone game (`player2 == null`, bye or forfeit)
+- **THEN** the handicap button for that row is disabled
 
 #### Scenario: Tooltip shown on handicap button
 
@@ -525,27 +548,27 @@ Each pairing row in the `PairingsBoard` SHALL render a handicap button between t
 
 ### Requirement: Lone game invariant
 
-Any pairings-board game with no opponent (player2 == null) that is not an auto-forfeit game (status == 'forfeit') SHALL have status: 'bye', esult: 'player1_won', and handicap: null. The pairings model SHALL establish this invariant whenever it creates or mutates a lone game (drop into an empty row of either column, removal of an opponent from a pair). The result and handicap buttons SHALL be disabled for lone rows.
+Any pairings-board game with no opponent (player2 == null) that is not an auto-forfeit game (status == 'forfeit') SHALL have status: 'bye', result: 'player1_won' (default) or result: 'draw', and handicap: null. The pairings model SHALL establish this invariant whenever it creates or mutates a lone game (drop into an empty row of either column, removal of an opponent from a pair). The result button is enabled for bye rows (cycles between '>' and '='). The handicap button SHALL be disabled for lone rows.
 
 #### Scenario: Lone game created by drop has invariant shape
 
 - **WHEN** a participant is dropped into an empty row of players1 or players2
-- **THEN** the created game has player2 = null, status = 'bye', esult = 'player1_won', handicap = null
+- **THEN** the created game has player2 = null, status = 'bye', result = 'player1_won', handicap = null
 
 #### Scenario: Invariant restored when a pair is broken
 
 - **WHEN** one member of a pair is moved to unpaired
-- **THEN** the remaining lone game has status = 'bye', esult = 'player1_won', handicap = null
+- **THEN** the remaining lone game has status = 'bye', result = 'player1_won', handicap = null
 
 #### Scenario: Forfeit games are exempt
 
-- **WHEN** a late joiner's auto-forfeit game exists (player2 = null, status = 'forfeit', esult = 'player2_won')
+- **WHEN** a late joiner's auto-forfeit game exists (player2 = null, status = 'forfeit', result = 'player2_won')
 - **THEN** the system does not rewrite its fields to lone-game values
 
 #### Scenario: Handicap button disabled for lone games
 
 - **WHEN** a row renders a lone game (player2 == null)
-- **THEN** the handicap button for that row is disabled (same disabled condition as the result button)
+- **THEN** the handicap button for that row is disabled
 
 ### Requirement: Pairings card draggability
 
@@ -553,7 +576,7 @@ Participant cards on the pairings board SHALL remain draggable at all times - re
 
 #### Scenario: Cards with a recorded result remain draggable
 
-- **WHEN** a paired game has esult = 'player1_won'
+- **WHEN** a paired game has result = 'player1_won'
 - **THEN** both participant cards of the pair can be dragged (to unpaired or into another row)
 
 #### Scenario: Dragging out of a scored pair applies pair-break normalization
@@ -563,5 +586,72 @@ Participant cards on the pairings board SHALL remain draggable at all times - re
 
 #### Scenario: Lone game cards stay draggable
 
-- **WHEN** a lone game has esult = 'player1_won' (bye point)
+- **WHEN** a lone game has result = 'player1_won' (bye point)
 - **THEN** the participant card of that lone game remains draggable
+
+### Requirement: Game status lifecycle
+
+Every `Game.status` field SHALL be derived by a single rule (`deriveGameStatus(game, currentRound)`): a game with stored `status = 'forfeit'` keeps `forfeit`; a game with stored `status = 'bye'` keeps `bye`; a paired game (`player2 != null`) with a non-null `result` is `completed`; a paired game without a result in the active round is `live`; a paired game without a result in any other round is `not_started`. A `normalizeGame(game, currentRound)` wrapper also re-applies the lone-game invariant (bye: `handicap: null`, default `result: 'player1_won'`) and returns the same object reference when nothing changes. All mutation paths (`updateGames`, `publishDraw`, `unpublishDraw`, and every `pairingsModel` mutation) SHALL normalize `Game.status` accordingly.
+
+#### Scenario: Reference-stable normalization
+
+- **WHEN** `normalizeGame` is called on a game whose derived status equals its stored status
+- **THEN** the same object reference is returned unchanged
+
+#### Scenario: Recording a result marks the game completed
+
+- **WHEN** a paired game in the active round without a result gets `result = 'player1_won'`
+- **THEN** its status becomes `'completed'`
+
+#### Scenario: Publishing a round marks its unplayed games live
+
+- **WHEN** `publishDraw` sets `currentRound` to R and round R contains paired games without results
+- **THEN** those games have `status = 'live'`
+
+#### Scenario: Unpublishing reverts unplayed games to not_started
+
+- **WHEN** `unpublishDraw` decrements `currentRound` from R to R-1 and round R still has paired games without results
+- **THEN** those games have `status = 'not_started'`
+
+#### Scenario: Bye and forfeit statuses are preserved
+
+- **WHEN** normalization runs over games with `status = 'bye'` or `status = 'forfeit'`
+- **THEN** their statuses are unchanged
+
+### Requirement: Auto-forfeit for unpaired participants in past rounds
+
+When the active round is a past round (strictly earlier than `currentRound`), every tournament participant who has no game in that round SHALL automatically receive a forfeit game with `player1` = participant id, `player2 = null`, `status = 'forfeit'`, `result = 'player2_won'`, `sente = considerSente ? 'player1' : 'unknown'`, and `round` = active round. This SHALL happen (a) when a participant is dropped into the `unpaired` container while a past round is active, and (b) when a past round with unpaired participants is opened, idempotently. Participants who already have any game in the round (paired, bye, or forfeit) SHALL NOT receive another. Auto-forfeits SHALL NOT be created for the current or a future round.
+
+#### Scenario: Dropping a participant to unpaired in a past round creates a forfeit
+
+- **WHEN** `currentRound = 3`, the user views round 2, and drags a paired participant into `unpaired`
+- **THEN** the participant has a `status = 'forfeit'` game with `result = 'player2_won'` in round 2
+
+#### Scenario: Opening a past round with unpaired participants creates forfeits
+
+- **WHEN** `currentRound = 3`, round 1 has two participants with no games, and the user opens round 1
+- **THEN** both participants receive `status = 'forfeit'` games for round 1
+
+#### Scenario: Idempotent auto-forfeits
+
+- **WHEN** a participant already has a forfeit game in the past round and the round is opened again or re-rendered
+- **THEN** no duplicate game is created
+
+#### Scenario: No auto-forfeit in current or future rounds
+
+- **WHEN** the active round is equal to or later than `currentRound` and a participant is unpaired
+- **THEN** no forfeit game is created for that participant
+
+### Requirement: Forfeit toggle disabled in past-round unpaired container
+
+When the active round is a past round (strictly earlier than `currentRound`), the forfeit toggle on participant cards in the `unpaired` container SHALL be disabled. This prevents the arbiter from removing a forfeit game in a round that has already been played, since every unpaired participant in a past round must carry a forfeit game. The toggle on cards in the `players1`/`players2` pairing rows SHALL remain interactive in all rounds.
+
+#### Scenario: Forfeit toggle disabled for unpaired cards in a past round
+
+- **WHEN** `currentRound = 3` and the user views round 1
+- **THEN** the forfeit toggle on every card in the `unpaired` container is disabled
+
+#### Scenario: Forfeit toggle enabled for paired cards in a past round
+
+- **WHEN** `currentRound = 3` and the user views round 1
+- **THEN** the forfeit toggle on cards in the `players1`/`players2` pairing rows remains interactive

@@ -1,4 +1,4 @@
-import { useMemo, useCallback, useState } from 'react'
+import { useMemo, useCallback, useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   DndContext,
@@ -35,6 +35,8 @@ import {
   sortRoundGamesByPairStrength,
   withPlayersSwapped,
   withHandicapCycled,
+  withHandicapReset,
+  withAutoForfeits,
   handicapToSymbol,
 } from './pairings/pairingsModel.ts'
 
@@ -68,6 +70,7 @@ function SortableCard({
   cumulativePoints,
   startingPoints,
   onStartingPointsChange,
+  forfeitToggleDisabled,
 }: {
   participantId: number
   participants: Map<number, { participant: Participant; points?: number }>
@@ -79,6 +82,7 @@ function SortableCard({
   cumulativePoints?: number
   startingPoints?: number
   onStartingPointsChange?: (value: number) => void
+  forfeitToggleDisabled?: boolean
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: `p-${participantId}` })
@@ -116,6 +120,7 @@ function SortableCard({
         toggleChecked={!isForfeit}
         onToggleChange={onToggleForfeit}
         toggleTooltip={forfeitTooltip}
+        toggleDisabled={forfeitToggleDisabled}
       />
     </div>
   )
@@ -260,7 +265,7 @@ export function PairingsBoard({
   games,
   participants,
   round,
-  currentRound: _currentRound,
+  currentRound,
   considerSente,
   locale,
   onGamesChange,
@@ -271,7 +276,18 @@ export function PairingsBoard({
 
   // Ensure round/currentRound are valid numbers
   const safeRound = Number.isFinite(round) ? round : 1
+  const safeCurrentRound = Number.isFinite(currentRound) ? currentRound : 0
+  const isPastRound = safeRound < safeCurrentRound
   const { participantsMap, participantArray } = useParticipantData(participants, locale)
+
+  // Auto-forfeit effect: when viewing a past round, create forfeits for unpaired participants
+  useEffect(() => {
+    if (safeRound >= safeCurrentRound || safeCurrentRound === 0) return
+    const withForfeits = withAutoForfeits(games, participantArray, safeRound, safeCurrentRound, considerSente)
+    if (withForfeits !== games) {
+      onGamesChange(withForfeits)
+    }
+  }, [games, participantArray, safeRound, safeCurrentRound, considerSente, onGamesChange])
 
   const containers = useMemo(
     () => containersFromGames(games, participantArray, safeRound),
@@ -369,7 +385,10 @@ export function PairingsBoard({
         (targetContainer === 'players1' && activeInP2 === targetIndex)
 
       if (isSwap) {
-        onGamesChange(withPlayersSwapped(games, safeRound, targetIndex))
+        const targetGame = containers.games[targetIndex]
+        if (targetGame) {
+          onGamesChange(sortRoundGamesByPairStrength(withPlayersSwapped(games, targetGame.id), participantArray, safeRound))
+        }
         return
       }
 
@@ -380,18 +399,19 @@ export function PairingsBoard({
         participantId,
         targetContainer,
         targetIndex,
-        considerSente
+        considerSente,
+        safeCurrentRound,
       )
       onGamesChange(sortRoundGamesByPairStrength(newGames, participantArray, safeRound))
     },
-    [games, containers, participantArray, safeRound, considerSente, onGamesChange]
+    [games, containers, participantArray, safeRound, safeCurrentRound, considerSente, onGamesChange]
   )
 
   const handleResultCycle = useCallback(
-    (gameId: string) => {
-      onGamesChange(withResultCycled(games, gameId))
+    (gameId: string, direction: 1 | -1 = 1) => {
+      onGamesChange(withResultCycled(games, gameId, direction, safeCurrentRound))
     },
-    [games, onGamesChange]
+    [games, onGamesChange, safeCurrentRound]
   )
 
   const handleForfeitToggle = useCallback(
@@ -402,8 +422,15 @@ export function PairingsBoard({
   )
 
   const handleHandicapCycle = useCallback(
+    (gameId: string, direction: 1 | -1 = 1) => {
+      onGamesChange(withHandicapCycled(games, gameId, direction))
+    },
+    [games, onGamesChange]
+  )
+
+  const handleHandicapReset = useCallback(
     (gameId: string) => {
-      onGamesChange(withHandicapCycled(games, gameId))
+      onGamesChange(withHandicapReset(games, gameId))
     },
     [games, onGamesChange]
   )
@@ -469,6 +496,7 @@ export function PairingsBoard({
                 cumulativePoints={pointsMap.get(pid)}
                 startingPoints={startingPointsMap.get(pid)}
                 onStartingPointsChange={updateStartingPoints ? (v) => updateStartingPoints(pid, v) : undefined}
+                forfeitToggleDisabled={isPastRound}
               />
             ))}
             {containers.unpaired.length === 0 && (
@@ -501,7 +529,6 @@ export function PairingsBoard({
                       const p1Id = containers.players1[i]
                       const p2Id = containers.players2[i]
                       const hasResult = game.result != null
-                      const resultDisabled = false
 
                       return (
                         <Row
@@ -511,7 +538,8 @@ export function PairingsBoard({
                           p2Id={p2Id}
                           rowIndex={i}
                           hasResult={hasResult}
-                          resultDisabled={resultDisabled}
+                          resultDisabled={game.status === 'forfeit'}
+                          handicapDisabled={game.player2 == null}
                           forfeitIds={forfeitIds}
                           participantsMap={participantsMap}
                           locale={locale}
@@ -519,6 +547,7 @@ export function PairingsBoard({
                           onResultCycle={handleResultCycle}
                           onForfeitToggle={handleForfeitToggle}
                           onHandicapCycle={handleHandicapCycle}
+                          onHandicapReset={handleHandicapReset}
                           pointsMap={pointsMap}
                           startingPointsMap={startingPointsMap}
                           updateStartingPoints={updateStartingPoints}
@@ -562,6 +591,7 @@ function Row({
   rowIndex,
   hasResult,
   resultDisabled,
+  handicapDisabled,
   forfeitIds,
   participantsMap,
   locale,
@@ -569,6 +599,7 @@ function Row({
   onResultCycle,
   onForfeitToggle,
   onHandicapCycle,
+  onHandicapReset,
   pointsMap,
   startingPointsMap,
   updateStartingPoints,
@@ -579,20 +610,66 @@ function Row({
   rowIndex: number
   hasResult: boolean
   resultDisabled: boolean
+  handicapDisabled: boolean
   forfeitIds: Set<number>
   participantsMap: Map<number, { participant: Participant; points?: number }>
   locale: string
   forfeitTooltip: string
-  onResultCycle: (gameId: string) => void
+  onResultCycle: (gameId: string, direction?: 1 | -1) => void
   onForfeitToggle: (participantId: number, checked: boolean) => void
-  onHandicapCycle: (gameId: string) => void
+  onHandicapCycle: (gameId: string, direction?: 1 | -1) => void
+  onHandicapReset: (gameId: string) => void
   pointsMap?: Map<number, number>
   startingPointsMap?: Map<number, number>
   updateStartingPoints?: (participantId: number, value: number) => void
 }) {
   const { t } = useTranslation()
-  const isLoneGame = game.player2 == null
-  const effectiveResultDisabled = resultDisabled || isLoneGame
+  const handicapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const handleResultContextMenu = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    onResultCycle(game.id, -1)
+  }, [game.id, onResultCycle])
+
+  const handleHandicapClick = useCallback((e: React.MouseEvent) => {
+    if (handicapTimerRef.current) {
+      clearTimeout(handicapTimerRef.current)
+      handicapTimerRef.current = null
+    }
+    // Double click: second click of the series (detail >= 2) resets immediately.
+    // This is more reliable than onDoubleClick across browsers/environments.
+    if (e.detail >= 2) {
+      onHandicapReset(game.id)
+      return
+    }
+    handicapTimerRef.current = setTimeout(() => {
+      handicapTimerRef.current = null
+      onHandicapCycle(game.id, 1)
+    }, 250)
+  }, [game.id, onHandicapCycle, onHandicapReset])
+
+  const handleHandicapDoubleClick = useCallback(() => {
+    if (handicapTimerRef.current) {
+      clearTimeout(handicapTimerRef.current)
+      handicapTimerRef.current = null
+    }
+    onHandicapReset(game.id)
+  }, [game.id, onHandicapReset])
+
+  const handleHandicapContextMenu = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    if (handicapTimerRef.current) {
+      clearTimeout(handicapTimerRef.current)
+      handicapTimerRef.current = null
+    }
+    onHandicapCycle(game.id, -1)
+  }, [game.id, onHandicapCycle])
+
+  useEffect(() => {
+    return () => {
+      if (handicapTimerRef.current) clearTimeout(handicapTimerRef.current)
+    }
+  }, [])
 
   return (
     <>
@@ -624,7 +701,8 @@ function Row({
         <button
           type="button"
           onClick={() => onResultCycle(game.id)}
-          disabled={effectiveResultDisabled}
+          onContextMenu={handleResultContextMenu}
+          disabled={resultDisabled}
           className={`btn btn-sm flex btn-circle relative z-1 ${hasResult ? 'btn-primary' : 'btn-neutral'}`}
           data-val={resultToSymbol(game.result)}
         >
@@ -632,8 +710,10 @@ function Row({
         </button>
         <button
           type="button"
-          onClick={() => onHandicapCycle(game.id)}
-          disabled={effectiveResultDisabled}
+          onClick={handleHandicapClick}
+          onDoubleClick={handleHandicapDoubleClick}
+          onContextMenu={handleHandicapContextMenu}
+          disabled={handicapDisabled}
           className={`btn btn-xs -mt-2.5 btn-circle flex ${game.handicap != null ? 'btn-warning' : ''}`}
         >
           <span className="tooltip tooltip-secondary z-10" data-tip={t('tournament.edit.pairings.handicap')}>

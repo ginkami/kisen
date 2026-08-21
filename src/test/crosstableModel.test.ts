@@ -212,8 +212,8 @@ describe('parseCellInput', () => {
     expect(parseCellInput('++', true)).toBeNull()
   })
 
-  it('rejects =', () => {
-    expect(parseCellInput('=', true)).toBeNull()
+  it('parses = as bye_draw', () => {
+    expect(parseCellInput('=', true)).toBe('bye_draw')
   })
 
   it('rejects 0 (opp number must be >= 1)', () => {
