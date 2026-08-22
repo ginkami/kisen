@@ -6,7 +6,8 @@ export type TieBreakType =
   | 'buchholz_plus'    // Бухгольц суммарный (BH+)
   | 'sonneborn_berger' // Зоннеборн-Бергер (SB)
   | 'direct_encounter' // Личная встреча (DE)
-  | 'wins_count';      // Количество побед 
+  | 'wins_count'       // Количество побед
+  | 'sl_points'        // СЛ Баллы (SL Pts)
 
 export interface BaseTieBreak {
   /** Идентификатор типа коэффициента */

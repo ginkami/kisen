@@ -9,6 +9,7 @@ export const tieBreakTypeSchema = z.enum([
   'sonneborn_berger',
   'direct_encounter',
   'wins_count',
+  'sl_points',
 ])
 
 export type TieBreakType = z.infer<typeof tieBreakTypeSchema>
@@ -32,6 +33,7 @@ export const tieBreakSchema = z.discriminatedUnion('type', [
   baseTieBreakSchema.extend({ type: z.literal('sonneborn_berger') }),
   baseTieBreakSchema.extend({ type: z.literal('direct_encounter') }),
   baseTieBreakSchema.extend({ type: z.literal('wins_count') }),
+  baseTieBreakSchema.extend({ type: z.literal('sl_points') }),
 ])
 
 export type TieBreak = z.infer<typeof tieBreakSchema>

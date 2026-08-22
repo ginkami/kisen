@@ -39,7 +39,7 @@
     "buchholz_median" : {
         "locales": {
             "ru": {
-                "abbr": "УБ",
+                "abbr": "МБ",
                 "title": "Бухгольц медианный"
             },
             "en": {
@@ -93,6 +93,18 @@
             "en": {
                 "abbr": "WIN",
                 "title": "Number of Wins"
+            }
+        }
+    },
+    "sl_points" : {
+        "locales": {
+            "ru": {
+                "abbr": "СЛБ",
+                "title": "СЛ Баллы"
+            },
+            "en": {
+                "abbr": "SL Pts",
+                "title": "SL Points"
             }
         }
     }

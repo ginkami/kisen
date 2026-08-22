@@ -45,20 +45,6 @@ export function rankToColor(rank: PlayerRank): string {
 }
 
 // ---------------------------------------------------------------------------
-// Tie-break abbreviation map (locale-independent column headers)
-// ---------------------------------------------------------------------------
-
-export const TIEBREAK_ABBR: Record<TieBreakType, string> = {
-  points: 'Pts',
-  buchholz: 'BH',
-  buchholz_cut: 'BHC',
-  buchholz_median: 'BHM',
-  buchholz_plus: 'BH+',
-  sonneborn_berger: 'SB',
-  direct_encounter: 'DE',
-  wins_count: 'W',
-}
-
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -193,6 +179,37 @@ function calcDirectEncounter(games: Game[], participantId: number, pointsMap: Ma
 }
 
 // ---------------------------------------------------------------------------
+// SL Points: score-group position mapping
+// ---------------------------------------------------------------------------
+
+const SL_POINTS_BY_POSITION: readonly number[] = [55, 34, 21, 13, 8, 5, 3, 2]
+
+/**
+ * Build a map from points value -> SL Points value.
+ * Groups participants by equal points, orders groups by points descending,
+ * assigns each group the value mapped from the position of its last
+ * (lowest-ranked) member in the overall points-descending list
+ * (cumulative count of participants with points >= the group points;
+ * position >= 9 -> 1).
+ */
+function buildSlPointsByPointsValue(pointsMap: Map<number, number>): Map<number, number> {
+  // Count participants per distinct points value (score group size)
+  const groupSizeByPoints = new Map<number, number>()
+  for (const pts of pointsMap.values()) {
+    groupSizeByPoints.set(pts, (groupSizeByPoints.get(pts) ?? 0) + 1)
+  }
+  // Walk distinct points values best-to-worst; accumulate group sizes
+  const sortedDesc = [...groupSizeByPoints.keys()].sort((a, b) => b - a)
+  const result = new Map<number, number>()
+  let position = 0 // 1-based position of the current group last member
+  for (const pts of sortedDesc) {
+    position += groupSizeByPoints.get(pts) ?? 0
+    result.set(pts, position <= SL_POINTS_BY_POSITION.length ? SL_POINTS_BY_POSITION[position - 1] : 1)
+  }
+  return result
+}
+
+// ---------------------------------------------------------------------------
 // Public: computeStandings
 // ---------------------------------------------------------------------------
 
@@ -207,12 +224,15 @@ export function computeStandings(
     pointsMap.set(p.id, calculateParticipantPoints(allGames, p.id, upToRound, p.startingPoints))
   }
 
+  const hasSlPoints = tieBreaks.some((tb) => tb.type === 'sl_points')
+  const slByPoints = hasSlPoints ? buildSlPointsByPointsValue(pointsMap) : null
+
   const rows: StandingRow[] = participants.map((p) => {
     const points = pointsMap.get(p.id) ?? 0
     const tieBreakValues: Record<TieBreakType, number> = {
       points,
       buchholz: 0, buchholz_cut: 0, buchholz_median: 0, buchholz_plus: 0,
-      sonneborn_berger: 0, direct_encounter: 0, wins_count: 0,
+      sonneborn_berger: 0, direct_encounter: 0, wins_count: 0, sl_points: 0,
     }
     for (const tb of tieBreaks) {
       if (tb.type === 'points' || tb.type === 'direct_encounter') continue
@@ -223,6 +243,7 @@ export function computeStandings(
         case 'buchholz_plus': tieBreakValues.buchholz_plus = calcBuchholzPlus(allGames, p.id, pointsMap, upToRound); break
         case 'sonneborn_berger': tieBreakValues.sonneborn_berger = calcSonnebornBerger(allGames, p.id, pointsMap, upToRound); break
         case 'wins_count': tieBreakValues.wins_count = calcWinsCount(allGames, p.id, upToRound); break
+        case 'sl_points': tieBreakValues.sl_points = slByPoints?.get(points) ?? 1; break
       }
     }
     return { participantId: p.id, place: 0, points, tieBreakValues }

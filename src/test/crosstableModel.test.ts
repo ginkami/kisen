@@ -5,7 +5,7 @@ vi.mock('uuidv7', () => {
   }
 })
 
-import { rankToColor, computeStandings, TIEBREAK_ABBR, parseCellInput, gameToCellInput, withCellEdited, CELL_PARTIAL_RE, handicapForView, normalizeGamesSente } from '../components/tournament/crosstable/crosstableModel.ts'
+import { rankToColor, computeStandings, parseCellInput, gameToCellInput, withCellEdited, CELL_PARTIAL_RE, handicapForView, normalizeGamesSente } from '../components/tournament/crosstable/crosstableModel.ts'
 import type { Game } from '../domain/tournament.ts'
 import type { TieBreak } from '../domain/tieBreak.ts'
 import type { PlayerRank } from '../domain/playerRating.ts'
@@ -31,19 +31,6 @@ describe('rankToColor', () => {
   it('returns dark for 2k', () => { expect(rankToColor('2k')).toBe('oklch(43% 0.020 52.190)') })
   it('returns black for 1d', () => { expect(rankToColor('1d')).toBe('#000') })
   it('returns red-brown for 5d', () => { expect(rankToColor('5d')).toBe('oklch(40.0% 0.12 25.0)') })
-})
-
-describe('TIEBREAK_ABBR', () => {
-  it('has correct abbreviations', () => {
-    expect(TIEBREAK_ABBR.points).toBe('Pts')
-    expect(TIEBREAK_ABBR.buchholz).toBe('BH')
-    expect(TIEBREAK_ABBR.buchholz_cut).toBe('BHC')
-    expect(TIEBREAK_ABBR.buchholz_median).toBe('BHM')
-    expect(TIEBREAK_ABBR.buchholz_plus).toBe('BH+')
-    expect(TIEBREAK_ABBR.sonneborn_berger).toBe('SB')
-    expect(TIEBREAK_ABBR.direct_encounter).toBe('DE')
-    expect(TIEBREAK_ABBR.wins_count).toBe('W')
-  })
 })
 
 describe('computeStandings', () => {
@@ -571,5 +558,70 @@ describe('withCellEdited handicap flip', () => {
     expect(r1[0].handicap).toBe('-L')
     expect(r1[0].player1).toBe(4)
     expect(r1[0].sente).toBe('player1')
+  })
+})
+
+
+describe('SL Points (sl_points)', () => {
+  const tb: TieBreak[] = [{ type: 'points' }, { type: 'sl_points' }]
+
+  it('assigns 55/34/21/13/8 to five participants with distinct points', () => {
+    // Use different starting points to guarantee 5 distinct totals: 2, 1.5, 1, 0.5, 0
+    const participants = [makeParticipant(1, 0), makeParticipant(2, 0.5), makeParticipant(3, 1), makeParticipant(4, 1.5), makeParticipant(5, 2)]
+    const games: Game[] = []
+    const standings = computeStandings(games, participants, tb, 0)
+    const byId = (id: number) => standings.find((s) => s.participantId === id)!
+    expect(byId(5).tieBreakValues.sl_points).toBe(55) // 2pts -> position 1
+    expect(byId(4).tieBreakValues.sl_points).toBe(34) // 1.5pts -> position 2
+    expect(byId(3).tieBreakValues.sl_points).toBe(21) // 1pt -> position 3
+    expect(byId(2).tieBreakValues.sl_points).toBe(13) // 0.5pts -> position 4
+    expect(byId(1).tieBreakValues.sl_points).toBe(8)  // 0pts -> position 5
+  })
+
+  it('assigns 1 to participants at position 9 or beyond', () => {
+    const participants = Array.from({ length: 10 }, (_, i) => makeParticipant(i + 1, 0))
+    const games: Game[] = []
+    // All have 0 points -> one group of 10, end position 10 -> 1
+    const standings = computeStandings(games, participants, tb, 0)
+    for (const s of standings) expect(s.tieBreakValues.sl_points).toBe(1)
+  })
+
+  it('uses group end position: groups of 1/3/2 -> 55/13/13/13/5/5', () => {
+    // A=2pts, B=C=D=1pt, E=F=0pts
+    const participants = [
+      makeParticipant(1, 2), makeParticipant(2, 1), makeParticipant(3, 1),
+      makeParticipant(4, 1), makeParticipant(5, 0), makeParticipant(6, 0),
+    ]
+    const games: Game[] = []
+    const standings = computeStandings(games, participants, tb, 0)
+    const byId = (id: number) => standings.find((s) => s.participantId === id)!
+    expect(byId(1).tieBreakValues.sl_points).toBe(55) // group [A] ends at position 1
+    expect(byId(2).tieBreakValues.sl_points).toBe(13) // group [B,C,D] ends at position 4
+    expect(byId(3).tieBreakValues.sl_points).toBe(13)
+    expect(byId(4).tieBreakValues.sl_points).toBe(13)
+    expect(byId(5).tieBreakValues.sl_points).toBe(5)  // group [E,F] ends at position 6
+    expect(byId(6).tieBreakValues.sl_points).toBe(5)
+  })
+
+  it('never contradicts points ordering', () => {
+    const participants = [makeParticipant(1, 0), makeParticipant(2, 0), makeParticipant(3, 0)]
+    const games: Game[] = [
+      makeGame({ round: 1, player1: 1, player2: 2, result: 'player1_won', status: 'completed' }),
+      makeGame({ round: 1, player1: 3, player2: 2, result: 'player1_won', status: 'completed' }),
+      makeGame({ round: 2, player1: 1, player2: 3, result: 'draw', status: 'completed' }),
+    ]
+    // p1=2.5, p3=2.5, p2=0
+    const standings = computeStandings(games, participants, tb, 2)
+    const p1 = standings.find((s) => s.participantId === 1)!
+    const p3 = standings.find((s) => s.participantId === 3)!
+    const p2 = standings.find((s) => s.participantId === 2)!
+    // p1 and p3 share points (2.5) -> group of 2, end position 2 -> 34
+    expect(p1.tieBreakValues.sl_points).toBe(34)
+    expect(p3.tieBreakValues.sl_points).toBe(34)
+    // p2 has 0 points -> group of 1, end position 3 -> 21
+    expect(p2.tieBreakValues.sl_points).toBe(21)
+    // p1 and p3 are above p2
+    expect(p1.place).toBeLessThan(p2.place)
+    expect(p3.place).toBeLessThan(p2.place)
   })
 })

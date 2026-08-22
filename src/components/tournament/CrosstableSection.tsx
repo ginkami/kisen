@@ -5,7 +5,7 @@ import { PiCrownSimple } from 'react-icons/pi'
 import { BsCheckLg } from 'react-icons/bs'
 import { getCountryName } from '../../utils/countries.ts'
 import {
-  rankToColor, TIEBREAK_ABBR, computeStandings,
+  rankToColor, computeStandings,
   parseCellInput, gameToCellInput, withCellEdited, CELL_PARTIAL_RE,
   handicapForView,
 } from './crosstable/crosstableModel.ts'
@@ -178,7 +178,9 @@ export function CrosstableSection({
                   className={tb.type !== 'points' ? ' tooltip tooltip-bottom' : ''} 
                   {...(tb.type !== 'points' && { 'data-tip': t(`tournament.tieBreak.${tb.type}`) })}
                 >
-                  {tb.type === 'points' ? t('tournament.edit.crosstable.points') : TIEBREAK_ABBR[tb.type]}
+                  {tb.type === 'points'
+                    ? t('tournament.edit.crosstable.points')
+                    : t(`tournament.tieBreak.abbr.${tb.type}`) + (tb.type === 'buchholz_cut' ? String(tb.cutCount) : '')}
                 </div>
               </th>
             ))}

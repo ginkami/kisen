@@ -250,7 +250,19 @@
       "buchholz_plus": "Buchholz+",
       "sonneborn_berger": "Sonneborn-Berger",
       "direct_encounter": "Direct encounter",
-      "wins_count": "Wins count"
+      "wins_count": "Wins count",
+      "sl_points": "SL Points",
+      "abbr": {
+        "points": "Pts",
+        "buchholz": "BH",
+        "buchholz_cut": "BHC",
+        "buchholz_median": "MCH",
+        "buchholz_plus": "BH+",
+        "sonneborn_berger": "SB",
+        "direct_encounter": "DE",
+        "wins_count": "WIN",
+        "sl_points": "SL Pts"
+      }
     }
   },
   "association": {

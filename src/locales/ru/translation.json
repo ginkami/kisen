@@ -245,12 +245,24 @@
     "tieBreak": {
       "points": "Очки",
       "buchholz": "Бухгольц",
-      "buchholz_cut": "Бухгольц с отсечкой",
-      "buchholz_median": "Медианный Бухгольц",
+      "buchholz_cut": "Бухгольц усеченный",
+      "buchholz_median": "Бухгольц медианный",
       "buchholz_plus": "Бухгольц+",
-      "sonneborn_berger": "Зоннеборн-Бергер",
+      "sonneborn_berger": "Бергер",
       "direct_encounter": "Личная встреча",
-      "wins_count": "Количество побед"
+      "wins_count": "Число побед",
+      "sl_points": "СЛ Баллы",
+      "abbr": {
+        "points": "Очки",
+        "buchholz": "Бухг.",
+        "buchholz_cut": "УБ",
+        "buchholz_median": "МБ",
+        "buchholz_plus": "Бухг.+",
+        "sonneborn_berger": "Берг.",
+        "direct_encounter": "ЛВ",
+        "wins_count": "ЧВ",
+        "sl_points": "СЛБ"
+      }
     }
   },
   "association": {
