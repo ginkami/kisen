@@ -1,6 +1,7 @@
 import type { Tournament } from '../domain/tournament.ts'
 import type { Event } from '../domain/event.ts'
 import type { Player } from '../domain/player.ts'
+import type { Regulation } from '../domain/regulation.ts'
 
 export interface ListTournamentsFilters {
   status?: 'draft' | 'upcoming' | 'ongoing' | 'finished' | 'canceled'
@@ -51,3 +52,18 @@ export interface PlayerRepository {
 export const PlayerRepositoryKey = Symbol('PlayerRepository')
 
 export const EventRepositoryKey = Symbol('EventRepository')
+
+export interface ListRegulationsFilters {
+  createdBy?: string
+  association?: string
+}
+
+export interface RegulationRepository {
+  getById(id: string): Promise<Regulation | null>
+  list(filters?: ListRegulationsFilters): Promise<Regulation[]>
+  create(regulation: Regulation): Promise<Regulation>
+  update(regulation: Regulation): Promise<Regulation>
+  delete(id: string): Promise<void>
+}
+
+export const RegulationRepositoryKey = Symbol('RegulationRepository')

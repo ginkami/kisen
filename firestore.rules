@@ -146,5 +146,31 @@ service cloud.firestore {
         || isOwner(resource.data.createdBy)
         || isManagerOf(resource.data.hostAssociation);
     }
+
+    // ---------- Regulations (Регламенты) ----------
+    match /regulations/{regulationId} {
+      allow read: if true;
+
+      function isValidAssociationChange() {
+        return request.resource.data.get('association', null) == resource.data.get('association', null)
+          || isManagerOf(request.resource.data.get('association', null));
+      }
+
+      allow create: if isAuthenticated()
+        && (
+          request.resource.data.get('association', null) == null
+          || isManagerOf(request.resource.data.association)
+        );
+
+      allow update: if (
+          isAdmin()
+          || isOwner(resource.data.createdBy)
+          || isManagerOf(resource.data.association)
+        )
+        && isValidAssociationChange();
+
+      allow delete: if isAdmin()
+        || isOwner(resource.data.createdBy);
+    }
   }
 }

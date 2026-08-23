@@ -10,6 +10,7 @@ import { useTournamentSearch } from '../hooks/useTournaments.ts'
 import { useEventSearch } from '../hooks/useEvents.ts'
 import { tournamentService } from '../services/tournamentService.ts'
 import { eventService } from '../services/eventService.ts'
+import { regulationService } from '../services/regulationService.ts'
 import { playerService, type ImportResult } from '../services/playerService.ts'
 import { BulkImportResultModal } from './BulkImportResultModal.tsx'
 import { PlayerSearchPanel } from './player/PlayerSearchPanel.tsx'
@@ -153,6 +154,18 @@ export function AdminDrawer({
       return eventService.listByYearMonth(eventYearMonth, userId)
     },
     enabled: isAuthenticated && !!userId && isOpen && canManageEvents,
+  })
+
+  // Regulations
+  const managedAssociationIds = useMemo(() => associations.map((a) => a.id), [associations])
+  const isAdmin = user?.role === 'admin'
+  const { data: regulations = [], isLoading: isLoadingRegulations, error: regulationsError } = useQuery({
+    queryKey: ['adminRegulations', userId, managedAssociationIds, isAdmin],
+    queryFn: async () => {
+      if (!userId) return []
+      return regulationService.listEditable(userId, managedAssociationIds, isAdmin)
+    },
+    enabled: isAuthenticated && !!userId && isOpen,
   })
 
   const isSearchingTournaments = tournamentSearch.trim().length >= 3
@@ -627,6 +640,63 @@ export function AdminDrawer({
                     {t('admin.associationsDisabled')}
                   </p>
                 )}
+              </div>
+            </div>
+
+            <div className="collapse collapse-arrow bg-base-100 mt-2">
+              <input type="radio" name="admin-accordion" />
+              <div className="collapse-title font-medium">
+                {t('admin.regulations')}
+              </div>
+              <div className="collapse-content">
+                <div className="flex flex-col gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleNavigate('/regulations/new')}
+                    className="btn btn-secondary btn-sm flex items-center gap-0"
+                  >
+                    <BsPlus className="h-5 w-5" />
+                    <span className="hidden text-sm sm:inline">{t('admin.newRegulation')}</span>
+                  </button>
+
+                  {isLoadingRegulations && (
+                    <div className="flex justify-center py-4">
+                      <span className="loading loading-spinner loading-sm" />
+                    </div>
+                  )}
+
+                  {!isLoadingRegulations && regulationsError && (
+                    <p className="text-sm text-error">
+                      {t('admin.loadError')}
+                    </p>
+                  )}
+
+                  {!isLoadingRegulations && !regulationsError && regulations.length === 0 && (
+                    <p className="text-sm opacity-70">
+                      {t('admin.noRegulations')}
+                    </p>
+                  )}
+
+                  {!isLoadingRegulations && !regulationsError && regulations.length > 0 && (
+                    <div className="flex max-h-96 flex-col gap-2 overflow-y-auto">
+                      {regulations.map((regulation) => {
+                        const title = regulation.locales[i18n.language as keyof typeof regulation.locales]?.title ?? ''
+                        return (
+                          <button
+                            key={regulation.id}
+                            type="button"
+                            onClick={() => handleNavigate(`/regulations/${regulation.id}/edit`)}
+                            className="group flex w-full flex-col gap-1 rounded-lg border px-3 py-2 text-left transition-colors border-base-300 hover:bg-base-200"
+                          >
+                            <span className="line-clamp-1 font-medium text-sm">
+                              {title || t('admin.untitledRegulation', { defaultValue: t('admin.untitledTournament') })}
+                            </span>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>

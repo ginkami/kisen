@@ -1,0 +1,13 @@
+// regulation (коллекция regulations)
+{
+    "id": "UUIDv7", // (PK)
+    "createdBy": "UID", // (Required, Ref: user.id) Пользователь, кто создал регламент
+    "association": "UUIDv7 | null", // (Required, Ref: association.id) Ассоциация которая применяет данный регламент. 
+    "updatedAt": "Date",  // (Required) Время последнего обновления по регламенту 
+    "locales": { // (Required)
+        "ru": { // [ >= 1] Должна быть хотя бы одна локаль. При рендеринге берутся значения для текущей локали, либо другой существующей
+            "title": "String", // (Required)
+            "description": "String" // Поддерживается Markdown синтаксис
+        }
+    }
+}

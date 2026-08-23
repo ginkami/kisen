@@ -22,6 +22,9 @@
     "newAssociation": "Association",
     "filterAssociations": "Filter by title...",
     "associationsDisabled": "Not available for your role",
+    "regulations": "Regulations",
+    "newRegulation": "Regulation",
+    "noRegulations": "No regulations available.",
     "selectMonth": "Select month",
     "loadError": "Failed to load tournaments.",
     "noTournamentsForMonth": "No tournaments for this month.",
@@ -317,6 +320,27 @@
         "load": "Failed to load event.",
         "save": "Failed to save event.",
         "delete": "Failed to delete event."
+      }
+    }
+  },
+  "regulation": {
+    "edit": {
+      "managementPanel": "Regulation editing",
+      "newTitle": "New regulation",
+      "info": "Basic information",
+      "title": "Title",
+      "description": "Description",
+      "binding": "Additional",
+      "association": "Association",
+      "noAssociation": "Not specified",
+      "save": "Save",
+      "delete": "Delete",
+      "deleteConfirmTitle": "Delete regulation",
+      "deleteConfirm": "Delete the regulation? This action cannot be undone.",
+      "errors": {
+        "load": "Failed to load regulation.",
+        "save": "Failed to save regulation.",
+        "delete": "Failed to delete regulation."
       }
     }
   },
