@@ -1,13 +1,17 @@
 import { useEffect, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { useQuery } from '@tanstack/react-query'
+import { BsPlus } from 'react-icons/bs'
 import { useAuth } from '../../context/AuthContext.tsx'
 import { useEventForm } from '../../hooks/useEventForm.ts'
 import { ConfirmModal } from '../ConfirmModal.tsx'
 import { LocaleTabs } from '../tournament/LocaleTabs.tsx'
 import { ExpandableField } from '../tournament/ExpandableField.tsx'
 import { AssociationPickerModal } from '../tournament/AssociationPickerModal.tsx'
+import { RegulationPickerModal } from '../tournament/RegulationPickerModal.tsx'
 import { useMyAssociations } from '../../hooks/useAssociations.ts'
+import { regulationService } from '../../services/regulationService.ts'
 import type { SupportedLocale } from '../../domain/locale.ts'
 import type { Association } from '../../domain/association.ts'
 
@@ -43,10 +47,28 @@ export function EventEditForm({ eventId }: EventEditFormProps) {
     deleteEvent,
     isNew,
     slugTaken,
+    addRegulation,
+    removeRegulation,
   } = useEventForm(eventId)
 
-  const { firebaseUser: authUser } = useAuth()
+  const { firebaseUser: authUser, user } = useAuth()
   const { data: associations = [] } = useMyAssociations(authUser?.uid)
+
+  const [showRegulationPicker, setShowRegulationPicker] = useState(false)
+  const managedAssociationIds = associations.map((a) => a.id)
+  const isAdmin = user?.role === 'admin'
+  const { data: editableRegulations = [] } = useQuery({
+    queryKey: ['regulations', 'editable', authUser?.uid, managedAssociationIds, isAdmin],
+    queryFn: () => regulationService.listEditable(authUser!.uid, managedAssociationIds, isAdmin),
+    enabled: !!authUser?.uid,
+    staleTime: 30 * 1000,
+  })
+
+  const regulationTitleById = (id: string): string => {
+    const reg = editableRegulations.find((r) => r.id === id)
+    if (!reg) return ''
+    return reg.locales[i18n.language as keyof typeof reg.locales]?.title ?? ''
+  }
 
   const localizedTitle = formState?.locales[activeLocale]?.title ?? ''
   const displayTitle = localizedTitle || (isNew ? t('event.edit.newTitle') : '')
@@ -175,6 +197,48 @@ export function EventEditForm({ eventId }: EventEditFormProps) {
             onChange={(value) => updateLocale(activeLocale, 'description', value)}
             textarea
           />
+
+          {/* Regulations */}
+          {formState.regulations.length > 0 && (
+            <>
+              <label className="label">
+                <span className="label-text">{t('event.edit.regulations')}</span>
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {formState.regulations.map((regId) => {
+                  const title = regulationTitleById(regId)
+                  return (
+                    <span key={regId} className="badge badge-outline gap-2">
+                      {title || t('event.edit.untitledRegulation', { defaultValue: t('admin.untitledTournament') })}
+                      <button
+                        type="button"
+                        onClick={() => removeRegulation(regId)}
+                        className="btn btn-circle btn-ghost btn-xs"
+                        aria-label={t('common.remove')}
+                      >
+                        ×
+                      </button>
+                    </span>
+                  )
+                })}
+              </div>
+            </>
+          )}
+          <button
+            type="button"
+            className="btn btn-ghost justify-start px-2 text-primary flex items-center gap-0 expandable-field basic-expandable"
+            onClick={() => setShowRegulationPicker(true)}
+          >
+            <BsPlus className="h-5 w-5" />
+            {t('event.edit.addRegulation')}
+          </button>
+          {showRegulationPicker && (
+            <RegulationPickerModal
+              selectedIds={formState.regulations}
+              onSelect={(id) => addRegulation(id)}
+              onClose={() => setShowRegulationPicker(false)}
+            />
+          )}
         </div>
       </div>
 

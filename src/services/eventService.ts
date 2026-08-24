@@ -15,6 +15,7 @@ export interface CreateEventInput {
   createdBy: string
   hostAssociation: string | null
   locales: Event['locales']
+  regulations?: string[]
   desiredSlug?: string
 }
 
@@ -22,6 +23,7 @@ export interface UpdateEventInput {
   id: string
   hostAssociation?: string
   locales?: Event['locales']
+  regulations?: string[]
   desiredSlug?: string
 }
 
@@ -61,6 +63,7 @@ export class EventService {
       updatedAt: now,
       startYearMonth: formatDateToYearMonth(now),
       locales: input.locales,
+      regulations: input.regulations ?? [],
     }
     const event = eventSchema.parse(candidate)
     return this.repository.create(event)
@@ -81,6 +84,7 @@ export class EventService {
       ...existing,
       hostAssociation: input.hostAssociation ?? existing.hostAssociation,
       locales: input.locales ?? existing.locales,
+      regulations: input.regulations ?? existing.regulations,
       slug,
       updatedAt: now,
     }

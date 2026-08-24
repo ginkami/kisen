@@ -16,6 +16,7 @@ export interface EventFormState {
   slug: string
   locales: Record<SupportedLocale, EventLocale>
   hostAssociation: string
+  regulations: string[]
 }
 
 function createEmptyLocale(): EventLocale {
@@ -29,6 +30,7 @@ function createEmptyFormState(): EventFormState {
       supportedLocales.map((locale) => [locale, createEmptyLocale()])
     ) as Record<SupportedLocale, EventLocale>,
     hostAssociation: '',
+    regulations: [],
   }
 }
 
@@ -50,6 +52,7 @@ function eventToFormState(event: Event): EventFormState {
     slug: event.slug,
     locales,
     hostAssociation: event.hostAssociation ?? '',
+    regulations: event.regulations ?? [],
   }
 }
 
@@ -199,6 +202,7 @@ export function useEventForm(eventId: string | undefined) {
           hostAssociation: formState.hostAssociation || '',
           // hostAssociation empty string will be converted to null in service
           locales: filterLocalesForSave(formState.locales),
+          regulations: formState.regulations,
           desiredSlug: formState.slug,
         })
       }
@@ -206,6 +210,7 @@ export function useEventForm(eventId: string | undefined) {
         id: eventId!,
         desiredSlug: formState.slug,
         locales: filterLocalesForSave(formState.locales),
+        regulations: formState.regulations,
         hostAssociation: formState.hostAssociation || undefined,
       })
     },
@@ -259,6 +264,26 @@ export function useEventForm(eventId: string | undefined) {
     deleteMutation.mutate()
   }, [deleteMutation])
 
+  const addRegulation = useCallback(
+    (id: string) => {
+      updateForm((state) => {
+        if (state.regulations.includes(id)) return state
+        return { ...state, regulations: [...state.regulations, id] }
+      })
+    },
+    [updateForm]
+  )
+
+  const removeRegulation = useCallback(
+    (id: string) => {
+      updateForm((state) => ({
+        ...state,
+        regulations: state.regulations.filter((r) => r !== id),
+      }))
+    },
+    [updateForm]
+  )
+
   return {
     event,
     formState,
@@ -278,5 +303,7 @@ export function useEventForm(eventId: string | undefined) {
     deleteEvent,
     isNew,
     slugTaken,
+    addRegulation,
+    removeRegulation,
   }
 }

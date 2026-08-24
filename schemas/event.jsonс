@@ -14,5 +14,8 @@
             "title": "String", // (Required)
             "description": "String" // Поддерживается Markdown синтаксис
         }
-    }
+    },
+    "regulations": [
+        "UUIDv7" // (Ref: regulation.id) 
+    ]
 }
