@@ -169,7 +169,7 @@
         "givenName": "Имя",
         "familyName": "Фамилия"
       },
-      "saveDraft": "Сохранить черновик",
+      "saveDraft": "Сохранить",
       "publish": "Опубликовать",
       "publishConfirmTitle": "Публикация турнира",
       "publishConfirm": "Опубликовать турнир? После публикации он станет виден всем.",
