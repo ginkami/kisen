@@ -362,6 +362,8 @@
     "cancel": "Cancel",
     "confirm": "Confirm",
     "fieldRequired": "Required field",
-    "errors": "Errors"
+    "errors": "Errors",
+    "search": "Search...",
+    "noResults": "No results found"
   }
 }
