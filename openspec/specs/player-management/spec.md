@@ -152,7 +152,7 @@ All labels, placeholders, buttons, and messages in the player edit form SHALL be
 
 ### Requirement: Player form field validation
 
-The `usePlayerForm` hook SHALL validate the form state before saving. A save SHALL be blocked when: no locale has both `familyName` and `givenName` filled, or `nationality` (country) is empty. The hook SHALL expose a `validationErrors` record mapping field keys (`familyName`, `givenName`, `nationality`) to localized messages.
+The `usePlayerForm` hook SHALL validate the form state before saving. A save SHALL be blocked when: no locale has both `familyName` and `givenName` filled, or `nationality` (country) is empty. The hook SHALL expose a `validationErrors` record mapping field keys (`familyName`, `givenName`, `nationality`) to localized messages. When saving, a locale with any non-empty field SHALL be kept (not only locales with both names); any empty required `familyName` or `givenName` in a kept locale SHALL be backfilled from the first locale whose corresponding field is non-empty, so optional fields (location, club, title) entered for a locale without complete names are not lost.
 
 #### Scenario: Missing all locale names
 
@@ -177,6 +177,14 @@ The `usePlayerForm` hook SHALL validate the form state before saving. A save SHA
 - **WHEN** validation errors are displayed and the user modifies any form field
 - **THEN** all `validationErrors` are cleared
 - **AND** the field error styles and messages are removed
+
+#### Scenario: Locale with location but incomplete names is preserved
+
+- **WHEN** the user fills `familyName` and `givenName` in the `ru` locale and `location` in the `en` locale, leaving `en.familyName` and `en.givenName` empty, and saves
+- **THEN** the saved player has both locales
+- **AND** the `en` locale's `familyName` is backfilled from the `ru` locale's `familyName`
+- **AND** the `en` locale's `givenName` is backfilled from the `ru` locale's `givenName`
+- **AND** the `en` locale's `location` is preserved
 
 ### Requirement: Player form error dismissal
 

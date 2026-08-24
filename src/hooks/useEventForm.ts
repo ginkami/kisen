@@ -7,6 +7,7 @@ import type { LayoutOutletContext } from '../components/Layout.tsx'
 import { eventService } from '../services/eventService.ts'
 import type { Event, EventLocale } from '../domain/event.ts'
 import { supportedLocales, type SupportedLocale } from '../domain/locale.ts'
+import { localeHasAnyContent, backfillRequiredLocaleFields } from '../utils/locales.ts'
 import { normalizeSlug } from '../services/slugService.ts'
 
 const EVENT_QUERY_KEY = 'event'
@@ -53,11 +54,12 @@ function eventToFormState(event: Event): EventFormState {
 }
 
 function filterLocalesForSave(locales: Record<SupportedLocale, EventLocale>) {
+  const backfilled = backfillRequiredLocaleFields(locales, ['title'])
   return Object.fromEntries(
     supportedLocales
-      .filter((locale) => locales[locale].title.trim() !== '')
+      .filter((locale) => localeHasAnyContent(backfilled[locale]))
       .map((locale) => {
-        const src = locales[locale]
+        const src = backfilled[locale]
         const result: Record<string, string> = { title: src.title }
         if (src.description?.trim()) result.description = src.description
         return [locale, result]

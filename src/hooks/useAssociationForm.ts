@@ -8,6 +8,7 @@ import { associationService } from '../services/associationService.ts'
 import { getByIds, getUserById } from '../services/userService.ts'
 import type { Association, AssociationLocale } from '../domain/association.ts'
 import { supportedLocales, type SupportedLocale } from '../domain/locale.ts'
+import { localeHasAnyContent, backfillRequiredLocaleFields } from '../utils/locales.ts'
 import type { User } from '../types/user.ts'
 import { normalizeSlug } from '../services/slugService.ts'
 
@@ -62,11 +63,12 @@ function associationToFormState(association: Association): AssociationFormState 
 }
 
 function filterLocalesForSave(locales: Record<SupportedLocale, AssociationLocale>) {
+  const backfilled = backfillRequiredLocaleFields(locales, ['title'])
   return Object.fromEntries(
     supportedLocales
-      .filter((locale) => locales[locale].title.trim() !== '')
+      .filter((locale) => localeHasAnyContent(backfilled[locale]))
       .map((locale) => {
-        const src = locales[locale]
+        const src = backfilled[locale]
         const result: Record<string, string> = { title: src.title }
         if (src.description?.trim()) result.description = src.description
         if (src.location?.trim()) result.location = src.location

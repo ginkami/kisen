@@ -16,6 +16,7 @@ import type {
 import { publishedTournamentSchema } from '../domain/tournament.ts'
 import { normalizeSlug } from '../services/slugService.ts'
 import { supportedLocales, type SupportedLocale } from '../domain/locale.ts'
+import { backfillRequiredLocaleFields, localeHasAnyContent } from '../utils/locales.ts'
 import type { TimeControlFormat } from '../domain/timeControl.ts'
 import type { TieBreak, TieBreakType } from '../domain/tieBreak.ts'
 import { normalizeGamesSente } from '../components/tournament/crosstable/crosstableModel.ts'
@@ -207,20 +208,17 @@ function rowsToParticipants(rows: ParticipantRow[]): Participant[] {
 
   return nonEmpty.map((row) => {
     const id = row.id > 0 ? row.id : nextNewId++
+    const backfilled = backfillRequiredLocaleFields(row.locales, ['familyName', 'givenName'])
     const locales: Participant['locales'] = Object.fromEntries(
       supportedLocales
-        .filter(
-          (locale) =>
-            row.locales[locale].familyName.trim() !== '' ||
-            row.locales[locale].givenName.trim() !== ''
-        )
+        .filter((locale) => localeHasAnyContent(backfilled[locale]))
         .map((locale) => [
           locale,
           {
-            familyName: row.locales[locale].familyName,
-            givenName: row.locales[locale].givenName,
-            ...(row.locales[locale].title ? { title: row.locales[locale].title } : {}),
-            ...(row.locales[locale].location ? { location: row.locales[locale].location } : {}),
+            familyName: backfilled[locale].familyName,
+            givenName: backfilled[locale].givenName,
+            ...(backfilled[locale].title ? { title: backfilled[locale].title } : {}),
+            ...(backfilled[locale].location ? { location: backfilled[locale].location } : {}),
           },
         ])
     ) as Participant['locales']
@@ -296,6 +294,14 @@ function tournamentToFormState(tournament: Tournament): TournamentFormState {
   }
 }
 
+function buildLocalesForSave(locales: TournamentFormState['locales']) {
+  return backfillRequiredLocaleFields(locales, ['title', 'location']) as Tournament['locales']
+}
+
+function buildArbiterForSave(arbiter: TournamentFormState['arbiter']) {
+  return backfillRequiredLocaleFields(arbiter, ['givenName', 'familyName']) as Tournament['arbiter']['locales']
+}
+
 function formStateToUpdateInput(
   tournament: Tournament,
   state: TournamentFormState
@@ -317,22 +323,14 @@ function formStateToUpdateInput(
     desiredSlug?: string
   } = {
     id: tournament.id,
-    locales: state.locales as Tournament['locales'],
+    locales: buildLocalesForSave(state.locales),
     country: state.country,
     settings: state.settings,
     schedule,
     parentEvent: state.parentEvent,
     hostAssociation: state.hostAssociation,
     arbiter: {
-      locales: Object.fromEntries(
-        supportedLocales.map((locale) => [
-          locale,
-          {
-            givenName: state.arbiter[locale].givenName,
-            familyName: state.arbiter[locale].familyName,
-          },
-        ])
-      ) as Tournament['arbiter']['locales'],
+      locales: buildArbiterForSave(state.arbiter),
     },
     participants: rowsToParticipants(state.participants),
     games: state.settings.considerSente
@@ -960,7 +958,7 @@ export function useTournamentForm(tournamentId: string | undefined) {
       const schedule = splitSchedule(formState.scheduleRows)
       const candidate = {
         ...tournament,
-        locales: formState.locales as Tournament['locales'],
+        locales: buildLocalesForSave(formState.locales),
         country: formState.country,
         settings: formState.settings,
         schedule,
@@ -968,15 +966,7 @@ export function useTournamentForm(tournamentId: string | undefined) {
         parentEvent: formState.parentEvent,
         hostAssociation: formState.hostAssociation,
         arbiter: {
-          locales: Object.fromEntries(
-            supportedLocales.map((locale) => [
-              locale,
-              {
-                givenName: formState.arbiter[locale].givenName,
-                familyName: formState.arbiter[locale].familyName,
-              },
-            ])
-          ) as Tournament['arbiter']['locales'],
+          locales: buildArbiterForSave(formState.arbiter),
         },
         status: 'upcoming' as const,
         isPublic: true,

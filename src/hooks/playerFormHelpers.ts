@@ -1,6 +1,7 @@
 import type { Player, Gender } from '../domain/player.ts'
 import type { PlayerRank } from '../domain/playerRating.ts'
 import { supportedLocales, type SupportedLocale } from '../domain/locale.ts'
+import { localeHasAnyContent, backfillRequiredLocaleFields } from '../utils/locales.ts'
 import { playerService } from '../services/playerService.ts'
 
 export interface PlayerFormLocaleFields {
@@ -78,24 +79,29 @@ export function playerToFormState(player: Player): PlayerFormState {
   }
 }
 
+function buildPlayerLocalesForSave(locales: Record<SupportedLocale, PlayerFormLocaleFields>) {
+  const backfilled = backfillRequiredLocaleFields(locales, ['familyName', 'givenName'])
+  return Object.fromEntries(
+    supportedLocales
+      .filter((locale) => localeHasAnyContent(backfilled[locale]))
+      .map((locale) => [
+        locale,
+        {
+          familyName: backfilled[locale].familyName,
+          givenName: backfilled[locale].givenName,
+          location: backfilled[locale].location || undefined,
+          club: backfilled[locale].club || undefined,
+          title: backfilled[locale].title || undefined,
+        },
+      ])
+  ) as Player['locales']
+}
+
 export function formStateToCreateInput(
   state: PlayerFormState,
   userId: string
 ): Parameters<typeof playerService.create>[0] {
-  const locales = Object.fromEntries(
-    supportedLocales
-      .filter((locale) => state.locales[locale].familyName.trim() !== '' && state.locales[locale].givenName.trim() !== '')
-      .map((locale) => [
-        locale,
-        {
-          familyName: state.locales[locale].familyName,
-          givenName: state.locales[locale].givenName,
-          location: state.locales[locale].location || undefined,
-          club: state.locales[locale].club || undefined,
-          title: state.locales[locale].title || undefined,
-        },
-      ])
-  ) as Player['locales']
+  const locales = buildPlayerLocalesForSave(state.locales)
 
   return {
     createdBy: userId,
@@ -117,20 +123,7 @@ export function formStateToUpdateInput(
   player: Player,
   state: PlayerFormState
 ): Parameters<typeof playerService.update>[0] {
-  const locales = Object.fromEntries(
-    supportedLocales
-      .filter((locale) => state.locales[locale].familyName.trim() !== '' && state.locales[locale].givenName.trim() !== '')
-      .map((locale) => [
-        locale,
-        {
-          familyName: state.locales[locale].familyName,
-          givenName: state.locales[locale].givenName,
-          location: state.locales[locale].location || undefined,
-          club: state.locales[locale].club || undefined,
-          title: state.locales[locale].title || undefined,
-        },
-      ])
-  ) as Player['locales']
+  const locales = buildPlayerLocalesForSave(state.locales)
 
   return {
     id: player.id,

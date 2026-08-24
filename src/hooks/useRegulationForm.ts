@@ -7,6 +7,7 @@ import type { LayoutOutletContext } from '../components/Layout.tsx'
 import { regulationService } from '../services/regulationService.ts'
 import type { Regulation, RegulationLocale } from '../domain/regulation.ts'
 import { supportedLocales, type SupportedLocale } from '../domain/locale.ts'
+import { localeHasAnyContent, backfillRequiredLocaleFields } from '../utils/locales.ts'
 
 const REGULATION_QUERY_KEY = 'regulation'
 
@@ -39,11 +40,12 @@ function regulationToFormState(regulation: Regulation): RegulationFormState {
 }
 
 function filterLocalesForSave(locales: Record<SupportedLocale, RegulationLocale>) {
+  const backfilled = backfillRequiredLocaleFields(locales, ['title'])
   return Object.fromEntries(
     supportedLocales
-      .filter((locale) => locales[locale].title.trim() !== '')
+      .filter((locale) => localeHasAnyContent(backfilled[locale]))
       .map((locale) => {
-        const src = locales[locale]
+        const src = backfilled[locale]
         const result: Record<string, string> = { title: src.title }
         if (src.description?.trim()) result.description = src.description
         return [locale, result]
