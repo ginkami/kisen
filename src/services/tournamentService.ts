@@ -85,6 +85,63 @@ function defaultSettings(): Tournament['settings'] {
   }
 }
 
+/**
+ * Pure function: derive the tournament status from the merged next state.
+ * Called by `update()` with the candidate being written (games, currentRound,
+ * schedule already merged from input + existing).
+ *
+ * Rules:
+ * - `draft` is sticky (left only via publish which requests `'upcoming'`).
+ * - `canceled` / `proposed_for_removing` are sticky (changed only by explicit requested status).
+ * - Otherwise: last round has ≥1 game and every game has a fixed outcome → `finished`;
+ *   `currentRound ≥ 1` or round-1 games exist or first round start time passed → `ongoing`;
+ *   else `upcoming`.
+ */
+export function computeTournamentStatus({
+  requested,
+  existingStatus,
+  currentRound,
+  games,
+  scheduleRounds,
+  editTime,
+}: {
+  requested?: TournamentStatus
+  existingStatus: TournamentStatus
+  currentRound: number
+  games: Game[]
+  scheduleRounds: { number: number; scheduledAt: Date }[]
+  editTime: Date
+}): TournamentStatus {
+  // Sticky manual statuses: only an explicit requested status can move them
+  if (existingStatus === 'draft' && requested !== 'upcoming') return 'draft'
+  if (existingStatus === 'canceled' || existingStatus === 'proposed_for_removing') {
+    return requested ?? existingStatus
+  }
+
+  // --- Data-driven escalation from the merged state ---
+
+  // 1. Last round fixed → finished
+  const lastRoundNum = scheduleRounds.reduce((max, r) => Math.max(max, r.number), 0)
+  if (lastRoundNum > 0) {
+    const lastRoundGames = games.filter((g) => g.round === lastRoundNum)
+    if (lastRoundGames.length > 0) {
+      const allFixed = lastRoundGames.every(
+        (g) => g.result != null || g.status === 'bye' || g.status === 'forfeit'
+      )
+      if (allFixed) return 'finished'
+    }
+  }
+
+  // 2. Draw published or round-1 pairings exist or time fallback → ongoing
+  const hasRound1Games = games.some((g) => g.round === 1)
+  const firstRound = scheduleRounds[0]
+  const hasStarted = firstRound ? editTime >= firstRound.scheduledAt : false
+  if (currentRound >= 1 || hasRound1Games || hasStarted) return 'ongoing'
+
+  // 3. Default: no data supports ongoing or finished
+  return 'upcoming'
+}
+
 export class TournamentService {
   private readonly repository: TournamentRepository
 
@@ -213,9 +270,6 @@ export class TournamentService {
       ? await this.resolveSlug(input.desiredSlug, existing.id)
       : existing.slug
 
-    const nextStatus = input.status ?? this.inferStatus(existing, now)
-    const isPublic =
-      nextStatus !== 'draft' && nextStatus !== 'proposed_for_removing'
     const nextSchedule = input.schedule ?? existing.schedule
     const nextStartYearMonth = getTournamentStartYearMonth({
       ...existing,
@@ -225,6 +279,22 @@ export class TournamentService {
     const nextParentEvent =
       input.parentEvent !== undefined ? input.parentEvent : existing.parentEvent
 
+    const nextGames = input.games ?? existing.games
+    const nextCurrentRound = input.currentRound ?? existing.currentRound
+
+    // Merge-before-compute: derive status from the merged state
+    const nextStatus = computeTournamentStatus({
+      requested: input.status,
+      existingStatus: existing.status,
+      currentRound: nextCurrentRound,
+      games: nextGames,
+      scheduleRounds: nextSchedule.rounds,
+      editTime: now,
+    })
+
+    const isPublic =
+      nextStatus !== 'draft' && nextStatus !== 'proposed_for_removing'
+
     const updated: Tournament = {
       ...existing,
       locales: input.locales ?? existing.locales,
@@ -233,8 +303,8 @@ export class TournamentService {
       schedule: nextSchedule,
       arbiter: input.arbiter ?? existing.arbiter,
       participants: input.participants ?? existing.participants,
-      games: input.games ?? existing.games,
-      currentRound: input.currentRound ?? existing.currentRound,
+      games: nextGames,
+      currentRound: nextCurrentRound,
       status: nextStatus,
       isPublic,
       publishedRounds: input.publishedRounds ?? existing.publishedRounds,
@@ -299,27 +369,6 @@ export class TournamentService {
 
   async searchByTitle(prefix: string): Promise<Tournament[]> {
     return this.repository.searchByTitle(prefix)
-  }
-
-  private inferStatus(
-    tournament: Tournament,
-    editTime: Date
-  ): Tournament['status'] {
-    if (tournament.status === 'draft') {
-      return 'draft'
-    }
-
-    const firstRound = tournament.schedule.rounds.at(0)
-    if (!firstRound) {
-      return tournament.status
-    }
-
-    const hasStarted = editTime >= firstRound.scheduledAt
-    if (hasStarted && tournament.status === 'upcoming') {
-      return 'ongoing'
-    }
-
-    return tournament.status
   }
 
   private async resolveSlug(
