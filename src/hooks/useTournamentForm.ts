@@ -155,6 +155,7 @@ export interface TournamentFormState {
   participants: ParticipantRow[]
   games: Game[]
   currentRound: number
+  regulations: string[]
 }
 
 function createEmptyParticipantLocales(): ParticipantRow['locales'] {
@@ -291,6 +292,7 @@ function tournamentToFormState(tournament: Tournament): TournamentFormState {
     participants: participantsToRows(tournament.participants),
     games: tournament.games,
     currentRound: tournament.currentRound,
+    regulations: tournament.regulations ?? [],
   }
 }
 
@@ -337,6 +339,7 @@ function formStateToUpdateInput(
       ? state.games.map((g) => ({ ...g, sente: 'player1' as const }))
       : state.games,
     currentRound: state.currentRound,
+    regulations: state.regulations,
   }
 
   if (state.slug !== tournament.slug) {
@@ -708,6 +711,26 @@ export function useTournamentForm(tournamentId: string | undefined) {
           ...state.settings,
           tieBreaks: state.settings.tieBreaks.filter((_, i) => i !== index),
         },
+      }))
+    },
+    [updateForm]
+  )
+
+  const addRegulation = useCallback(
+    (id: string) => {
+      updateForm((state) => {
+        if (state.regulations.includes(id)) return state
+        return { ...state, regulations: [...state.regulations, id] }
+      })
+    },
+    [updateForm]
+  )
+
+  const removeRegulation = useCallback(
+    (id: string) => {
+      updateForm((state) => ({
+        ...state,
+        regulations: state.regulations.filter((r) => r !== id),
       }))
     },
     [updateForm]
@@ -1102,6 +1125,8 @@ export function useTournamentForm(tournamentId: string | undefined) {
     setTieBreaks,
     addTieBreak,
     removeTieBreak,
+    addRegulation,
+    removeRegulation,
     updateConsiderSente,
     addScheduleRow,
     updateScheduleRow,

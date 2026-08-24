@@ -23,6 +23,7 @@ import type { Event } from '../../domain/event.ts'
 import type { Association } from '../../domain/association.ts'
 import { useMyAssociations } from '../../hooks/useAssociations.ts'
 import { eventService } from '../../services/eventService.ts'
+import { regulationService } from '../../services/regulationService.ts'
 import { CountrySelect } from './CountrySelect.tsx'
 import { LocaleTabs } from './LocaleTabs.tsx'
 import { ExpandableField } from './ExpandableField.tsx'
@@ -30,6 +31,7 @@ import { PairingsSection } from './PairingsSection.tsx'
 import { CrosstableSection } from './CrosstableSection.tsx'
 import { EventPickerModal } from './EventPickerModal.tsx'
 import { AssociationPickerModal } from './AssociationPickerModal.tsx'
+import { RegulationPickerModal } from './RegulationPickerModal.tsx'
 
 interface TournamentEditFormProps {
   tournamentId: string | undefined
@@ -67,6 +69,8 @@ function GeneralInfoSection({
   updateLocale,
   updateBasic,
   updateArbiter,
+  addRegulation,
+  removeRegulation,
   validationErrors = {},
 }: {
   formState: TournamentFormState
@@ -84,12 +88,32 @@ function GeneralInfoSection({
     field: 'givenName' | 'familyName',
     value: string
   ) => void
+  addRegulation: (id: string) => void
+  removeRegulation: (id: string) => void
   validationErrors?: Record<string, string>
 }) {
   const { t, i18n } = useTranslation()
+  const { firebaseUser, user } = useAuth()
+  const { data: associations = [] } = useMyAssociations(firebaseUser?.uid)
   const [activeLocale, setActiveLocale] = useState<SupportedLocale>(
     (i18n.language as SupportedLocale) ?? 'ru'
   )
+  const [showRegulationPicker, setShowRegulationPicker] = useState(false)
+
+  const managedAssociationIds = associations.map((a) => a.id)
+  const isAdmin = user?.role === 'admin'
+  const { data: editableRegulations = [] } = useQuery({
+    queryKey: ['regulations', 'editable', firebaseUser?.uid, managedAssociationIds, isAdmin],
+    queryFn: () => regulationService.listEditable(firebaseUser!.uid, managedAssociationIds, isAdmin),
+    enabled: !!firebaseUser?.uid,
+    staleTime: 30 * 1000,
+  })
+
+  const regulationTitleById = (id: string): string => {
+    const reg = editableRegulations.find((r) => r.id === id)
+    if (!reg) return ''
+    return reg.locales[i18n.language as keyof typeof reg.locales]?.title ?? ''
+  }
 
   return (
     <div className="card bg-base-200 shadow-sm">
@@ -129,6 +153,48 @@ function GeneralInfoSection({
           textarea
           buttonClassName='basic-expandable'
         />
+
+        {/* Regulations */}
+        {formState.regulations.length > 0 && (
+          <>
+            <label className="label">
+              <span className="label-text">{t('tournament.edit.regulations')}</span>
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {formState.regulations.map((regId) => {
+                const title = regulationTitleById(regId)
+                return (
+                  <span key={regId} className="badge badge-outline gap-2">
+                    {title || t('tournament.edit.untitledRegulation', { defaultValue: t('admin.untitledTournament') })}
+                    <button
+                      type="button"
+                      onClick={() => removeRegulation(regId)}
+                      className="btn btn-circle btn-ghost btn-xs"
+                      aria-label={t('common.remove')}
+                    >
+                      ×
+                    </button>
+                  </span>
+                )
+              })}
+            </div>
+          </>
+        )}
+        <button
+          type="button"
+          className="btn btn-ghost justify-start px-2 text-primary flex items-center gap-0 expandable-field basic-expandable"
+          onClick={() => setShowRegulationPicker(true)}
+        >
+          <BsPlus className="h-5 w-5" />
+          {t('tournament.edit.addRegulation')}
+        </button>
+        {showRegulationPicker && (
+          <RegulationPickerModal
+            selectedIds={formState.regulations}
+            onSelect={(id) => addRegulation(id)}
+            onClose={() => setShowRegulationPicker(false)}
+          />
+        )}
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="form-control">
@@ -847,6 +913,8 @@ export function TournamentEditForm({
     updateTimeControlField,
     addTieBreak,
     removeTieBreak,
+    addRegulation,
+    removeRegulation,
     updateConsiderSente,
     addScheduleRow,
     updateScheduleRow,
@@ -1096,6 +1164,8 @@ export function TournamentEditForm({
             updateLocale={updateLocale}
             updateBasic={updateBasic}
             updateArbiter={updateArbiter}
+            addRegulation={addRegulation}
+            removeRegulation={removeRegulation}
             validationErrors={validationErrors}
           />
 

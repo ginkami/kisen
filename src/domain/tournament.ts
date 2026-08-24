@@ -161,6 +161,7 @@ export const tournamentSchema = z.object({
     'At least one locale is required'
   ),
   country: z.string().length(2),
+  regulations: z.array(z.string().uuid()).default([]),
   settings: tournamentSettingsSchema,
   schedule: tournamentScheduleSchema,
   arbiter: arbiterSchema,

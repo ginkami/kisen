@@ -24,6 +24,9 @@
             "venue": "String"
         }
     },
+    "regulations": [
+        "UUIDv7" // (Ref: regulation.id) 
+    ],
     "country": "ISO 3166-1 alpha-2", // (Required)
     "settings": { // (Required)
         "timeControl": { // (Required, Ref: timeControl.ts)

@@ -51,6 +51,7 @@ export interface UpdateTournamentInput {
   publishedRounds?: number
   parentEvent?: string | null
   hostAssociation?: string | null
+  regulations?: string[]
   desiredSlug?: string
   existing?: Tournament
 }
@@ -141,6 +142,7 @@ export class TournamentService {
       arbiter: input.arbiter,
       participants: [],
       games: [],
+      regulations: [],
     }
 
     const result = await this.repository.create(tournament)
@@ -185,6 +187,7 @@ export class TournamentService {
       arbiter: input.arbiter,
       participants: [],
       games: [],
+      regulations: [],
     }
 
     const created = await this.repository.create(tournament)
@@ -241,6 +244,7 @@ export class TournamentService {
         input.hostAssociation !== undefined
           ? input.hostAssociation
           : existing.hostAssociation,
+      regulations: input.regulations ?? existing.regulations,
       slug,
       updatedAt: now,
     }
