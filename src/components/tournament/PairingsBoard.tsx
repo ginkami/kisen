@@ -524,7 +524,7 @@ export function PairingsBoard({
 
               return (
                 <>
-                  {gameRows > 0 ? (
+                  {gameRows > 0 &&
                     containers.games.map((game, i) => {
                       const p1Id = containers.players1[i]
                       const p2Id = containers.players2[i]
@@ -554,9 +554,7 @@ export function PairingsBoard({
                         />
                       )
                     })
-                  ) : (
-                    <EmptyRow rowIndex={0} />
-                  )}
+                  }
                   {Array.from({ length: extraRows }, (_, j) => (
                     <EmptyRow key={`extra-${j}`} rowIndex={gameRows + j} />
                   ))}
