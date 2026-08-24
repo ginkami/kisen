@@ -23,8 +23,8 @@ The system SHALL support a `regulation` domain entity stored in the Firestore co
 Firestore security rules SHALL enforce the following access matrix for `regulations`:
 
 - **read:** public (any client, authenticated or not).
-- **create:** any authenticated user; when the new regulation has a non-null `association`, the user SHALL be a manager of that association or an admin.
-- **update:** admins, the creator (`createdBy`), and managers of the affiliated `association`. Changing `association` to a different association additionally requires manager rights on the new association (or admin).
+- **create:** any authenticated user; when the new regulation has a non-null `association`, the user SHALL be a manager or creator of that association, or an admin.
+- **update:** admins, the creator (`createdBy`), and managers or creators of the affiliated `association`. Changing `association` to a different association additionally requires manager or creator rights on the new association (or admin).
 - **delete:** only the creator (`createdBy`) or an admin — managers of the affiliated association SHALL NOT be allowed to delete.
 
 #### Scenario: Creator can edit and delete their regulation
@@ -32,9 +32,9 @@ Firestore security rules SHALL enforce the following access matrix for `regulati
 - **WHEN** the user who created a regulation (with any `association` value) attempts to update or delete it
 - **THEN** both operations are allowed
 
-#### Scenario: Association manager can edit but not delete
+#### Scenario: Association manager or creator can edit but not delete
 
-- **WHEN** a manager of the association affiliated with a regulation (who is not the creator and not an admin) attempts to update it
+- **WHEN** a manager or creator of the association affiliated with a regulation (who is not the creator of the regulation and not an admin) attempts to update it
 - **THEN** the update is allowed
 - **AND** when the same user attempts to delete it, the operation is denied
 
@@ -43,15 +43,15 @@ Firestore security rules SHALL enforce the following access matrix for `regulati
 - **WHEN** an admin attempts to create, update, or delete any regulation
 - **THEN** all operations are allowed
 
-#### Scenario: Creating a regulation affiliated with an association requires manager rights
+#### Scenario: Creating a regulation affiliated with an association requires manager or creator rights
 
-- **WHEN** an authenticated user who is not a manager of association A attempts to create a regulation with `association = A`
+- **WHEN** an authenticated user who is neither a manager nor the creator of association A attempts to create a regulation with `association = A`
 - **THEN** the create is denied
 
-#### Scenario: Changing the affiliated association requires manager rights on the new association
+#### Scenario: Changing the affiliated association requires manager or creator rights on the new association
 
 - **WHEN** a user updates a regulation and changes `association` from A to B
-- **THEN** the update is allowed only if the user is a manager of B (or an admin)
+- **THEN** the update is allowed only if the user is a manager or creator of B (or an admin)
 
 ### Requirement: Regulation service and repository
 

@@ -31,6 +31,10 @@ service cloud.firestore {
         && currentUserId() in get(/databases/$(database)/documents/associations/$(associationId)).data.managers;
     }
 
+    function canActForAssociation(associationId) {
+      return isManagerOf(associationId) || isCreatorOf(associationId);
+    }
+
     function hasManagerAccess(resource) {
       return isManagerOf(resource.data.hostAssociation);
     }
@@ -92,10 +96,10 @@ service cloud.firestore {
         );
       }
 
-      // Если хост-ассоциация меняется, пользователь должен быть менеджером новой
+      // Если хост-ассоциация меняется, пользователь должен быть менеджером или создателем новой
       function isValidHostAssociationChange() {
         return request.resource.data.get('hostAssociation', null) == resource.data.get('hostAssociation', null)
-          || isManagerOf(request.resource.data.get('hostAssociation', null));
+          || canActForAssociation(request.resource.data.get('hostAssociation', null));
       }
 
       allow read: if true;
@@ -103,21 +107,21 @@ service cloud.firestore {
       allow create: if isAuthenticated()
         && (
           request.resource.data.get('hostAssociation', null) == null
-          || isManagerOf(request.resource.data.hostAssociation)
+          || canActForAssociation(request.resource.data.hostAssociation)
         )
         && isValidPublicStatus();
 
       allow update: if (
           isAdmin()
           || isOwner(resource.data.createdBy)
-          || isManagerOf(resource.data.hostAssociation)
+          || canActForAssociation(resource.data.hostAssociation)
         )
         && isValidPublicStatus()
         && isValidHostAssociationChange();
 
       allow delete: if isAdmin()
         || isOwner(resource.data.createdBy)
-        || isManagerOf(resource.data.hostAssociation);
+        || canActForAssociation(resource.data.hostAssociation);
     }
 
     // ---------- Events (Мероприятия) ----------
@@ -126,25 +130,25 @@ service cloud.firestore {
 
       function isValidEventHostAssociationChange() {
         return request.resource.data.get('hostAssociation', null) == resource.data.get('hostAssociation', null)
-          || isManagerOf(request.resource.data.get('hostAssociation', null));
+          || canActForAssociation(request.resource.data.get('hostAssociation', null));
       }
 
       allow create: if isAuthenticated()
         && (
           request.resource.data.get('hostAssociation', null) == null
-          || isManagerOf(request.resource.data.hostAssociation)
+          || canActForAssociation(request.resource.data.hostAssociation)
         );
 
       allow update: if (
           isAdmin()
           || isOwner(resource.data.createdBy)
-          || isManagerOf(resource.data.hostAssociation)
+          || canActForAssociation(resource.data.hostAssociation)
         )
         && isValidEventHostAssociationChange();
 
       allow delete: if isAdmin()
         || isOwner(resource.data.createdBy)
-        || isManagerOf(resource.data.hostAssociation);
+        || canActForAssociation(resource.data.hostAssociation);
     }
 
     // ---------- Regulations (Регламенты) ----------
@@ -153,19 +157,19 @@ service cloud.firestore {
 
       function isValidAssociationChange() {
         return request.resource.data.get('association', null) == resource.data.get('association', null)
-          || isManagerOf(request.resource.data.get('association', null));
+          || canActForAssociation(request.resource.data.get('association', null));
       }
 
       allow create: if isAuthenticated()
         && (
           request.resource.data.get('association', null) == null
-          || isManagerOf(request.resource.data.association)
+          || canActForAssociation(request.resource.data.association)
         );
 
       allow update: if (
           isAdmin()
           || isOwner(resource.data.createdBy)
-          || isManagerOf(resource.data.association)
+          || canActForAssociation(resource.data.association)
         )
         && isValidAssociationChange();
 

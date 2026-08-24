@@ -62,8 +62,9 @@ Rules are defined in `firestore.rules`. Key concepts:
 - **Users** — read/create/update own profile; admins have full access.
 - **Associations** — public read; create/update/delete restricted to admins and managers.
 - **Players** — public read; create/update/delete by admins or managers of the primary association.
-- **Tournaments** — public read except drafts; write access for owner, host-association managers, and admins.
-- **Events** — public read; write access for owner, host-association managers, and admins.
+- **Tournaments** — public read except drafts; write access for owner, host-association managers/creators, and admins.
+- **Events** — public read; write access for owner, host-association managers/creators, and admins.
+- **Regulations** — public read; create/update by owner, affiliated-association managers/creators, and admins; delete by owner and admins only.
 
 Admin role is checked via Firebase Custom Claims (`request.auth.token.admin == true`).
 
