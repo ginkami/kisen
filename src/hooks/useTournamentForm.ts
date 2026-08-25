@@ -20,7 +20,7 @@ import { backfillRequiredLocaleFields, localeHasAnyContent } from '../utils/loca
 import type { TimeControlFormat } from '../domain/timeControl.ts'
 import type { TieBreak, TieBreakType } from '../domain/tieBreak.ts'
 import { normalizeGamesSente } from '../components/tournament/crosstable/crosstableModel.ts'
-import { normalizeGame } from '../components/tournament/pairings/pairingsModel.ts'
+import { normalizeGame, withForfeitsCarriedOver } from '../components/tournament/pairings/pairingsModel.ts'
 import type { PlayerRank } from '../domain/playerRating.ts'
 
 export type ScheduleRow =
@@ -1053,11 +1053,15 @@ export function useTournamentForm(tournamentId: string | undefined) {
 
   const publishDraw = useCallback(
     (round: number) => {
-      updateForm((state) => ({
-        ...state,
-        currentRound: round,
-        games: state.games.map((g) => normalizeGame(g, round)),
-      }))
+      updateForm((state) => {
+        const maxRound = state.scheduleRows.filter((r) => r.kind === 'round').length
+        const normalized = state.games.map((g) => normalizeGame(g, round))
+        return {
+          ...state,
+          currentRound: round,
+          games: withForfeitsCarriedOver(normalized, round, state.settings.considerSente, maxRound),
+        }
+      })
     },
     [updateForm]
   )

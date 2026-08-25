@@ -751,3 +751,32 @@ The tournament status SHALL be derived from the tournament's data on every save 
 
 - **WHEN** the status is `canceled` and the tournament is saved with data that would otherwise imply `ongoing`
 - **THEN** the status remains `canceled`
+
+### Requirement: Forfeit carry-over on draw publish
+
+When a draw is published (`publishDraw(round)`), for each participant whose game in the published round has `status: 'forfeit'` and who has no game in the next round (`round + 1`), the system SHALL automatically create a lone forfeit game (`player2: null`, `result: 'player2_won'`, `sente` per `considerSente`) in the next round. This SHALL NOT apply when the published round is the last round of the schedule. The operation SHALL be idempotent: if the next-round forfeit game already exists, no duplicate SHALL be created. Unpublishing the draw SHALL remove the carried-over forfeit games (existing `unpublishDraw` behavior removes all games in `oldCurrentRound + 1`).
+
+#### Scenario: Forfeit carry-over to next round
+
+- **WHEN** the user publishes round 1 and participant A has a forfeit game in round 1
+- **THEN** participant A gets a forfeit game in round 2
+
+#### Scenario: Skip participant already paired in next round
+
+- **WHEN** participant A has a forfeit in round 1 and already has a paired game in round 2
+- **THEN** no additional forfeit game is created for participant A in round 2
+
+#### Scenario: No carry-over on last round
+
+- **WHEN** the published round is the last round of the schedule
+- **THEN** no forfeit games are created in a non-existent next round
+
+#### Scenario: Idempotent carry-over
+
+- **WHEN** the carry-over is applied twice to the same state
+- **THEN** no duplicate forfeit games are created
+
+#### Scenario: Unpublish removes carried-over forfeits
+
+- **WHEN** the user unpublishes a round that had carried-over forfeits to the next round
+- **THEN** the carried-over forfeit games in the next round are removed

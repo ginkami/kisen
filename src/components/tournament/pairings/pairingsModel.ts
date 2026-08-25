@@ -640,3 +640,54 @@ export function withAutoForfeits(
 
   return [...otherRounds, ...roundGames, ...newForfeits]
 }
+
+/**
+ * When publishing a round, carry over forfeit games to the next round.
+ * For each participant whose game in `publishedRound` is a forfeit and who
+ * has no game in `publishedRound + 1`, creates a lone forfeit game.
+ * Returns the same array reference when nothing to add.
+ */
+export function withForfeitsCarriedOver(
+  allGames: Game[],
+  publishedRound: number,
+  considerSente: boolean,
+  maxRound: number,
+): Game[] {
+  const nextRound = publishedRound + 1
+  if (nextRound > maxRound) return allGames
+
+  // Participants with a forfeit game in the published round
+  const forfeitedIds = new Set<number>()
+  for (const g of allGames) {
+    if (g.round !== publishedRound || g.status !== 'forfeit') continue
+    forfeitedIds.add(g.player1)
+    if (g.player2 != null) forfeitedIds.add(g.player2)
+  }
+  if (forfeitedIds.size === 0) return allGames
+
+  // Participants already having any game in the next round
+  const coveredInNext = new Set<number>()
+  for (const g of allGames) {
+    if (g.round !== nextRound) continue
+    coveredInNext.add(g.player1)
+    if (g.player2 != null) coveredInNext.add(g.player2)
+  }
+
+  const toAdd: Game[] = []
+  for (const pid of forfeitedIds) {
+    if (coveredInNext.has(pid)) continue
+    toAdd.push({
+      id: uuidv7(),
+      player1: pid,
+      player2: null,
+      sente: considerSente ? 'player1' : 'unknown',
+      handicap: null,
+      result: 'player2_won' as const,
+      status: 'forfeit' as const,
+      round: nextRound,
+    })
+  }
+
+  if (toAdd.length === 0) return allGames
+  return [...allGames, ...toAdd]
+}

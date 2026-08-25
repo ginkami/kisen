@@ -21,6 +21,7 @@ import {
   applyLoneGameInvariant,
   withAutoForfeits,
   withHandicapReset,
+  withForfeitsCarriedOver,
   deriveGameStatus,
   normalizeGame,
 } from '../components/tournament/pairings/pairingsModel.ts'
@@ -1155,5 +1156,71 @@ describe('past-round unpaired drop creates forfeit', () => {
     const round1 = dropped.filter((g) => g.round === 1)
     expect(round1).toHaveLength(1) // only partner's bye
     expect(round1[0].player1).toBe(2)
+  })
+})
+
+
+describe('withForfeitsCarriedOver', () => {
+  it('creates forfeit in next round for forfeited participant', () => {
+    const games = [makeGame({ round: 1, player1: 1, player2: null, status: 'forfeit', result: 'player2_won' })]
+    const result = withForfeitsCarriedOver(games, 1, false, 3)
+    const nextForfeit = result.filter((g) => g.round === 2 && g.status === 'forfeit')
+    expect(nextForfeit).toHaveLength(1)
+    expect(nextForfeit[0].player1).toBe(1)
+    expect(nextForfeit[0].player2).toBeNull()
+    expect(nextForfeit[0].result).toBe('player2_won')
+  })
+
+  it('skips participant already having a game in next round', () => {
+    const games = [
+      makeGame({ round: 1, player1: 1, player2: null, status: 'forfeit', result: 'player2_won' }),
+      makeGame({ round: 2, player1: 1, player2: 2, status: 'not_started' }),
+    ]
+    const result = withForfeitsCarriedOver(games, 1, false, 3)
+    expect(result).toHaveLength(2)
+  })
+
+  it('no-op on last round (nextRound > maxRound)', () => {
+    const games = [makeGame({ round: 2, player1: 1, player2: null, status: 'forfeit', result: 'player2_won' })]
+    const result = withForfeitsCarriedOver(games, 2, false, 2)
+    expect(result).toBe(games)
+  })
+
+  it('no-op when no forfeits in published round', () => {
+    const games = [makeGame({ round: 1, player1: 1, player2: 2, result: 'player1_won', status: 'completed' })]
+    const result = withForfeitsCarriedOver(games, 1, false, 3)
+    expect(result).toBe(games)
+  })
+
+  it('idempotent: second call returns same result', () => {
+    const games = [makeGame({ round: 1, player1: 1, player2: null, status: 'forfeit', result: 'player2_won' })]
+    const first = withForfeitsCarriedOver(games, 1, false, 3)
+    const second = withForfeitsCarriedOver(first, 1, false, 3)
+    expect(second).toHaveLength(first.length)
+  })
+
+  it('sets sente based on considerSente flag', () => {
+    const games = [makeGame({ round: 1, player1: 1, player2: null, status: 'forfeit', result: 'player2_won' })]
+    const result = withForfeitsCarriedOver(games, 1, true, 3)
+    const nextForfeit = result.find((g) => g.round === 2 && g.status === 'forfeit')
+    expect(nextForfeit!.sente).toBe('player1')
+  })
+
+  it('does not carry over non-forfeit games', () => {
+    const games = [makeGame({ round: 1, player1: 1, player2: 2, result: 'player1_won', status: 'completed' })]
+    const result = withForfeitsCarriedOver(games, 1, false, 3)
+    expect(result).toBe(games)
+  })
+
+  it('carries over multiple forfeited participants', () => {
+    const games = [
+      makeGame({ round: 1, player1: 1, player2: null, status: 'forfeit', result: 'player2_won' }),
+      makeGame({ round: 1, player1: 3, player2: null, status: 'forfeit', result: 'player2_won' }),
+    ]
+    const result = withForfeitsCarriedOver(games, 1, false, 3)
+    const nextForfeits = result.filter((g) => g.round === 2 && g.status === 'forfeit')
+    expect(nextForfeits).toHaveLength(2)
+    const ids = nextForfeits.map((g) => g.player1).sort()
+    expect(ids).toEqual([1, 3])
   })
 })
