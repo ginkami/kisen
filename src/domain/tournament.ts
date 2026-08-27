@@ -19,20 +19,38 @@ export type TournamentStatus = z.infer<typeof tournamentStatusSchema>
 export const tournamentLocaleSchema = z.object({
   title: z.string().default(''),
   description: z.string().optional(),
-  location: z.string().optional(),
-  venue: z.string().optional(),
 })
 
 export type TournamentLocale = z.infer<typeof tournamentLocaleSchema>
 
 export const publishedTournamentLocaleSchema = tournamentLocaleSchema.extend({
   title: z.string().min(1),
-  location: z.string().min(1),
 })
 
 export type PublishedTournamentLocale = z.infer<
   typeof publishedTournamentLocaleSchema
 >
+
+export const tournamentLocationLocaleSchema = z.object({
+  settlement: z.string().optional(),
+  venue: z.string().optional(),
+})
+
+export type TournamentLocationLocale = z.infer<
+  typeof tournamentLocationLocaleSchema
+>
+
+export const tournamentLocationSchema = z.object({
+  latitude: z.number().min(-90).max(90).optional(),
+  longitude: z.number().min(-180).max(180).optional(),
+  country: z.string().length(2).optional(),
+  locales: localeSchema(tournamentLocationLocaleSchema).refine(
+    (locales) => Object.keys(locales).length > 0,
+    'At least one locale is required'
+  ),
+})
+
+export type TournamentLocation = z.infer<typeof tournamentLocationSchema>
 
 export const scheduleEventSchema = z.object({
   scheduledAt: z.date(),
@@ -160,7 +178,7 @@ export const tournamentSchema = z.object({
     (locales) => Object.keys(locales).length > 0,
     'At least one locale is required'
   ),
-  country: z.string().length(2),
+  location: tournamentLocationSchema.optional(),
   regulations: z.array(z.string().uuid()).default([]),
   settings: tournamentSettingsSchema,
   schedule: tournamentScheduleSchema,
@@ -172,13 +190,22 @@ export const tournamentSchema = z.object({
 export type Tournament = z.infer<typeof tournamentSchema>
 
 export const publishedTournamentSchema = tournamentSchema
-  .omit({ locales: true, schedule: true })
+  .omit({ locales: true, schedule: true, location: true })
   .extend({
     locales: localeSchema(publishedTournamentLocaleSchema).refine(
       (locales) => Object.keys(locales).length > 0,
       'At least one locale is required'
     ),
     schedule: publishedTournamentScheduleSchema,
+    location: tournamentLocationSchema
+      .extend({
+        latitude: z.number().min(-90).max(90),
+        longitude: z.number().min(-180).max(180),
+      })
+      .refine(
+        (loc) => Object.keys(loc.locales).length > 0,
+        'At least one locale is required'
+      ),
   })
   .refine((t) => t.status !== 'draft', {
     message: 'Published tournament cannot have draft status',
@@ -201,23 +228,30 @@ export interface LocalizedTournamentData {
   locale: SupportedLocale
   title: string
   description?: string
-  location: string
+  settlement: string
   venue?: string
+  country?: string
 }
 
 export function getTournamentLocale(
-  tournament: { locales: Record<string, TournamentLocale> },
+  tournament: {
+    locales: Record<string, TournamentLocale>
+    location?: TournamentLocation
+  },
   preferredLocale: SupportedLocale
 ): LocalizedTournamentData {
   const locale = tournament.locales[preferredLocale]
     ? preferredLocale
     : (Object.keys(tournament.locales)[0] as SupportedLocale)
 
+  const locationLocale = tournament.location?.locales?.[locale]
+
   return {
     locale,
     title: tournament.locales[locale].title,
     description: tournament.locales[locale].description,
-    location: tournament.locales[locale].location ?? '',
-    venue: tournament.locales[locale].venue,
+    settlement: locationLocale?.settlement ?? '',
+    venue: locationLocale?.venue,
+    country: tournament.location?.country,
   }
 }

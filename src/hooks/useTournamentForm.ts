@@ -22,6 +22,7 @@ import type { TieBreak, TieBreakType } from '../domain/tieBreak.ts'
 import { normalizeGamesSente } from '../components/tournament/crosstable/crosstableModel.ts'
 import { normalizeGame, withForfeitsCarriedOver } from '../components/tournament/pairings/pairingsModel.ts'
 import type { PlayerRank } from '../domain/playerRating.ts'
+import { resolveLocationByIp, resolvedToTournamentLocation } from '../services/geoService.ts'
 
 export type ScheduleRow =
   | { kind: 'round'; id: string; scheduledAt: Date | null; number: number }
@@ -149,7 +150,12 @@ export interface TournamentFormState {
   parentEvent: string | null
   hostAssociation: string | null
   locales: Record<SupportedLocale, TournamentLocale>
-  country: string
+  location: {
+    latitude: number | null
+    longitude: number | null
+    country: string
+    locales: Record<SupportedLocale, { settlement: string; venue: string }>
+  }
   arbiter: Record<SupportedLocale, { givenName: string; familyName: string }>
   settings: TournamentSettings
   scheduleRows: ScheduleRow[]
@@ -239,7 +245,18 @@ function rowsToParticipants(rows: ParticipantRow[]): Participant[] {
 }
 
 function createEmptyLocale(): TournamentLocale {
-  return { title: '', description: '', location: '', venue: '' }
+  return { title: '', description: '' }
+}
+
+function createEmptyLocation(): TournamentFormState['location'] {
+  return {
+    latitude: null,
+    longitude: null,
+    country: '',
+    locales: Object.fromEntries(
+      supportedLocales.map((locale) => [locale, { settlement: '', venue: '' }])
+    ) as Record<SupportedLocale, { settlement: string; venue: string }>,
+  }
 }
 
 function createEmptyArbiter(): TournamentFormState['arbiter'] {
@@ -263,12 +280,29 @@ function tournamentToFormState(tournament: Tournament): TournamentFormState {
     }
   }
 
+  // Map location
+  const locationSource = tournament.location
+  const location: TournamentFormState['location'] = {
+    latitude: locationSource?.latitude ?? null,
+    longitude: locationSource?.longitude ?? null,
+    country: locationSource?.country ?? '',
+    locales: Object.fromEntries(
+      supportedLocales.map((locale) => [
+        locale,
+        {
+          settlement: locationSource?.locales?.[locale]?.settlement ?? '',
+          venue: locationSource?.locales?.[locale]?.venue ?? '',
+        },
+      ])
+    ) as Record<SupportedLocale, { settlement: string; venue: string }>,
+  }
+
   return {
     slug: tournament.slug,
     parentEvent: tournament.parentEvent,
     hostAssociation: tournament.hostAssociation,
     locales,
-    country: tournament.country,
+    location,
     arbiter: (() => {
       const arbiter = tournament.arbiter
       if (!arbiter) return createEmptyArbiter()
@@ -295,7 +329,34 @@ function tournamentToFormState(tournament: Tournament): TournamentFormState {
 }
 
 function buildLocalesForSave(locales: TournamentFormState['locales']) {
-  return backfillRequiredLocaleFields(locales, ['title', 'location']) as Tournament['locales']
+  return backfillRequiredLocaleFields(locales, ['title']) as Tournament['locales']
+}
+
+function buildLocationForSave(
+  location: TournamentFormState['location']
+): Tournament['location'] | undefined {
+  // Backfill settlement across location locales
+  const backfilled = backfillRequiredLocaleFields(
+    location.locales,
+    ['settlement']
+  )
+
+  const locales: Record<string, { settlement?: string; venue?: string }> = {}
+  for (const locale of supportedLocales) {
+    const entry = backfilled[locale]
+    const loc: { settlement?: string; venue?: string } = {}
+    if (entry.settlement?.trim()) loc.settlement = entry.settlement.trim()
+    if (entry.venue?.trim()) loc.venue = entry.venue.trim()
+    locales[locale] = loc
+  }
+
+  const result: Tournament['location'] = { locales }
+
+  if (location.latitude !== null) result.latitude = location.latitude
+  if (location.longitude !== null) result.longitude = location.longitude
+  if (location.country) result.country = location.country
+
+  return result
 }
 
 function buildArbiterForSave(arbiter: TournamentFormState['arbiter']) {
@@ -311,7 +372,7 @@ function formStateToUpdateInput(
   const input: {
     id: string
     locales: Tournament['locales']
-    country: string
+    location: Tournament['location'] | undefined
     settings: TournamentSettings
     schedule: TournamentSchedule
     parentEvent: string | null
@@ -324,7 +385,7 @@ function formStateToUpdateInput(
   } = {
     id: tournament.id,
     locales: buildLocalesForSave(state.locales),
-    country: state.country,
+    location: buildLocationForSave(state.location),
     settings: state.settings,
     schedule,
     parentEvent: state.parentEvent,
@@ -365,15 +426,8 @@ function validateTournamentPublishForm(
     errors.title = 'required'
   }
 
-  const hasLocation = supportedLocales.some(
-    (locale) => (state.locales[locale].location?.trim() ?? '') !== ''
-  )
-  if (!hasLocation) {
+  if (state.location.latitude === null || state.location.longitude === null) {
     errors.location = 'required'
-  }
-
-  if (!state.country) {
-    errors.country = 'required'
   }
 
   const hasArbiter = supportedLocales.some(
@@ -525,6 +579,38 @@ export function useTournamentForm(tournamentId: string | undefined) {
     setLastSavedSnapshot(JSON.stringify(initial))
   }
 
+  // Auto-fill location from IP when coordinates are missing (legacy documents)
+  useEffect(() => {
+    if (!formState || formState.location.latitude !== null) return
+
+    let cancelled = false
+    resolveLocationByIp().then((resolved) => {
+      if (cancelled || !resolved) return
+      const ipLocation = resolvedToTournamentLocation(resolved)
+      setFormState((prev) => {
+        if (!prev) return prev
+        return {
+          ...prev,
+          location: {
+            latitude: ipLocation.latitude ?? null,
+            longitude: ipLocation.longitude ?? null,
+            country: ipLocation.country ?? '',
+            locales: Object.fromEntries(
+              supportedLocales.map((locale) => [
+                locale,
+                {
+                  settlement: ipLocation.locales?.[locale]?.settlement ?? prev.location.locales[locale]?.settlement ?? '',
+                  venue: prev.location.locales[locale]?.venue ?? '',
+                },
+              ])
+            ) as Record<SupportedLocale, { settlement: string; venue: string }>,
+          },
+        }
+      })
+    })
+    return () => { cancelled = true }
+  }, [formState?.location.latitude])
+
   // Reset createError when tournamentId changes
   const [prevTournamentId, setPrevTournamentId] = useState(tournamentId)
   if (prevTournamentId !== tournamentId) {
@@ -588,6 +674,36 @@ export function useTournamentForm(tournamentId: string | undefined) {
         }
         return { ...state, [field]: value }
       })
+    },
+    [updateForm]
+  )
+
+  const updateLocation = useCallback(
+    (patch: Partial<TournamentFormState['location']>) => {
+      updateForm((state) => ({
+        ...state,
+        location: { ...state.location, ...patch },
+      }))
+    },
+    [updateForm]
+  )
+
+  const updateLocationLocale = useCallback(
+    (
+      locale: SupportedLocale,
+      field: 'settlement' | 'venue',
+      value: string
+    ) => {
+      updateForm((state) => ({
+        ...state,
+        location: {
+          ...state.location,
+          locales: {
+            ...state.location.locales,
+            [locale]: { ...state.location.locales[locale], [field]: value },
+          },
+        },
+      }))
     },
     [updateForm]
   )
@@ -935,8 +1051,26 @@ export function useTournamentForm(tournamentId: string | undefined) {
   const saveMutation = useMutation({
     mutationFn: async () => {
       if (!tournament || !formState) throw new Error('Tournament not loaded')
+      const input = formStateToUpdateInput(tournament, formState)
+
+      // IP fallback: if no coordinates, try to resolve by IP
+      if (!input.location?.latitude || !input.location?.longitude) {
+        const resolved = await resolveLocationByIp()
+        if (resolved) {
+          const ipLocation = resolvedToTournamentLocation(resolved)
+          input.location = {
+            ...input.location,
+            ...ipLocation,
+            locales: {
+              ...ipLocation.locales,
+              ...input.location?.locales,
+            },
+          }
+        }
+      }
+
       const updated = await tournamentService.update({
-        ...formStateToUpdateInput(tournament, formState),
+        ...input,
         existing: tournament,
       })
       return updated
@@ -956,10 +1090,29 @@ export function useTournamentForm(tournamentId: string | undefined) {
     mutationFn: async () => {
       if (!tournament || !formState) throw new Error('Tournament not loaded')
       const schedule = splitSchedule(formState.scheduleRows)
+      const location = buildLocationForSave(formState.location)
+
+      // IP fallback: if no coordinates, try to resolve by IP
+      let resolvedLocation = location
+      if (!resolvedLocation?.latitude || !resolvedLocation?.longitude) {
+        const resolved = await resolveLocationByIp()
+        if (resolved) {
+          const ipLocation = resolvedToTournamentLocation(resolved)
+          resolvedLocation = {
+            ...resolvedLocation,
+            ...ipLocation,
+            locales: {
+              ...ipLocation.locales,
+              ...resolvedLocation?.locales,
+            },
+          }
+        }
+      }
+
       const candidate = {
         ...tournament,
         locales: buildLocalesForSave(formState.locales),
-        country: formState.country,
+        location: resolvedLocation,
         settings: formState.settings,
         schedule,
         slug: formState.slug,
@@ -1113,6 +1266,8 @@ export function useTournamentForm(tournamentId: string | undefined) {
     clearDeleteError: deleteMutation.reset,
     updateLocale,
     updateBasic,
+    updateLocation,
+    updateLocationLocale,
     updateArbiter,
     updateTimeControlType,
     updateTimeControlField,

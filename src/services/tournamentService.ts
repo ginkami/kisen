@@ -3,6 +3,7 @@ import type {
   Tournament,
   TournamentStatus,
   TournamentLocale,
+  TournamentLocation,
 } from '../domain/tournament.ts'
 import {
   generateRandomSlug,
@@ -15,13 +16,14 @@ import { firestoreTournamentRepository } from './firestoreTournamentRepository.t
 import { eventService } from './eventService.ts'
 import { getTournamentStartYearMonth } from '../utils/yearMonth.ts'
 import { supportedLocales } from '../domain/locale.ts'
+import { resolveLocationByIp, resolvedToTournamentLocation } from './geoService.ts'
 
 export interface CreateTournamentInput {
   createdBy: string
   hostAssociation: string | null
   parentEvent: string | null
   locales: Tournament['locales']
-  country: string
+  location?: TournamentLocation
   settings: Tournament['settings']
   schedule: Tournament['schedule']
   arbiter: Tournament['arbiter']
@@ -40,7 +42,7 @@ export interface CreateDraftInput {
 export interface UpdateTournamentInput {
   id: string
   locales?: Tournament['locales']
-  country?: string
+  location?: TournamentLocation
   settings?: Tournament['settings']
   schedule?: Tournament['schedule']
   arbiter?: Tournament['arbiter']
@@ -56,13 +58,12 @@ export interface UpdateTournamentInput {
   existing?: Tournament
 }
 
-function defaultLocales(location = ''): Record<string, TournamentLocale> {
+function defaultLocales(): Record<string, TournamentLocale> {
   return Object.fromEntries(
     supportedLocales.map((locale) => [
       locale,
       {
         title: '',
-        location,
       },
     ])
   )
@@ -193,7 +194,7 @@ export class TournamentService {
         schedule: input.schedule,
       } as Tournament),
       locales: input.locales,
-      country: input.country,
+      location: input.location,
       settings: input.settings,
       schedule: input.schedule,
       arbiter: input.arbiter,
@@ -217,7 +218,8 @@ export class TournamentService {
   async createDraft(input: CreateDraftInput): Promise<Tournament> {
     const slug = await this.resolveSlug(input.desiredSlug)
     const now = new Date()
-    const { country, city } = await this.detectLocationByIp()
+    const resolved = await resolveLocationByIp()
+    const location = resolved ? resolvedToTournamentLocation(resolved) : undefined
     const schedule: Tournament['schedule'] = {
       events: [],
       rounds: [],
@@ -237,8 +239,8 @@ export class TournamentService {
       startYearMonth: getTournamentStartYearMonth({
         schedule,
       } as Tournament),
-      locales: defaultLocales(city),
-      country,
+      locales: defaultLocales(),
+      location,
       settings: defaultSettings(),
       schedule,
       arbiter: input.arbiter,
@@ -298,7 +300,7 @@ export class TournamentService {
     const updated: Tournament = {
       ...existing,
       locales: input.locales ?? existing.locales,
-      country: input.country ?? existing.country,
+      location: input.location ?? existing.location,
       settings: input.settings ?? existing.settings,
       schedule: nextSchedule,
       arbiter: input.arbiter ?? existing.arbiter,
@@ -390,30 +392,6 @@ export class TournamentService {
     }
 
     return generateRandomSlug()
-  }
-
-  private async detectLocationByIp(): Promise<{ country: string; city: string }> {
-    try {
-      const controller = new AbortController()
-      const timeout = setTimeout(() => controller.abort(), 3000)
-      const response = await fetch('https://ipwho.is/', {
-        signal: controller.signal,
-      })
-      clearTimeout(timeout)
-
-      if (!response.ok) {
-        return { country: 'BY', city: '' }
-      }
-
-      const data = await response.json()
-      const country = typeof data.country_code === 'string'
-        ? data.country_code.toUpperCase()
-        : 'BY'
-      const city = typeof data.city === 'string' ? data.city : ''
-      return { country, city }
-    } catch {
-      return { country: 'BY', city: '' }
-    }
   }
 }
 

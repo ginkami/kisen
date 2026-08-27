@@ -24,9 +24,9 @@ import type { Association } from '../../domain/association.ts'
 import { useMyAssociations } from '../../hooks/useAssociations.ts'
 import { eventService } from '../../services/eventService.ts'
 import { regulationService } from '../../services/regulationService.ts'
-import { CountrySelect } from './CountrySelect.tsx'
 import { LocaleTabs } from './LocaleTabs.tsx'
 import { ExpandableField } from './ExpandableField.tsx'
+import { TournamentLocationInput } from './TournamentLocationInput.tsx'
 import { PairingsSection } from './PairingsSection.tsx'
 import { CrosstableSection } from './CrosstableSection.tsx'
 import { EventPickerModal } from './EventPickerModal.tsx'
@@ -68,6 +68,8 @@ function GeneralInfoSection({
   formState,
   updateLocale,
   updateBasic,
+  updateLocation,
+  updateLocationLocale,
   updateArbiter,
   addRegulation,
   removeRegulation,
@@ -82,6 +84,12 @@ function GeneralInfoSection({
   updateBasic: <K extends keyof TournamentFormState>(
     field: K,
     value: TournamentFormState[K]
+  ) => void
+  updateLocation: (patch: Partial<TournamentFormState['location']>) => void
+  updateLocationLocale: (
+    locale: SupportedLocale,
+    field: 'settlement' | 'venue',
+    value: string
   ) => void
   updateArbiter: (
     locale: SupportedLocale,
@@ -197,52 +205,34 @@ function GeneralInfoSection({
         )}
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div className="form-control">
-            <label className="label">
-              <span className="label-text">
-                {t('tournament.edit.country')}
-                <span className="text-error ml-1">*</span>
-              </span>
-            </label>
-            <CountrySelect
-              value={formState.country}
-              onChange={(value) => updateBasic('country', value)}
-              lang={i18n.language === 'ru' ? 'ru' : 'en'}
-              placeholder={t('tournament.edit.noCountry')}
-            />
-            {validationErrors.country && (
-              <span className="text-error text-xs mt-1">{t('common.fieldRequired')}</span>
-            )}
-          </div>
-
-          <div className="form-control">
-            <label className="label">
-              <span className="label-text">
-                {t('tournament.edit.location')}
-                <span className="text-error ml-1">*</span>
-              </span>
-            </label>
-            <input
-              type="text"
-              value={formState.locales[activeLocale].location ?? ''}
-              onChange={(e) =>
-                updateLocale(activeLocale, 'location', e.target.value)
-              }
-              className={`input input-bordered w-full ${validationErrors.location ? 'input-error' : ''}`}
-            />
-            {validationErrors.location && (
-              <span className="text-error text-xs mt-1">{t('common.fieldRequired')}</span>
-            )}
-          </div>
+          <TournamentLocationInput
+            location={formState.location}
+            onChange={(resolved) => {
+              updateLocation({
+                latitude: resolved.latitude,
+                longitude: resolved.longitude,
+                country: resolved.country,
+                locales: Object.fromEntries(
+                  supportedLocales.map((locale) => [
+                    locale,
+                    {
+                      settlement: resolved.settlements[locale] ?? formState.location.locales[locale]?.settlement ?? '',
+                      venue: formState.location.locales[locale]?.venue ?? '',
+                    },
+                  ])
+                ) as Record<SupportedLocale, { settlement: string; venue: string }>,
+              })
+            }}
+            activeLocale={activeLocale}
+            validationError={validationErrors.location}
+          />
+          <ExpandableField
+            label={t('tournament.edit.venue')}
+            value={formState.location.locales[activeLocale]?.venue ?? ''}
+            onChange={(value) => updateLocationLocale(activeLocale, 'venue', value)}
+            placeholder={t('tournament.edit.venue')}
+          />
         </div>
-
-        <ExpandableField
-          label={t('tournament.edit.venue')}
-          value={formState.locales[activeLocale].venue ?? ''}
-          onChange={(value) => updateLocale(activeLocale, 'venue', value)}
-          placeholder={t('tournament.edit.venue')}
-          buttonClassName='basic-expandable'
-        />
 
         <div className="form-control">
           <label className="label">
@@ -908,6 +898,8 @@ export function TournamentEditForm({
     retryCreateDraft,
     updateLocale,
     updateBasic,
+    updateLocation,
+    updateLocationLocale,
     updateArbiter,
     updateTimeControlType,
     updateTimeControlField,
@@ -1163,6 +1155,8 @@ export function TournamentEditForm({
             formState={formState}
             updateLocale={updateLocale}
             updateBasic={updateBasic}
+            updateLocation={updateLocation}
+            updateLocationLocale={updateLocationLocale}
             updateArbiter={updateArbiter}
             addRegulation={addRegulation}
             removeRegulation={removeRegulation}

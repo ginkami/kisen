@@ -19,15 +19,23 @@
     "locales": { // (Required)
         "ru": {  // [ >= 1] Должна быть хотя бы одна локаль. При рендеринге берутся значения для текущей локали, либо другой существующей
             "title": "String", // (Required)
-            "description": "String", // Поддерживается Markdown синтаксис
-            "location": "String", // (Required) Место (город/посёлок) или сервис, если это онлайн-турнир
-            "venue": "String"
+            "description": "String" // Поддерживается Markdown синтаксис
         }
     },
     "regulations": [
         "UUIDv7" // (Ref: regulation.id) 
     ],
-    "country": "ISO 3166-1 alpha-2", // (Required)
+    "location": { // (Required)
+        "latitude": "Decimal", // (Required)
+        "longitude": "Decimal", // (Required)
+        "country": "ISO 3166-1 alpha-2",
+        "locales": {
+            "ru": {  // [ >= 1] Должна быть хотя бы одна локаль. При рендеринге берутся значения для текущей локали, либо другой существующей
+                "settlement": "String", // Место (город/посёлок)
+                "venue": "String" // Место проведения или сервис, если это онлайн-турнир
+            }
+        }
+    },
     "settings": { // (Required)
         "timeControl": { // (Required, Ref: timeControl.ts)
             "type": "'absolute' | 'fischer' | 'bronstein' | 'delay' | 'byoyomi' | 'canadian'", // (Required)

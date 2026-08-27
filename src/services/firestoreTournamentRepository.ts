@@ -38,6 +38,62 @@ function withDefaultArbiter(data: Record<string, unknown>): Record<string, unkno
   }
 }
 
+/**
+ * Remap legacy tournament documents that have top-level `country` and
+ * `locales.<lang>.location` / `locales.<lang>.venue` into the new
+ * `location` object shape. Coordinates are left undefined (will be
+ * resolved by IP on form load).
+ */
+function remapLegacyLocation(data: Record<string, unknown>): Record<string, unknown> {
+  if (data.location) return data
+
+  const country = typeof data.country === 'string' ? data.country : undefined
+  const locales = data.locales as Record<string, Record<string, unknown>> | undefined
+
+  const locationLocales: Record<string, Record<string, string>> = {}
+  if (locales) {
+    for (const locale of supportedLocales) {
+      const localeData = locales[locale]
+      if (!localeData) continue
+      const entry: Record<string, string> = {}
+      if (typeof localeData.location === 'string' && localeData.location) {
+        entry.settlement = localeData.location
+      }
+      if (typeof localeData.venue === 'string' && localeData.venue) {
+        entry.venue = localeData.venue
+      }
+      if (Object.keys(entry).length > 0) {
+        locationLocales[locale] = entry
+      }
+    }
+  }
+
+  // Only create location if we have something to remap
+  if (!country && Object.keys(locationLocales).length === 0) return data
+
+  const location: Record<string, unknown> = {
+    locales: Object.keys(locationLocales).length > 0
+      ? locationLocales
+      : Object.fromEntries(supportedLocales.map((l) => [l, {}])),
+  }
+  if (country) location.country = country
+
+  // Remove legacy fields from the data
+  const { country: _country, ...rest } = data
+
+  // Strip legacy locale fields
+  if (rest.locales && typeof rest.locales === 'object') {
+    const cleanedLocales: Record<string, Record<string, unknown>> = {}
+    for (const [key, val] of Object.entries(rest.locales as Record<string, Record<string, unknown>>)) {
+      const { location: _loc, venue: _venue, ...localeRest } = val
+      cleanedLocales[key] = localeRest
+    }
+    rest.locales = cleanedLocales
+  }
+
+  return { ...rest, location }
+}
+
 const COLLECTION_NAME = 'tournaments'
 
 function toFirestore(tournament: Tournament): Record<string, unknown> {
@@ -45,7 +101,7 @@ function toFirestore(tournament: Tournament): Record<string, unknown> {
 }
 
 function fromFirestore(data: Record<string, unknown>): Tournament {
-  return timestampsToDates(withDefaultArbiter(data)) as Tournament
+  return timestampsToDates(withDefaultArbiter(remapLegacyLocation(data))) as Tournament
 }
 
 export class FirestoreTournamentRepository implements TournamentRepository {

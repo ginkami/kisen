@@ -308,7 +308,7 @@ The first item in the schedule event combobox dropdown SHALL always display "Ð¢Ñ
 
 ### Requirement: Tournament publish field validation
 
-The `useTournamentForm` hook SHALL validate required fields before publishing. A publish SHALL be blocked when: no locale has a non-empty `title`, no locale has a non-empty `location`, `country` is empty, no locale has both arbiter `givenName` and `familyName` filled, or the schedule has zero rounds. The hook SHALL expose a `validationErrors` record mapping field keys (`title`, `location`, `country`, `arbiter.givenName`, `arbiter.familyName`, `rounds`) to localized messages. Save draft SHALL remain permissive and SHALL NOT be blocked by validation. Before publishing, the hook SHALL backfill empty `title`/`location` (tournament locales) and `givenName`/`familyName` (arbiter locales) from the first locale providing a non-empty value, so that `publishedTournamentSchema` validation passes for every present locale when at least one locale provides the required value.
+The `useTournamentForm` hook SHALL validate required fields before publishing. A publish SHALL be blocked when: no locale has a non-empty `title`, `location` has no coordinates (`location.latitude`/`location.longitude` not set), no locale has both arbiter `givenName` and `familyName` filled, or the schedule has zero rounds. The hook SHALL expose a `validationErrors` record mapping field keys (`title`, `location`, `arbiter.givenName`, `arbiter.familyName`, `rounds`) to localized messages. Before validating, when `location` has no coordinates, the hook SHALL attempt to resolve the location from the user's IP address (coordinates plus reverse geocoding); the `location` error SHALL only be set when that fallback fails. Save draft SHALL remain permissive and SHALL NOT be blocked by validation (the IP fallback SHALL still be attempted). Before publishing, the hook SHALL backfill empty `title` (tournament locales), `givenName`/`familyName` (arbiter locales), and `settlement` (location locales) from the first locale providing a non-empty value, so that `publishedTournamentSchema` validation passes for every present locale when at least one locale provides the required value.
 
 #### Scenario: Publishing with empty title
 
@@ -317,17 +317,17 @@ The `useTournamentForm` hook SHALL validate required fields before publishing. A
 - **AND** the publish is blocked
 - **AND** the title input is highlighted with an error style
 
-#### Scenario: Publishing with empty location
+#### Scenario: Publishing with unresolved location
 
-- **WHEN** the user clicks Publish and all locale `location` fields are empty
+- **WHEN** the user clicks Publish, `location` has no coordinates, and the IP-based fallback fails
 - **THEN** `validationErrors` contains an entry for `location`
 - **AND** the publish is blocked
 
-#### Scenario: Publishing with empty country
+#### Scenario: Publishing resolves location via IP fallback
 
-- **WHEN** the user clicks Publish and `country` is empty
-- **THEN** `validationErrors` contains an entry for `country`
-- **AND** the publish is blocked
+- **WHEN** the user clicks Publish and `location` has no coordinates but the IP-based fallback resolves them
+- **THEN** the resolved location is used for the publish
+- **AND** no `location` validation error is set
 
 #### Scenario: Publishing with empty arbiter names
 
@@ -350,8 +350,8 @@ The `useTournamentForm` hook SHALL validate required fields before publishing. A
 
 #### Scenario: Publishing with one locale filled succeeds via backfill
 
-- **WHEN** the user fills `title` and `location` in the `ru` locale only and clicks Publish
-- **THEN** the `en` locale's `title` and `location` are backfilled from the `ru` locale
+- **WHEN** the user fills `title` in the `ru` locale only and clicks Publish
+- **THEN** the `en` locale's `title` is backfilled from the `ru` locale
 - **AND** the publish succeeds (no Zod parse error)
 
 #### Scenario: Validation errors clear on edit
