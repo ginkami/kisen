@@ -155,27 +155,26 @@ export function CrosstableSection({
   return (
     <div className="table-container w-[calc(100vw-32px)] md:w-auto overflow-x-auto">
       <table className="table table-xs w-auto table-fixed">
-        <thead>
+        <thead className="rounded-t-xl bg-base-200">
           <tr>
-            <th className="sticky top-0 left-0 z-30 bg-base-100 p-0" style={{ minWidth: COL_NO }} />
-            <th className="sticky top-0 bg-base-100 z-30 p-0" style={{ left: OFF_FLAG, minWidth: COL_FLAG }} />
-            <th className="sticky top-0 bg-base-100 z-30 p-0" style={{ left: OFF_RANK, minWidth: COL_RANK }} />
-            <th className="sticky top-0 shadow-[5px_0_10px_-2px_rgba(0,0,0,0.1)] bg-base-100 z-30 whitespace-nowrap p-0.5" style={{ left: OFF_NAME }}>{t('tournament.edit.crosstable.name')}</th>
-            <th className="sticky top-0 z-20 bg-base-100 whitespace-nowrap">{t('tournament.edit.crosstable.residence')}</th>
-            <th className="sticky top-0 z-20 bg-base-100 whitespace-nowrap text-right">{t('tournament.edit.crosstable.rating')}</th>
-            {Array.from({ length: roundCount }, (_, i) => i + 1).map((r) => (
-              <th key={r} className="sticky top-0 z-20 bg-base-100 text-left pl-2.5">{r}</th>
-            ))}
-            <th className="sticky top-0 z-20 bg-base-100 text-center whitespace-nowrap w-fit">
+            <th rowSpan={2} className="first:rounded-tl-xl sticky top-0 left-0 z-30 p-0" style={{ minWidth: COL_NO }} />
+            <th rowSpan={2} className="sticky top-0 z-30 p-0" style={{ left: OFF_FLAG, minWidth: COL_FLAG }} />
+            <th rowSpan={2} className="sticky top-0 z-30 p-0" style={{ left: OFF_RANK, minWidth: COL_RANK }} />
+            <th rowSpan={2} className="sticky top-0 shadow-[5px_0_10px_-2px_rgba(0,0,0,0.1)] z-30 whitespace-nowrap p-0.5" style={{ left: OFF_NAME }}>{t('tournament.edit.crosstable.name')}</th>
+            <th rowSpan={2} className="sticky top-0 z-20 whitespace-nowrap">{t('tournament.edit.crosstable.residence')}</th>
+            <th rowSpan={2} className="sticky top-0 z-20 whitespace-nowrap text-right">{t('tournament.edit.crosstable.rating')}</th>
+            <th colSpan={roundCount} className="sticky top-0 z-20 text-center p-0 text-xs">{t('tournament.edit.pairings.title')}</th>
+            <th rowSpan={2} className="sticky top-0 z-20 text-center whitespace-nowrap w-fit">
               <div className="tooltip tooltip-bottom" data-tip={t('tournament.edit.crosstable.spTooltip')}>{t('tournament.edit.crosstable.sp')}</div>
             </th>
-            {tieBreaks.map((tb) => (
+            {tieBreaks.map((tb, index, array) => (
               <th
+                rowSpan={2}
                 key={tb.type}
-                className="sticky top-0 z-20 bg-base-100 text-right whitespace-nowrap w-fit"
+                className={`sticky top-0 z-20 text-right whitespace-nowrap w-fit ${index === array.length - 1 ? 'last:rounded-tr-xl' : ''}`}
               >
                 <div 
-                  className={tb.type !== 'points' ? ' tooltip tooltip-bottom' : ''} 
+                  className={tb.type !== 'points' ? ' tooltip tooltip-bottom relative z-20' : ''} 
                   {...(tb.type !== 'points' && { 'data-tip': t(`tournament.tieBreak.${tb.type}`) })}
                 >
                   {tb.type === 'points'
@@ -183,6 +182,11 @@ export function CrosstableSection({
                     : t(`tournament.tieBreak.abbr.${tb.type}`) + (tb.type === 'buchholz_cut' ? String(tb.cutCount) : '')}
                 </div>
               </th>
+            ))}
+          </tr>
+          <tr>
+            {Array.from({ length: roundCount }, (_, i) => i + 1).map((r) => (
+              <th key={r} className="sticky top-0 z-20 text-left pl-2.5">{r}</th>
             ))}
           </tr>
         </thead>
