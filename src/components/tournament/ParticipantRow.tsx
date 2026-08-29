@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { sanitizeTextInput } from '../../utils/sanitize.ts'
+
 import { BsLink45Deg, BsFillPersonVcardFill, BsFillPersonPlusFill, BsFillPersonXFill } from 'react-icons/bs'
 import { CountrySelect } from './CountrySelect.tsx'
 import { ExpandableField } from './ExpandableField.tsx'
@@ -78,14 +80,15 @@ export function ParticipantRow({ row, activeLocale, onUpdate, validationErrors, 
   const currentLocale = row.locales[locale] ?? row.locales['ru'] ?? { familyName: '', givenName: '', title: '', location: '' }
 
   const handleFamilyNameChange = (value: string) => {
+    const sanitized = sanitizeTextInput(value)
     onUpdate({
       locales: {
         ...row.locales,
-        [locale]: { ...currentLocale, familyName: value },
+        [locale]: { ...currentLocale, familyName: sanitized },
       },
     })
     // Show autocomplete if unlinked and query long enough
-    if (!row.player && value.length >= 3) {
+    if (!row.player && sanitized.length >= 3) {
       setShowAutocomplete(true)
     } else {
       setShowAutocomplete(false)
@@ -230,7 +233,7 @@ export function ParticipantRow({ row, activeLocale, onUpdate, validationErrors, 
               onUpdate({
                 locales: {
                   ...row.locales,
-                  [locale]: { ...currentLocale, givenName: e.target.value },
+                  [locale]: { ...currentLocale, givenName: sanitizeTextInput(e.target.value) },
                 },
               })
             }
@@ -281,7 +284,7 @@ export function ParticipantRow({ row, activeLocale, onUpdate, validationErrors, 
               onUpdate({
                 locales: {
                   ...row.locales,
-                  [locale]: { ...currentLocale, location: e.target.value },
+                  [locale]: { ...currentLocale, location: sanitizeTextInput(e.target.value) },
                 },
               })
             }

@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { BsCheckLg } from 'react-icons/bs'
+import { sanitizeTextInput } from '../../utils/sanitize.ts'
 import * as Flags from 'country-flag-icons/react/3x2'
 import { getCountryName } from '../../utils/countries.ts'
 import { resolveLocationInput } from '../../services/geoService.ts'
@@ -112,7 +113,7 @@ export function TournamentLocationInput({
           type="text"
           value={inputValue}
           onChange={(e) => {
-            setInputValue(e.target.value)
+            setInputValue(sanitizeTextInput(e.target.value))
             setNotFound(false)
           }}
           onKeyDown={handleKeyDown}

@@ -13,6 +13,7 @@ import {
 } from './slugService.ts'
 import type { TournamentRepository, ListTournamentsFilters } from './repository.ts'
 import { firestoreTournamentRepository } from './firestoreTournamentRepository.ts'
+import { sanitizeDeep } from '../utils/sanitize.ts'
 import { eventService } from './eventService.ts'
 import { getTournamentStartYearMonth } from '../utils/yearMonth.ts'
 import { supportedLocales } from '../domain/locale.ts'
@@ -207,7 +208,7 @@ export class TournamentService {
       regulations: [],
     }
 
-    const result = await this.repository.create(tournament)
+    const result = await this.repository.create(sanitizeDeep(tournament))
 
     // Sync event startYearMonth if parentEvent is set
     if (result.parentEvent) {
@@ -253,7 +254,7 @@ export class TournamentService {
       regulations: [],
     }
 
-    const created = await this.repository.create(tournament)
+    const created = await this.repository.create(sanitizeDeep(tournament))
 
     // Sync event startYearMonth if parentEvent is set
     if (created.parentEvent) {
@@ -325,7 +326,7 @@ export class TournamentService {
       updatedAt: now,
     }
 
-    const result = await this.repository.update(updated)
+    const result = await this.repository.update(sanitizeDeep(updated))
 
     // Sync event startYearMonth if parentEvent changed or schedule changed
     const parentEventChanged = existing.parentEvent !== nextParentEvent

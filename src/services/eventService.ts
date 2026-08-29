@@ -2,6 +2,7 @@ import { uuidv7 } from 'uuidv7'
 import { eventSchema, type Event } from '../domain/event.ts'
 import type { EventRepository } from './repository.ts'
 import { firestoreEventRepository } from './firestoreEventRepository.ts'
+import { sanitizeDeep } from '../utils/sanitize.ts'
 import { firestoreTournamentRepository } from './firestoreTournamentRepository.ts'
 import {
   generateRandomSlug,
@@ -65,7 +66,7 @@ export class EventService {
       locales: input.locales,
       regulations: input.regulations ?? [],
     }
-    const event = eventSchema.parse(candidate)
+    const event = eventSchema.parse(sanitizeDeep(candidate))
     return this.repository.create(event)
   }
 
@@ -89,7 +90,7 @@ export class EventService {
       updatedAt: now,
     }
 
-    return this.repository.update(updated)
+    return this.repository.update(sanitizeDeep(updated))
   }
 
   async delete(id: string): Promise<void> {

@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { BsSliders2Vertical, BsClock, BsJournalText, BsPlus, BsX, Bs123, BsGrid3X2 } from 'react-icons/bs'
 import { HiOutlineUserGroup } from "react-icons/hi2";
 import { useAuth } from '../../context/AuthContext.tsx'
+import { sanitizeTextInput } from '../../utils/sanitize.ts'
 import { useTournamentForm } from '../../hooks/useTournamentForm.ts'
 import {
   dateToLocalDatetimeInputValue,
@@ -142,7 +143,7 @@ function GeneralInfoSection({
             type="text"
             value={formState.locales[activeLocale].title}
             onChange={(e) =>
-              updateLocale(activeLocale, 'title', e.target.value)
+              updateLocale(activeLocale, 'title', sanitizeTextInput(e.target.value))
             }
             className={`input input-bordered w-full ${validationErrors.title ? 'input-error' : ''}`}
           />
@@ -253,7 +254,7 @@ function GeneralInfoSection({
                 type="text"
                 value={formState.arbiter[activeLocale].givenName}
                 onChange={(e) =>
-                  updateArbiter(activeLocale, 'givenName', e.target.value)
+                  updateArbiter(activeLocale, 'givenName', sanitizeTextInput(e.target.value))
                 }
                 className={`input input-bordered w-full ${validationErrors['arbiter.givenName'] ? 'input-error' : ''}`}
               />
@@ -272,7 +273,7 @@ function GeneralInfoSection({
                 type="text"
                 value={formState.arbiter[activeLocale].familyName}
                 onChange={(e) =>
-                  updateArbiter(activeLocale, 'familyName', e.target.value)
+                  updateArbiter(activeLocale, 'familyName', sanitizeTextInput(e.target.value))
                 }
                 className={`input input-bordered w-full ${validationErrors['arbiter.familyName'] ? 'input-error' : ''}`}
               />
@@ -686,7 +687,7 @@ function ScheduleEventCombobox({
     onUpdate(row.id, {
       locales: {
         ...row.locales,
-        [activeLocale]: { title: value },
+        [activeLocale]: { title: sanitizeTextInput(value) },
       },
     })
   }

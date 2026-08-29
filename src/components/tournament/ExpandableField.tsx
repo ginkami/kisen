@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { sanitizeTextInput } from '../../utils/sanitize.ts'
 import type { ReactNode } from 'react'
 import { BsPlus } from 'react-icons/bs'
 
@@ -57,7 +58,7 @@ export function ExpandableField({
           className={`textarea textarea-bordered w-full ${inputClassName ?? ''}`}
           placeholder={placeholder}
           value={value}
-          onChange={(e) => onChange?.(e.target.value)}
+          onChange={(e) => onChange?.(sanitizeTextInput(e.target.value))}
           rows={4}
         />
       ) : (
@@ -66,7 +67,7 @@ export function ExpandableField({
           className={`input input-bordered w-full ${inputClassName ?? ''}`}
           placeholder={placeholder}
           value={value}
-          onChange={(e) => onChange?.(e.target.value)}
+          onChange={(e) => onChange?.(sanitizeTextInput(e.target.value))}
         />
       )}
     </div>

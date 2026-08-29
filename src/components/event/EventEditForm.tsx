@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { sanitizeTextInput } from '../../utils/sanitize.ts'
+
 import { useQuery } from '@tanstack/react-query'
 import { BsPlus } from 'react-icons/bs'
 import { useAuth } from '../../context/AuthContext.tsx'
@@ -183,7 +185,7 @@ export function EventEditForm({ eventId }: EventEditFormProps) {
             <input
               type="text"
               value={formState.locales[activeLocale].title}
-              onChange={(e) => updateLocale(activeLocale, 'title', e.target.value)}
+              onChange={(e) => updateLocale(activeLocale, 'title', sanitizeTextInput(e.target.value))}
               className={`input input-bordered w-full ${validationErrors.title ? 'input-error' : ''}`}
             />
             {validationErrors.title && (

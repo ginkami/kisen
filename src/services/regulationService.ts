@@ -2,6 +2,7 @@ import { uuidv7 } from 'uuidv7'
 import { regulationSchema, type Regulation } from '../domain/regulation.ts'
 import type { RegulationRepository } from './repository.ts'
 import { firestoreRegulationRepository } from './firestoreRegulationRepository.ts'
+import { sanitizeDeep } from '../utils/sanitize.ts'
 
 export interface CreateRegulationInput {
   createdBy: string
@@ -36,7 +37,7 @@ export class RegulationService {
       updatedAt: now,
       locales: input.locales,
     }
-    const regulation = regulationSchema.parse(candidate)
+    const regulation = regulationSchema.parse(sanitizeDeep(candidate))
     return this.repository.create(regulation)
   }
 
@@ -55,7 +56,7 @@ export class RegulationService {
       updatedAt: now,
     }
 
-    return this.repository.update(updated)
+    return this.repository.update(sanitizeDeep(updated))
   }
 
   async delete(id: string): Promise<void> {

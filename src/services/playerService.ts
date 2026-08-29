@@ -4,6 +4,7 @@ import { supportedLocales } from '../domain/locale.ts'
 import type { PlayerRank } from '../domain/playerRating.ts'
 import type { PlayerRepository } from './repository.ts'
 import { firestorePlayerRepository } from './firestorePlayerRepository.ts'
+import { sanitizeDeep } from '../utils/sanitize.ts'
 
 export interface CreatePlayerInput {
   createdBy: string
@@ -189,8 +190,9 @@ export class PlayerService {
       secondaryAssociations: input.secondaryAssociations ?? [],
     }
 
-    playerSchema.parse(player)
-    return this.repository.create(player)
+    const sanitized = sanitizeDeep(player)
+    playerSchema.parse(sanitized)
+    return this.repository.create(sanitized)
   }
 
   async update(input: UpdatePlayerInput): Promise<Player> {
@@ -215,8 +217,9 @@ export class PlayerService {
         input.secondaryAssociations ?? existing.secondaryAssociations,
     }
 
-    playerSchema.parse(updated)
-    return this.repository.update(updated)
+    const sanitized = sanitizeDeep(updated)
+    playerSchema.parse(sanitized)
+    return this.repository.update(sanitized)
   }
 
   async delete(id: string): Promise<void> {
@@ -270,13 +273,13 @@ export class PlayerService {
 
         if (existing) {
           const mergedLocales = { ...existing.locales, ...locales }
-          await this.repository.update({
+          await this.repository.update(sanitizeDeep({
             ...existing,
             locales: mergedLocales as Player['locales'],
             nationality: csvRow.nationality,
             residence: csvRow.residence || undefined,
             currentRating: rating,
-          })
+          }))
           result.updated++
         } else {
           const player: Player = {
@@ -291,7 +294,7 @@ export class PlayerService {
             primaryAssociation: null,
             secondaryAssociations: [],
           }
-          await this.repository.create(player)
+          await this.repository.create(sanitizeDeep(player))
           result.added++
         }
       } catch (err) {

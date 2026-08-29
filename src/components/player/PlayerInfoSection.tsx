@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { sanitizeTextInput } from '../../utils/sanitize.ts'
 import { BsPlus } from 'react-icons/bs'
 import { useTranslation } from 'react-i18next'
 import { CountrySelect } from '../tournament/CountrySelect.tsx'
@@ -66,7 +67,7 @@ export function PlayerInfoSection({
             <input
               type="text"
               value={currentLocale.familyName}
-              onChange={(e) => onUpdateLocale(activeLocale, 'familyName', e.target.value)}
+              onChange={(e) => onUpdateLocale(activeLocale, 'familyName', sanitizeTextInput(e.target.value))}
               className={`input input-bordered w-full ${validationErrors.familyName ? 'input-error' : ''}`}
             />
             {validationErrors.familyName && (
@@ -83,7 +84,7 @@ export function PlayerInfoSection({
             <input
               type="text"
               value={currentLocale.givenName}
-              onChange={(e) => onUpdateLocale(activeLocale, 'givenName', e.target.value)}
+              onChange={(e) => onUpdateLocale(activeLocale, 'givenName', sanitizeTextInput(e.target.value))}
               className={`input input-bordered w-full ${validationErrors.givenName ? 'input-error' : ''}`}
             />
             {validationErrors.givenName && (

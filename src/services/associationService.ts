@@ -1,5 +1,6 @@
 import { associationSchema, type Association } from '../domain/association.ts'
 import { normalizeSlug } from './slugService.ts'
+import { sanitizeDeep } from '../utils/sanitize.ts'
 import { uuidv7 } from 'uuidv7'
 import {
   FirestoreAssociationRepository,
@@ -31,7 +32,7 @@ export class AssociationService {
       slug,
       ...rest,
     }
-    const association = associationSchema.parse(candidate)
+    const association = associationSchema.parse(sanitizeDeep(candidate))
     return this.repository.create(association)
   }
 
@@ -44,7 +45,7 @@ export class AssociationService {
       ...existing,
       ...rest,
     }
-    const updated = associationSchema.parse(candidate)
+    const updated = associationSchema.parse(sanitizeDeep(candidate))
     return this.repository.update(updated)
   }
 

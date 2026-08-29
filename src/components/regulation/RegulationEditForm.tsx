@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../../context/AuthContext.tsx'
+import { sanitizeTextInput } from '../../utils/sanitize.ts'
 import { useRegulationForm } from '../../hooks/useRegulationForm.ts'
 import { ConfirmModal } from '../ConfirmModal.tsx'
 import { LocaleTabs } from '../tournament/LocaleTabs.tsx'
@@ -98,7 +99,7 @@ export function RegulationEditForm({ regulationId }: RegulationEditFormProps) {
           </div>
           <div className="form-control">
             <label className="label"><span className="label-text">{t('regulation.edit.title')}<span className="text-error ml-1">*</span></span></label>
-            <input type="text" value={formState.locales[activeLocale].title} onChange={(e) => updateLocale(activeLocale, 'title', e.target.value)} className={`input input-bordered w-full ${validationErrors.title ? 'input-error' : ''}`} />
+            <input type="text" value={formState.locales[activeLocale].title} onChange={(e) => updateLocale(activeLocale, 'title', sanitizeTextInput(e.target.value))} className={`input input-bordered w-full ${validationErrors.title ? 'input-error' : ''}`} />
             {validationErrors.title && <span className="text-error text-xs mt-1">{t('common.fieldRequired')}</span>}
           </div>
           <ExpandableField label={t('regulation.edit.description')} value={formState.locales[activeLocale].description ?? ''} onChange={(value) => updateLocale(activeLocale, 'description', value)} textarea />

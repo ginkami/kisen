@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next'
+import { sanitizeTextInput } from '../../utils/sanitize.ts'
 import { LocaleTabs } from '../tournament/LocaleTabs.tsx'
 import { CountrySelect } from '../tournament/CountrySelect.tsx'
 import { ExpandableField } from '../tournament/ExpandableField.tsx'
@@ -51,7 +52,7 @@ export function AssociationInfoSection({
           <input
             type="text"
             value={currentLocale.title}
-            onChange={(e) => onUpdateLocale(activeLocale, 'title', e.target.value)}
+            onChange={(e) => onUpdateLocale(activeLocale, 'title', sanitizeTextInput(e.target.value))}
             className={`input input-bordered w-full ${validationErrors.title ? 'input-error' : ''}`}
           />
           {validationErrors.title && (
