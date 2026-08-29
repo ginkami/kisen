@@ -158,7 +158,7 @@ function GeneralInfoSection({
           onChange={(value) =>
             updateLocale(activeLocale, 'description', value)
           }
-          placeholder={t('tournament.edit.description')}
+          placeholder={t('common.markdownSupported')}
           textarea
           buttonClassName='basic-expandable'
         />

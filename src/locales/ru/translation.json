@@ -394,6 +394,7 @@
     "fieldRequired": "Обязательное поле",
     "errors": "Ошибки",
     "search": "Поиск...",
-    "noResults": "Ничего не найдено"
+    "noResults": "Ничего не найдено",
+    "markdownSupported": "Поддерживается Markdown"
   }
 }

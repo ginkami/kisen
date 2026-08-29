@@ -198,6 +198,7 @@ export function EventEditForm({ eventId }: EventEditFormProps) {
             value={formState.locales[activeLocale].description ?? ''}
             onChange={(value) => updateLocale(activeLocale, 'description', value)}
             textarea
+            placeholder={t('common.markdownSupported')}
           />
 
           {/* Regulations */}

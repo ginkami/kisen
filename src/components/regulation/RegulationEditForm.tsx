@@ -102,7 +102,7 @@ export function RegulationEditForm({ regulationId }: RegulationEditFormProps) {
             <input type="text" value={formState.locales[activeLocale].title} onChange={(e) => updateLocale(activeLocale, 'title', sanitizeTextInput(e.target.value))} className={`input input-bordered w-full ${validationErrors.title ? 'input-error' : ''}`} />
             {validationErrors.title && <span className="text-error text-xs mt-1">{t('common.fieldRequired')}</span>}
           </div>
-          <ExpandableField label={t('regulation.edit.description')} value={formState.locales[activeLocale].description ?? ''} onChange={(value) => updateLocale(activeLocale, 'description', value)} textarea />
+          <ExpandableField label={t('regulation.edit.description')} value={formState.locales[activeLocale].description ?? ''} onChange={(value) => updateLocale(activeLocale, 'description', value)} textarea placeholder={t('common.markdownSupported')} />
         </div>
       </div>
 

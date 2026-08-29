@@ -93,6 +93,7 @@ export function AssociationInfoSection({
           value={currentLocale.description ?? ''}
           onChange={(value) => onUpdateLocale(activeLocale, 'description', value)}
           textarea
+          placeholder={t('common.markdownSupported')}
         />
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
