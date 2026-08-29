@@ -11,7 +11,7 @@ import {
   normalizeSlug,
   SLUG_MIN_LENGTH,
 } from './slugService.ts'
-import type { TournamentRepository } from './repository.ts'
+import type { TournamentRepository, ListTournamentsFilters } from './repository.ts'
 import { firestoreTournamentRepository } from './firestoreTournamentRepository.ts'
 import { eventService } from './eventService.ts'
 import { getTournamentStartYearMonth } from '../utils/yearMonth.ts'
@@ -156,6 +156,10 @@ export class TournamentService {
 
   async getById(id: string): Promise<Tournament | null> {
     return this.repository.getById(id)
+  }
+
+  async list(filters?: ListTournamentsFilters): Promise<Tournament[]> {
+    return this.repository.list(filters)
   }
 
   async listPublic(): Promise<Tournament[]> {

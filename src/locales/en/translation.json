@@ -97,6 +97,30 @@
       "canceled": "Canceled",
       "proposed_for_removing": "Pending removal"
     },
+    "view": {
+      "pageTitle": "{{title}} | shogi·world",
+      "notFound": "Tournament not found",
+      "errors": {
+        "load": "Failed to load tournament."
+      },
+      "tabs": {
+        "description": "Description",
+        "schedule": "Schedule",
+        "players": "Players",
+        "results": "Results",
+        "crosstable": "Crosstable"
+      },
+      "roundsCount_one": "{{count}} round",
+      "roundsCount_other": "{{count}} rounds",
+      "playersCount_one": "{{count}} player",
+      "playersCount_other": "{{count}} players",
+      "minutes_one": "minute",
+      "minutes_other": "minutes",
+      "seconds_one": "second",
+      "seconds_other": "seconds",
+      "perMoves": "moves",
+      "noSchedule": "No schedule available"
+    },
     "edit": {
       "managementPanel": "Tournament management",
       "pageTitle": "{{title}} — {{managementPanel}} | shogi·world",

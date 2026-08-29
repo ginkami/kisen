@@ -97,6 +97,34 @@
       "canceled": "Отменён",
       "proposed_for_removing": "На удаление"
     },
+    "view": {
+      "pageTitle": "{{title}} | shogi·world",
+      "notFound": "Турнир не найден",
+      "errors": {
+        "load": "Не удалось загрузить турнир."
+      },
+      "tabs": {
+        "description": "Описание",
+        "schedule": "Расписание",
+        "players": "Игроки",
+        "results": "Результаты",
+        "crosstable": "Таблица"
+      },
+      "roundsCount_one": "{{count}} тур",
+      "roundsCount_few": "{{count}} тура",
+      "roundsCount_many": "{{count}} туров",
+      "playersCount_one": "{{count}} участник",
+      "playersCount_few": "{{count}} участника",
+      "playersCount_many": "{{count}} участников",
+      "minutes_one": "минута",
+      "minutes_few": "минуты",
+      "minutes_many": "минут",
+      "seconds_one": "секунда",
+      "seconds_few": "секунды",
+      "seconds_many": "секунд",
+      "perMoves": "ходов",
+      "noSchedule": "Расписание не заполнено"
+    },
     "edit": {
       "managementPanel": "Управление турниром",
       "pageTitle": "{{title}} — {{managementPanel}} | shogi·world",
