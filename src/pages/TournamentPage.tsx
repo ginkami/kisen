@@ -12,6 +12,7 @@ import { TournamentMeta } from '../components/tournament/view/TournamentMeta.tsx
 import { TournamentScheduleList } from '../components/tournament/view/TournamentScheduleList.tsx'
 import { PlayersTable } from '../components/tournament/view/PlayersTable.tsx'
 import { CrosstableView } from '../components/tournament/view/CrosstableView.tsx'
+import { TournamentDescriptionSection } from '../components/tournament/view/TournamentDescriptionSection.tsx'
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 type TabId = 'description' | 'schedule' | 'players' | 'results' | 'crosstable'
@@ -117,7 +118,9 @@ export function TournamentPage() {
         })}
       </div>
 
-      {activeTab === 'description' && <div />}
+      {activeTab === 'description' && (
+        <TournamentDescriptionSection tournament={tournament} event={eventQuery.data ?? null} />
+      )}
       {activeTab === 'schedule' && <TournamentScheduleList tournament={tournament} />}
       {activeTab === 'players' && <PlayersTable participants={tournament.participants} />}
       {activeTab === 'results' && <div />}
