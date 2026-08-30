@@ -7,7 +7,7 @@ vi.mock('uuidv7', () => {
   return { uuidv7: () => `mock-uuid-${++counter}` }
 })
 
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, act } from '@testing-library/react'
 import { PairingsBoard } from '../components/tournament/PairingsBoard.tsx'
 import type { Game, Participant } from '../domain/tournament.ts'
 
@@ -122,5 +122,53 @@ describe('PairingsBoard handicap button', () => {
     expect(onGamesChange).toHaveBeenCalledTimes(callCount)
 
     vi.useRealTimers()
+  })
+})
+
+describe('PairingsBoard startingPoints input drag guard', () => {
+  function renderBoard(updateStartingPoints: (participantId: number, value: number) => void) {
+    const games: Game[] = [
+      makeGame({ id: 'g1', round: 1, player1: 1, player2: 2 }),
+    ]
+    return render(
+      <PairingsBoard
+        games={games}
+        participants={participants}
+        round={1}
+        currentRound={1}
+        considerSente={false}
+        locale="ru"
+        onGamesChange={vi.fn()}
+        updateStartingPoints={updateStartingPoints}
+      />,
+    )
+  }
+
+  it('Enter keydown inside the startingPoints input does not spawn a DragOverlay', () => {
+    const updateStartingPoints = vi.fn()
+    renderBoard(updateStartingPoints)
+
+    const input = screen.getAllByRole('spinbutton')[0]
+
+    // Regression: Enter used to bubble up to the card's KeyboardSensor
+    // activator and start a drag whose overlay blocked the UI.
+    fireEvent.keyDown(input, { key: 'Enter', code: 'Enter' })
+    expect(document.querySelector('.shadow-2xl')).toBeNull()
+
+    // The input keeps working after the guarded keydown
+    fireEvent.change(input, { target: { value: '3' } })
+    expect(updateStartingPoints).toHaveBeenCalledWith(1, 3)
+  })
+
+  it('Enter keydown on the card node itself still starts a keyboard drag', async () => {
+    renderBoard(vi.fn())
+
+    const card = document.querySelector('[aria-roledescription="sortable"]') as HTMLElement | null
+    expect(card).not.toBeNull()
+
+    fireEvent.keyDown(card!, { key: 'Enter', code: 'Enter' })
+    // Flush deferred dnd-kit sensor state updates so they run inside act()
+    await act(async () => {})
+    expect(document.querySelector('.shadow-2xl')).not.toBeNull()
   })
 })

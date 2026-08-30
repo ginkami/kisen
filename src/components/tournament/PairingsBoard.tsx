@@ -87,6 +87,28 @@ function SortableCard({
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: `p-${participantId}` })
 
+  // Guard dnd-kit listeners so that keyboard/pointer events originating from
+  // interactive controls inside the card (startingPoints input, forfeit toggle)
+  // never activate a drag: pressing Enter in the input used to bubble up to the
+  // KeyboardSensor activator on the card node and spawn a DragOverlay that
+  // blocked the UI until Escape.
+  const guardedListeners = useMemo(() => {
+    if (!listeners) return undefined
+    const guard =
+      (handler: (event: unknown) => void) =>
+      (event: unknown) => {
+        const target = (event as { target?: EventTarget | null }).target
+        if (target instanceof Element && target.closest('input, button, select, textarea, label')) {
+          return
+        }
+        handler(event)
+      }
+    const wrapped = { ...listeners } as Record<string, (event: unknown) => void>
+    if (wrapped.onKeyDown) wrapped.onKeyDown = guard(wrapped.onKeyDown)
+    if (wrapped.onPointerDown) wrapped.onPointerDown = guard(wrapped.onPointerDown)
+    return wrapped
+  }, [listeners])
+
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
@@ -104,7 +126,7 @@ function SortableCard({
       ref={setNodeRef}
       style={style}
       {...attributes}
-      {...(isDraggable ? listeners : {})}
+      {...(isDraggable ? guardedListeners ?? {} : {})}
       className={`rounded-lg border px-3 py-1 select-none w-full truncate ${
         isForfeit
           ? 'border-warning bg-warning/10 opacity-60'
@@ -332,6 +354,10 @@ export function PairingsBoard({
     []
   )
 
+  // Defensive: make sure a stuck overlay can always be dismissed (e.g. Escape
+  // during a keyboard drag).
+  const handleDragCancel = useCallback(() => setActiveId(null), [])
+
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
       setActiveId(null)
@@ -470,6 +496,7 @@ export function PairingsBoard({
       collisionDetection={collisionDetection}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
+      onDragCancel={handleDragCancel}
     >
 
       <div className='grid grid-cols-1 md:grid-cols-2 md:grid-cols-[30%_70%] gap-1'>
