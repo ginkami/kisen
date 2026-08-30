@@ -105,9 +105,33 @@ export function PairingsSection({
   return (
     <div className="card bg-base-200 shadow-sm pairing-section">
       <div className="card-body gap-4">
-        {/* Header with publish button */}
-        <div className="flex items-center justify-between">
-          <h2 className="card-title">{t('tournament.edit.pairings.title')}</h2>
+        <div className="flex flex-col-reverse md:flex-row md:justify-between items-center gap-2">
+          
+          <div className="flex flex-row items-center gap-2">
+            <h2 className="card-title mt-[-3px]">{t('tournament.edit.pairings.title')}</h2>
+            {/* Round sub-tabs */}
+            <div className="tabs tabs-box tabs-sm" role="tablist">
+              {Array.from({ length: safeRoundCount }, (_, i) => i + 1).map((num) => {
+                const isDisabled = num > safeCurrentRound + 1
+                const isActive = num === safeActiveRound
+                return (
+                  <button
+                    key={num}
+                    type="button"
+                    role="tab"
+                    aria-selected={isActive}
+                    disabled={isDisabled}
+                    onClick={() => setActiveRound(num)}
+                    className={`tab ${isActive ? 'tab-active' : ''} ${isDisabled ? 'tab-disabled' : ''}`}
+                  >
+                    {num}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+          
+          {/* Publish button */}
           <div className="flex gap-2 items-center">
             {isCurrentRound && safeCurrentRound > 0 && (
               <button
@@ -129,27 +153,6 @@ export function PairingsSection({
                 : t('tournament.edit.pairings.publishDraw')}
             </button>
           </div>
-        </div>
-
-        {/* Round sub-tabs */}
-        <div className="tabs tabs-box tabs-sm" role="tablist">
-          {Array.from({ length: safeRoundCount }, (_, i) => i + 1).map((num) => {
-            const isDisabled = num > safeCurrentRound + 1
-            const isActive = num === safeActiveRound
-            return (
-              <button
-                key={num}
-                type="button"
-                role="tab"
-                aria-selected={isActive}
-                disabled={isDisabled}
-                onClick={() => setActiveRound(num)}
-                className={`tab ${isActive ? 'tab-active' : ''} ${isDisabled ? 'tab-disabled' : ''}`}
-              >
-                {num}
-              </button>
-            )
-          })}
         </div>
 
         {/* Pairings board */}

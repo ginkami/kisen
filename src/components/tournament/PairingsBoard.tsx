@@ -472,7 +472,7 @@ export function PairingsBoard({
       onDragEnd={handleDragEnd}
     >
 
-      <div className='grid grid-cols-1 md:grid-cols-2 md:grid-cols-[30%_70%] gap-4'>
+      <div className='grid grid-cols-1 md:grid-cols-2 md:grid-cols-[30%_70%] gap-1'>
         {/* --- unpaired container --- */}
         <div className="order-2 md:order-1 mb-4">
           <h3 className="mb-2 text-lg">

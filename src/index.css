@@ -116,7 +116,19 @@ div:has(> button[data-val='=']) + .gote-card > div  {
   background-color: oklch(86.71% 0.111 76.54);
 }
 
+@media (max-width: 640px) {
+  main .card-body {
+    padding: 0.5rem;
+  }
+}
+
 @media (max-width: 479px) {
+  main .card-body {
+    padding: 0.3rem;
+  }
+  .input-sm {
+    --font-size-min: 0.60rem;
+  }
   .logo {
     font-size: 1rem;
     margin-left: -1rem;
