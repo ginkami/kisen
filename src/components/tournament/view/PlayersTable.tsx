@@ -58,7 +58,7 @@ export function PlayersTable({ participants }: PlayersTableProps) {
             const rc = rank ? rankToColor(rank) : null
             const title = loc?.title || ''
             return (
-              <tr key={p.id} className="hover">
+              <tr key={p.id} className="hover hover:relative hover:z-30">
                 <td className="sticky left-0 bg-base-100 z-10 font-mono text-center p-0" style={{ minWidth: COL_NO }}>
                   {idx + 1}
                 </td>
