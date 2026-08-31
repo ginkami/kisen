@@ -80,6 +80,13 @@ export function Layout() {
           <BsGear className="h-6 w-6" />
         </button>
       )}
+      <footer className="bg-base-100 py-6">
+        <div className="max-w-4xl mx-auto px-4 text-center">
+          <Link to="/" className="logo">
+            shogi world
+          </Link>
+        </div>
+      </footer>
     </div>
   )
 }
