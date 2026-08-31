@@ -116,6 +116,22 @@ div:has(> button[data-val='=']) + .gote-card > div  {
   background-color: oklch(86.71% 0.111 76.54);
 }
 
+.tournament-results td:has(~ td[data-result='+']),
+.tournament-results td[data-result='-'] ~ td
+{
+  background-color: oklch(70.995% 0.08 174.616 / 0.5);
+}
+.tournament-results td:has(~ td[data-result='-']),
+.tournament-results td[data-result='+'] ~ td
+{
+  background-color: oklch(65.676% 0.169 23.865 / 0.5);
+}
+.tournament-results td:has(~ td[data-result='=']),
+.tournament-results td[data-result='='] ~ td
+{
+  background-color: oklch(86.71% 0.111 76.54 / 0.5);
+}
+
 @media (max-width: 640px) {
   main .card-body {
     padding: 0.5rem;

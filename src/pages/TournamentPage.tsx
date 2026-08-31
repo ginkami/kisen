@@ -12,6 +12,7 @@ import { TournamentMeta } from '../components/tournament/view/TournamentMeta.tsx
 import { TournamentScheduleList } from '../components/tournament/view/TournamentScheduleList.tsx'
 import { PlayersTable } from '../components/tournament/view/PlayersTable.tsx'
 import { CrosstableView } from '../components/tournament/view/CrosstableView.tsx'
+import { TournamentResultsSection } from '../components/tournament/view/TournamentResultsSection.tsx'
 import { TournamentDescriptionSection } from '../components/tournament/view/TournamentDescriptionSection.tsx'
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -123,7 +124,11 @@ export function TournamentPage() {
       )}
       {activeTab === 'schedule' && <TournamentScheduleList tournament={tournament} />}
       {activeTab === 'players' && <PlayersTable participants={tournament.participants} />}
-      {activeTab === 'results' && <div />}
+      {activeTab === 'results' && (
+        <TournamentResultsSection games={tournament.games} participants={tournament.participants}
+          roundCount={roundCount} currentRound={tournament.currentRound}
+          considerSente={tournament.settings.considerSente} />
+      )}
       {activeTab === 'crosstable' && (
         <CrosstableView games={tournament.games} participants={tournament.participants}
           roundCount={roundCount} currentRound={tournament.currentRound}

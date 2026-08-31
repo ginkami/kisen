@@ -119,7 +119,14 @@
       "seconds_one": "second",
       "seconds_other": "seconds",
       "perMoves": "moves",
-      "noSchedule": "No schedule available"
+      "noSchedule": "No schedule available",
+      "results": {
+        "rounds": "Rounds",
+        "rating": "Rating",
+        "pts": "Pts",
+        "round": "Round {{n}}",
+        "noResults": "Results will appear after the draw is published"
+      }
     },
     "edit": {
       "managementPanel": "Tournament management",
