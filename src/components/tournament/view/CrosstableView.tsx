@@ -51,6 +51,85 @@ export function CrosstableView({
 
   const showStartingPoints = participants.some((p) => (p.startingPoints ?? 0) > 0)
 
+  // Tournament points per participant (from standings, includes startingPoints)
+  const pointsById = useMemo(() => {
+    const m = new Map<number, number>()
+    for (const s of standings) m.set(s.participantId, s.points)
+    return m
+  }, [standings])
+
+  // Per participant: games involving them, ascending by round.
+  // oppId is null for byes and forfeits (single-player games).
+  const gamesByPid = useMemo(() => {
+    const m = new Map<number, Array<{ oppId: number | null; game: Game }>>()
+    for (const p of participants) m.set(p.id, [])
+    for (const g of [...games].sort((a, b) => a.round - b.round)) {
+      if (g.player1 != null && m.has(g.player1)) {
+        m.get(g.player1)!.push({ oppId: g.player2, game: g })
+      }
+      if (g.player2 != null && m.has(g.player2)) {
+        m.get(g.player2)!.push({ oppId: g.player1, game: g })
+      }
+    }
+    return m
+  }, [games, participants])
+
+  // Result symbol from the given participant's perspective in this game.
+  function resultSymbolFor(g: Game, pid: number): '+' | '-' | '=' | '?' {
+    if (g.status === 'forfeit') return '-'
+    if (g.player2 == null) return g.result === 'draw' ? '=' : '+'
+    const isP1 = g.player1 === pid
+    if (g.result === 'draw') return '='
+    if ((g.result === 'player1_won' && isP1) || (g.result === 'player2_won' && !isP1)) return '+'
+    if (g.result != null) return '-'
+    return '?'
+  }
+
+  // Compact opponent row card in the style of the results table player cells.
+  function OpponentCard({ oppId, symbol, handicap }: { oppId: number | null; symbol: '+' | '-' | '=' | '?'; handicap: string | null }) {
+    const badgeCls =
+      symbol === '+' ? 'badge-success'
+      : symbol === '-' ? 'badge-error'
+      : symbol === '=' ? 'badge-secondary'
+      : 'bg-base-300'
+    const resultBadge = <span className={`badge badge-xs text-white font-mono ${badgeCls}`}>{symbol} {handicap != null && <span className="badge badge-xs bg-base-200">{ handicap }</span>}</span>
+    const p = oppId != null ? (rowById.get(oppId) ?? null) : null
+    if (!p) {
+      return <span className="col-span-6 text-right">{resultBadge}</span>
+    }
+    const loc = p.locales[locale] ?? p.locales.ru ?? p.locales.en
+    const nat = p.nationality || 'xx'
+    const Flag = Flags[nat.toUpperCase() as keyof typeof Flags]
+    const rank = p.capturedRating?.rank
+    const rc = rank ? rankToColor(rank) : null
+    const title = loc?.title || ''
+    const points = pointsById.get(p.id) ?? 0
+    return (
+      <>
+        {Flag && (
+          <span className="tooltip tooltip-top" data-tip={getCountryName(nat, locale)}>
+            <Flag className="h-3 w-4 rounded-sm" />
+          </span>
+        )}
+        {rank && (
+          <span className="badge badge-xs text-white flex items-center gap-0.5" style={{ backgroundColor: rc }}>
+            {rank}
+            {title && (
+              <span className="tooltip tooltip-top" data-tip={title}>
+                <PiCrownSimple className="h-3 w-3" />
+              </span>
+            )}
+          </span>
+        )}
+        <span className="font-medium pl-1">{loc?.familyName}, {loc?.givenName}</span>
+        <span className="font-mono text-[80%] mt-[3px]">{p.capturedRating?.value ?? ''}</span>
+        <span className="badge badge-xs badge-primary font-mono">{points}</span>
+
+        {resultBadge}
+      </>
+    )
+  }
+
   function findGame(pid: number, round: number): Game | undefined {
     return games.find((g) => g.round === round && (g.player1 === pid || g.player2 === pid))
   }
@@ -74,10 +153,20 @@ export function CrosstableView({
       ? (isP1 && g.sente === 'player1') || (!isP1 && g.sente === 'player2') ? '☗' : '☖'
       : ''
     return (
-      <span className="font-mono whitespace-nowrap pl-2 inline-flex items-center gap-0.5">
-        {sente && <span>{sente}</span>}
-        <span className={cls}>{oppPlace}{sym}</span>
-        {g.handicap != null && <span className="badge badge-xs bg-base-200">{handicapForView(g.handicap as string, isP1)}</span>}
+      <span className="tooltip tooltip-bottom">
+        <div className="grid grid-cols-[auto_auto_max-content_auto_auto_auto] z-50 gap-1 text-xs text-left tooltip-content bg-neutral text-neutral-content shadow-lg rounded-lg p-1.5">
+          <OpponentCard 
+            oppId={oppId} 
+            symbol={sym as '+' | '-' | '=' | '?'} 
+            handicap={g.handicap != null ? handicapForView(g.handicap as string, isP1) : null} 
+          />
+        </div>
+        <span className="font-mono whitespace-nowrap pl-2 inline-flex items-center gap-0.5">
+          {sente && <span>{sente}</span>}
+          <span className={cls}>{oppPlace}{sym}</span>
+          {g.handicap != null && <span className="badge badge-xs bg-base-200">{handicapForView(g.handicap as string, isP1)}</span>}
+        </span>
+
       </span>
     )
   }
@@ -149,7 +238,30 @@ export function CrosstableView({
                     </span>
                   )}
                 </td>
-                <td className="sticky shadow-[5px_0_10px_-2px_rgba(0,0,0,0.1)] bg-base-100 z-10 whitespace-nowrap max-w-[10rem] truncate font-medium p-0.5" style={{ left: OFF_NAME }}>{loc?.familyName}, {loc?.givenName}</td>
+                <td className="sticky shadow-[5px_0_10px_-2px_rgba(0,0,0,0.1)] bg-base-100 z-10 whitespace-nowrap max-w-[10rem] font-medium p-0.5" style={{ left: OFF_NAME }}>
+                  {(gamesByPid.get(s.participantId) ?? []).some(
+                    (e) => e.oppId != null || e.game.status === 'forfeit',
+                  ) ? (
+                    // truncate stays off the td: overflow-hidden here would clip
+                    // the absolutely-positioned tooltip-content bubble
+                    <span className="tooltip tooltip-bottom z-50 flex">
+                      <span className="truncate">{loc?.familyName}, {loc?.givenName}</span>
+                      <div className="grid grid-cols-[auto_auto_auto_auto_auto_auto] text-xs text-left tooltip-content bg-neutral text-neutral-content shadow-lg rounded-lg p-1.5 gap-1">
+                        {(gamesByPid.get(s.participantId) ?? [])
+                          .map((e, i) => (
+                            <OpponentCard
+                              key={i}
+                              oppId={e.oppId}
+                              symbol={resultSymbolFor(e.game, s.participantId)}
+                              handicap={e.game.handicap != null ? handicapForView(e.game.handicap as string, e.game.player2 === e.oppId) : null} 
+                            />
+                          ))}
+                      </div>
+                    </span>
+                  ) : (
+                    <span className="truncate">{loc?.familyName}, {loc?.givenName}</span>
+                  )}
+                </td>
                 <td className="whitespace-nowrap">
                   {resDiff && ResFlag && <span className="tooltip tooltip-top mr-1" data-tip={getCountryName(res, locale)}><ResFlag className="h-3 w-3 rounded-sm inline" /></span>}
                   {loc?.location || ''}

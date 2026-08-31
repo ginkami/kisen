@@ -125,10 +125,10 @@ describe('TournamentResultsSection', () => {
     expect(rowTexts(rows[1])).toContain('Кузнецов, И4')
     expect(rowTexts(rows[2])).toContain('Волков, И5')
     expect(rowTexts(rows[2])).toContain('-')
-    // Sequential pair numbers 1..3
-    expect(rowTexts(rows[0])[0]).toBe('1')
-    expect(rowTexts(rows[1])[0]).toBe('2')
-    expect(rowTexts(rows[2])[0]).toBe('3')
+    // Sequential pair numbers 1..3 (rendered with a trailing dot)
+    expect(rowTexts(rows[0])[0]).toBe('1.')
+    expect(rowTexts(rows[1])[0]).toBe('2.')
+    expect(rowTexts(rows[2])[0]).toBe('3.')
   })
 
   it('maps result values to symbols', () => {
