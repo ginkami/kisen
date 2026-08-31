@@ -51,14 +51,14 @@ export function TournamentMeta({ tournament }: TournamentMetaProps) {
     : ''
 
   return (
-    <div className="space-y-1 text-sm">
-      <div className="flex items-center gap-0.5 sm:gap-2">
+    <div className="space-y-1 text-xs sm:text-sm">
+      <div className="flex items-center gap-1 sm:gap-2">
         <BsCalendar3 className="h-4 w-4 opacity-60 shrink-0" />
         <span>{datesStr}</span>
       </div>
 
       {(country || venue) && (
-        <div className="flex items-center gap-0.5 sm:gap-2">
+        <div className="flex items-center gap-1 sm:gap-2">
           {country && (
             <FlagIcon code={country} className="h-3 w-4 rounded-sm shrink-0" />        
           )}
@@ -77,7 +77,7 @@ export function TournamentMeta({ tournament }: TournamentMetaProps) {
         </div>
       )}
 
-      <div className="flex items-center gap-0.5 sm:gap-2">
+      <div className="flex items-center gap-1 sm:gap-2">
         <BsHourglassSplit className="h-4 w-4 opacity-60 shrink-0" />
         <span>{tcStr}</span>
         <HiOutlineUserGroup className="h-4 w-4 opacity-60 shrink-0" />
@@ -87,7 +87,7 @@ export function TournamentMeta({ tournament }: TournamentMetaProps) {
       </div>
 
       {arbiterName && (
-        <div className="flex items-center gap-0.5 sm:gap-2">
+        <div className="flex items-center gap-1 sm:gap-2">
           <PiGavelLight className="h-4 w-4 opacity-60 shrink-0" />
           <span>{arbiterName}</span>
         </div>
