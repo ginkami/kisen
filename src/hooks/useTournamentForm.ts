@@ -21,6 +21,11 @@ import type { TimeControlFormat } from '../domain/timeControl.ts'
 import type { TieBreak, TieBreakType } from '../domain/tieBreak.ts'
 import { normalizeGamesSente } from '../components/tournament/crosstable/crosstableModel.ts'
 import { normalizeGame, withForfeitsCarriedOver } from '../components/tournament/pairings/pairingsModel.ts'
+import {
+  gamesWithoutParticipants,
+  isEmptyParticipantRow,
+  lateJoinerForfeitGames,
+} from './tournamentFormModel.ts'
 import type { PlayerRank } from '../domain/playerRating.ts'
 import { resolveLocationByIp, resolvedToTournamentLocation } from '../services/geoService.ts'
 
@@ -200,13 +205,7 @@ function participantsToRows(participants: Participant[]): ParticipantRow[] {
 
 function rowsToParticipants(rows: ParticipantRow[]): Participant[] {
   // Filter out empty participants (no locale with both familyName and givenName)
-  const nonEmpty = rows.filter((row) =>
-    supportedLocales.some(
-      (locale) =>
-        row.locales[locale]?.familyName.trim() !== '' &&
-        row.locales[locale]?.givenName.trim() !== ''
-    )
-  )
+  const nonEmpty = rows.filter((row) => !isEmptyParticipantRow(row))
 
   const existingIds = nonEmpty.filter((r) => r.id > 0).map((r) => r.id)
   const maxExistingId = existingIds.length > 0 ? Math.max(...existingIds) : 0
@@ -369,6 +368,17 @@ function formStateToUpdateInput(
 ) {
   const schedule = splitSchedule(state.scheduleRows)
 
+  // Participants dropped as empty rows on save: clean up their games the same
+  // way removeParticipant does, so orphaned/late-join games never persist.
+  const droppedParticipantIds = state.participants
+    .filter((row) => isEmptyParticipantRow(row) && row.id > 0)
+    .map((row) => row.id)
+  const games = gamesWithoutParticipants(
+    state.games,
+    droppedParticipantIds,
+    state.currentRound
+  )
+
   const input: {
     id: string
     locales: Tournament['locales']
@@ -395,8 +405,8 @@ function formStateToUpdateInput(
     },
     participants: rowsToParticipants(state.participants),
     games: state.settings.considerSente
-      ? state.games.map((g) => ({ ...g, sente: 'player1' as const }))
-      : state.games,
+      ? games.map((g) => ({ ...g, sente: 'player1' as const }))
+      : games,
     currentRound: state.currentRound,
     regulations: state.regulations,
   }
@@ -949,21 +959,12 @@ export function useTournamentForm(tournamentId: string | undefined) {
         const maxId = existingIds.length > 0 ? Math.max(...existingIds) : 0
         const newId = maxId + 1
 
-        const forfeitGames: Game[] = []
-        if (state.currentRound > 0) {
-          for (let r = 1; r <= state.currentRound; r++) {
-            forfeitGames.push({
-              id: crypto.randomUUID(),
-              player1: newId,
-              player2: null,
-              sente: state.settings.considerSente ? 'player1' : 'unknown',
-              handicap: null,
-              result: 'player2_won',
-              status: 'forfeit',
-              round: r,
-            })
-          }
-        }
+        const forfeitGames = lateJoinerForfeitGames(
+          state.games,
+          newId,
+          state.currentRound,
+          state.settings.considerSente
+        )
 
         const newRow: ParticipantRow = {
           rowId: generateRowId(),
@@ -1018,10 +1019,18 @@ export function useTournamentForm(tournamentId: string | undefined) {
 
   const removeParticipant = useCallback(
     (rowId: string) => {
-      updateForm((state) => ({
-        ...state,
-        participants: state.participants.filter((r) => r.rowId !== rowId),
-      }))
+      updateForm((state) => {
+        const removedRow = state.participants.find((r) => r.rowId === rowId)
+        if (!removedRow) return state
+        return {
+          ...state,
+          participants: state.participants.filter((r) => r.rowId !== rowId),
+          games:
+            removedRow.id > 0
+              ? gamesWithoutParticipants(state.games, [removedRow.id], state.currentRound)
+              : state.games,
+        }
+      })
     },
     [updateForm]
   )

@@ -392,7 +392,7 @@ The locale dictionaries `src/locales/{ru,en}/translation.json` SHALL add keys un
 - **AND** `tournament.edit.pairings.title` exists and equals "Туры"
 - **AND** `tournament.edit.pairings.publishDraw`, `tournament.edit.pairings.drawPublished`, and `tournament.edit.pairings.forfeit` exist
 
-## Part 3 Additions
+<!-- Part 3 Additions -->
 
 ### Requirement: Pairings board — sorting and drop zones (updated from Part 1)
 
@@ -424,9 +424,37 @@ Cards SHALL remain draggable at all times regardless of publication status or re
 - **WHEN** the user drops a card into a `players1` slot that already has a card
 - **THEN** a new bye row is appended at the end with the dropped card as player1
 
+### Requirement: Participant removal removes their games
+
+When a participant is removed from the tournament draft — either explicitly via `removeParticipant` or implicitly when `rowsToParticipants` filters out an empty participant row on save — the system SHALL also remove that participant's games from the draft `games` array: (1) every lone game (`player2 = null`) of the removed participant in all rounds (forfeits, byes, and carry-over forfeits); (2) every paired game of the removed participant in rounds greater than `currentRound` (their former opponent in such a round becomes unpaired). Paired games of the removed participant in published rounds (`round <= currentRound`) SHALL be preserved so published results and standings history are not rewritten.
+
+#### Scenario: Removing a participant with lone forfeit games
+
+- **WHEN** a participant has lone forfeit games (created by forfeit toggle, auto-forfeit, or carry-over) in rounds 1–3 and the user removes that participant
+- **THEN** all of those lone games are removed from the draft
+- **AND** no game referencing the removed participant id remains in the draft
+
+#### Scenario: Removing a participant with a pairing in the prepared round
+
+- **WHEN** a participant is paired in a game with `round = currentRound + 1` and the user removes that participant
+- **THEN** that paired game is removed
+- **AND** the former opponent has no game in that round (becomes unpaired)
+
+#### Scenario: Removing a participant keeps published paired games
+
+- **WHEN** a participant has paired games with results in published rounds (`round <= currentRound`) and the user removes that participant
+- **THEN** those paired games remain in the draft unchanged
+- **AND** the opponents' results in those rounds are preserved
+
+#### Scenario: Saving with an empty participant row drops its games
+
+- **WHEN** the user saves a tournament where a participant row has no familyName and no givenName in any locale, but that row's id has lone games in the draft (for example from a cleared row)
+- **THEN** the row is not persisted as a participant
+- **AND** the lone games of that row's id are removed from the saved `games` array
+
 ### Requirement: Auto-forfeit for late joiners in past rounds
 
-When a new participant is added via `addParticipant` and `currentRound > 0`, the system SHALL automatically create forfeit games for that participant in all rounds `1..currentRound`. Each forfeit game SHALL have `player1` = new participant id, `player2 = null`, `status = 'forfeit'`, `result = 'player2_won'`, `sente = considerSente ? 'player1' : 'unknown'`, and `round` = the respective round number.
+When a new participant is added via `addParticipant` and `currentRound > 0`, the system SHALL automatically create forfeit games for that participant in all rounds `1..currentRound`, except rounds where the new participant's id already has a game (as `player1` or `player2`) — such rounds SHALL be skipped. Each forfeit game SHALL have `player1` = new participant id, `player2 = null`, `status = 'forfeit'`, `result = 'player2_won'`, `sente = considerSente ? 'player1' : 'unknown'`, and `round` = the respective round number.
 
 #### Scenario: New participant added mid-tournament gets forfeits for past rounds
 
@@ -438,6 +466,12 @@ When a new participant is added via `addParticipant` and `currentRound > 0`, the
 
 - **WHEN** a new participant is added while `currentRound = 0`
 - **THEN** no forfeit games are created
+
+#### Scenario: Reused id with existing games gets no duplicate forfeits
+
+- **WHEN** a new participant receives an id that still has a game in rounds 1 and 3 (for example orphaned forfeits of a previously removed participant with the same id) and is added while `currentRound = 3`
+- **THEN** a forfeit game is created only for round 2
+- **AND** rounds 1 and 3 keep exactly one game for that participant id
 
 ### Requirement: Persistent forfeit in unpaired for next round
 
@@ -547,7 +581,7 @@ The locale dictionaries `src/locales/{ru,en}/translation.json` SHALL add keys: `
 - **AND** `tournament.edit.pairings.title` exists and equals "Rounds"
 - **AND** `tournament.edit.pairings.publishDraw`, `tournament.edit.pairings.drawPublished`, and `tournament.edit.pairings.forfeit` exist
 
-## Part 4 Additions
+<!-- Part 4 Additions -->
 
 ### Requirement: Handicap cycling button
 
@@ -584,7 +618,7 @@ Each pairing row in the `PairingsBoard` SHALL render a handicap button between t
 
 - **WHEN** the user hovers over the handicap button
 - **THEN** a DaisyUI tooltip displays "Игра с форой" (ru locale) or "Game with handicap" (en locale)
-## Part 5 Additions
+<!-- Part 5 Additions -->
 
 ### Requirement: Lone game invariant
 
