@@ -117,10 +117,9 @@ describe('tournamentScheduleDays', () => {
 })
 
 describe('formatDayRanges', () => {
-  it('formats a single day', () => {
+  it('formats a single day with genitive month in ru', () => {
     const result = formatDayRanges([new Date('2026-08-10T00:00:00Z')], 'ru')
-    expect(result).toContain('10')
-    expect(result).toContain('2026')
+    expect(result).toBe('10 августа 2026')
   })
 
   it('formats consecutive days with en-dash', () => {
@@ -128,8 +127,7 @@ describe('formatDayRanges', () => {
       new Date('2026-08-10T00:00:00Z'),
       new Date('2026-08-11T00:00:00Z'),
     ], 'ru')
-    expect(result).toContain('–')
-    expect(result).toContain('2026')
+    expect(result).toBe('10–11 августа 2026')
   })
 
   it('formats days with gaps comma-separated', () => {
@@ -138,8 +136,16 @@ describe('formatDayRanges', () => {
       new Date('2026-08-12T00:00:00Z'),
       new Date('2026-08-25T00:00:00Z'),
     ], 'ru')
-    expect(result).toContain(',')
-    expect(result).toContain('2026')
+    expect(result).toBe('10, 12, 25 августа 2026')
+  })
+
+  it('formats month change with genitive month names in ru', () => {
+    const result = formatDayRanges([
+      new Date('2026-08-10T00:00:00Z'),
+      new Date('2026-08-12T00:00:00Z'),
+      new Date('2026-09-03T00:00:00Z'),
+    ], 'ru')
+    expect(result).toBe('10, 12 августа, 3 сентября 2026')
   })
 
   it('formats cross-month range', () => {
@@ -157,8 +163,12 @@ describe('formatDayRanges', () => {
       new Date('2026-09-04T00:00:00Z'),
       new Date('2026-09-05T00:00:00Z'),
     ], 'ru')
-    expect(result).toContain('–')
-    expect(result).toContain('2026')
+    expect(result).toBe('25 августа – 5 сентября 2026')
+  })
+
+  it('formats single day in en unchanged', () => {
+    const result = formatDayRanges([new Date('2026-08-10T00:00:00Z')], 'en')
+    expect(result).toBe('10 August 2026')
   })
 
   it('deduplicates same-day entries', () => {

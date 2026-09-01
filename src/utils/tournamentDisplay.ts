@@ -90,47 +90,51 @@ export function formatDayRanges(days: Date[], locale: string): string {
 
   // Format each run
   const dayFmt = new Intl.DateTimeFormat(locale, { day: 'numeric', timeZone: 'UTC' })
-  const monthFmt = new Intl.DateTimeFormat(locale, { month: 'long', timeZone: 'UTC' })
+  // Combined day+month format: in this context ICU picks the grammatically correct
+  // month form (e.g. genitive "августа" for ru), unlike a standalone month-only
+  // format which always yields the nominative ("август").
+  const dayMonthFmt = new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'long', timeZone: 'UTC' })
   const yearFmt = new Intl.DateTimeFormat(locale, { year: 'numeric', timeZone: 'UTC' })
+
+  const monthName = (d: Date): string =>
+    dayMonthFmt.formatToParts(d).find((p) => p.type === 'month')?.value ?? ''
+  // Locale-independent month identity for "has the month changed" checks.
+  const monthIndex = (d: Date): number => d.getUTCFullYear() * 12 + d.getUTCMonth()
 
   const lastYear = yearFmt.format(runs[runs.length - 1].end)
 
+  // Month name is appended to the last printed group of each month
+  // (e.g. "10, 12, 25 августа 2026", "10, 12 августа, 3 сентября 2026").
   const parts: string[] = []
-  let lastMonth = ''
 
-  for (const run of runs) {
-    const startMonth = monthFmt.format(run.start)
-    const endMonth = monthFmt.format(run.end)
+  for (let i = 0; i < runs.length; i++) {
+    const run = runs[i]
+    const startIdx = monthIndex(run.start)
+    const endIdx = monthIndex(run.end)
+    const nextIdx = i + 1 < runs.length ? monthIndex(runs[i + 1].start) : -1
 
     if (run.start.getTime() === run.end.getTime()) {
       // Single day
-      const month = startMonth
       const day = dayFmt.format(run.start)
-      if (month !== lastMonth) {
-        parts.push(`${day} ${month}`)
-        lastMonth = month
+      if (endIdx !== nextIdx) {
+        parts.push(`${day} ${monthName(run.start)}`)
       } else {
         parts.push(day)
       }
-    } else if (startMonth === endMonth) {
+    } else if (startIdx === endIdx) {
       // Range within same month
-      const month = startMonth
       const d1 = dayFmt.format(run.start)
       const d2 = dayFmt.format(run.end)
-      if (month !== lastMonth) {
-        parts.push(`${d1}–${d2} ${month}`)
-        lastMonth = month
+      if (endIdx !== nextIdx) {
+        parts.push(`${d1}–${d2} ${monthName(run.start)}`)
       } else {
         parts.push(`${d1}–${d2}`)
       }
     } else {
-      // Range across months
-      const m1 = startMonth
+      // Range across months — both month names printed explicitly
       const d1 = dayFmt.format(run.start)
-      const m2 = endMonth
       const d2 = dayFmt.format(run.end)
-      parts.push(`${d1} ${m1} – ${d2} ${m2}`)
-      lastMonth = m2
+      parts.push(`${d1} ${monthName(run.start)} – ${d2} ${monthName(run.end)}`)
     }
   }
 
