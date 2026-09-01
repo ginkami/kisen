@@ -119,6 +119,16 @@
       "seconds_one": "second",
       "seconds_other": "seconds",
       "perMoves": "moves",
+      "hourShort": "{{count}}h",
+      "minuteShort": "{{count}}m",
+      "secondShort": "{{count}}s",
+      "tcSuffix": {
+        "fischer": "Fischer",
+        "bronstein": "Bronstein",
+        "delay": "Delay",
+        "byoyomi": "Byoyomi",
+        "canadian": "Canadian"
+      },
       "noSchedule": "No schedule available",
       "results": {
         "rounds": "Rounds",

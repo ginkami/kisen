@@ -36,21 +36,36 @@ function makeT(overrides: Partial<Tournament> = {}): Tournament {
   } as Tournament
 }
 
-const t = ((key: string, opts?: Record<string, unknown>): string => {
-  const count = opts?.count as number | undefined
-  const map: Record<string, string> = {
-    'tournament.timeControl.absolute': 'Абсолютный',
-    'tournament.timeControl.fischer': 'Фишер',
-    'tournament.timeControl.bronstein': 'Бронштейн',
-    'tournament.timeControl.delay': 'Задержка',
-    'tournament.timeControl.byoyomi': 'Бёёми',
-    'tournament.timeControl.canadian': 'Канадский',
-    'tournament.view.minutes': count === 1 ? 'минута' : 'минут',
-    'tournament.view.seconds': count === 1 ? 'секунда' : 'секунд',
-    'tournament.view.perMoves': 'ходов',
+const makeStubT =
+  (
+    units: { hour: string; minute: string; second: string; perMoves: string },
+    suffixes: Record<string, string>
+  ) =>
+  (key: string, opts?: Record<string, unknown>): string => {
+    const count = opts?.count as number | undefined
+    const map: Record<string, string> = {
+      'tournament.view.hourShort': units.hour,
+      'tournament.view.minuteShort': units.minute,
+      'tournament.view.secondShort': units.second,
+      'tournament.view.perMoves': units.perMoves,
+      'tournament.view.tcSuffix.fischer': suffixes.fischer,
+      'tournament.view.tcSuffix.bronstein': suffixes.bronstein,
+      'tournament.view.tcSuffix.delay': suffixes.delay,
+      'tournament.view.tcSuffix.byoyomi': suffixes.byoyomi,
+      'tournament.view.tcSuffix.canadian': suffixes.canadian,
+    }
+    return (map[key] ?? key).replace('{{count}}', String(count ?? ''))
   }
-  return map[key] ?? key
-}) as (key: string, opts?: Record<string, unknown>) => string
+
+const tRu = makeStubT(
+  { hour: '{{count}} ч', minute: '{{count}} мин', second: '{{count}} с', perMoves: 'ходов' },
+  { fischer: 'Фишер', bronstein: 'Бронштейн', delay: 'задержка', byoyomi: 'бёёми', canadian: 'канадский' }
+) as unknown as (key: string, opts?: Record<string, unknown>) => string
+
+const tEn = makeStubT(
+  { hour: '{{count}}h', minute: '{{count}}m', second: '{{count}}s', perMoves: 'moves' },
+  { fischer: 'Fischer', bronstein: 'Bronstein', delay: 'Delay', byoyomi: 'Byoyomi', canadian: 'Canadian' }
+) as unknown as (key: string, opts?: Record<string, unknown>) => string
 
 describe('tournamentStart', () => {
   it('returns first round scheduledAt when rounds exist', () => {
@@ -184,47 +199,68 @@ describe('formatDayRanges', () => {
 })
 
 describe('formatTimeControlShort', () => {
-  it('formats absolute time control', () => {
-    const result = formatTimeControlShort({ type: 'absolute', mainTime: 40 }, t)
-    expect(result).toContain('40')
-    expect(result).toContain('Абсолютный')
+  it('formats absolute time control without type suffix (ru)', () => {
+    const result = formatTimeControlShort({ type: 'absolute', mainTime: 40 }, tRu)
+    expect(result).toBe('40 мин')
   })
 
-  it('formats fischer time control', () => {
-    const result = formatTimeControlShort({ type: 'fischer', mainTime: 40, increment: 30 }, t)
-    expect(result).toContain('40')
-    expect(result).toContain('30')
-    expect(result).toContain('Фишер')
+  it('formats fischer time control (ru)', () => {
+    const result = formatTimeControlShort({ type: 'fischer', mainTime: 40, increment: 30 }, tRu)
+    expect(result).toBe('40 мин + 30 с (Фишер)')
   })
 
-  it('formats byoyomi time control', () => {
+  it('decomposes main time into hours and minutes (ru)', () => {
+    const result = formatTimeControlShort({ type: 'fischer', mainTime: 90, increment: 60 }, tRu)
+    expect(result).toBe('1 ч 30 мин + 60 с (Фишер)')
+  })
+
+  it('formats exact hours without minutes (ru)', () => {
+    const result = formatTimeControlShort({ type: 'fischer', mainTime: 120, increment: 0 }, tRu)
+    expect(result).toBe('2 ч + 0 с (Фишер)')
+  })
+
+  it('formats byoyomi time control with periods (ru)', () => {
     const result = formatTimeControlShort(
-      { type: 'byoyomi', mainTime: 40, byoyomiTime: 30, byoyomiPeriods: 3 }, t,
+      { type: 'byoyomi', mainTime: 40, byoyomiTime: 30, byoyomiPeriods: 3 }, tRu,
     )
-    expect(result).toContain('40')
-    expect(result).toContain('30')
-    expect(result).toContain('× 3')
-    expect(result).toContain('Бёёми')
+    expect(result).toBe('40 мин + 30 с × 3 (бёёми)')
   })
 
-  it('formats canadian time control', () => {
+  it('omits × 1 for a single byoyomi period (ru)', () => {
     const result = formatTimeControlShort(
-      { type: 'canadian', mainTime: 60, canadianTime: 300, canadianMoves: 15 }, t,
+      { type: 'byoyomi', mainTime: 40, byoyomiTime: 30, byoyomiPeriods: 1 }, tRu,
     )
-    expect(result).toContain('60')
-    expect(result).toContain('300')
-    expect(result).toContain('15')
-    expect(result).toContain('Канадский')
+    expect(result).toBe('40 мин + 30 с (бёёми)')
   })
 
-  it('formats delay time control', () => {
-    const result = formatTimeControlShort({ type: 'delay', mainTime: 30, increment: 10 }, t)
-    expect(result).toContain('Задержка')
+  it('formats canadian time control (ru)', () => {
+    const result = formatTimeControlShort(
+      { type: 'canadian', mainTime: 60, canadianTime: 300, canadianMoves: 15 }, tRu,
+    )
+    expect(result).toBe('1 ч + 300 с / 15 ходов (канадский)')
   })
 
-  it('formats bronstein time control', () => {
-    const result = formatTimeControlShort({ type: 'bronstein', mainTime: 30, increment: 10 }, t)
-    expect(result).toContain('Бронштейн')
+  it('formats delay time control (ru)', () => {
+    const result = formatTimeControlShort({ type: 'delay', mainTime: 30, increment: 10 }, tRu)
+    expect(result).toBe('30 мин + 10 с (задержка)')
+  })
+
+  it('formats bronstein time control (ru)', () => {
+    const result = formatTimeControlShort({ type: 'bronstein', mainTime: 30, increment: 10 }, tRu)
+    expect(result).toBe('30 мин + 10 с (Бронштейн)')
+  })
+
+  it('formats english units without space between value and unit (en)', () => {
+    expect(formatTimeControlShort({ type: 'absolute', mainTime: 40 }, tEn)).toBe('40m')
+    expect(formatTimeControlShort({ type: 'fischer', mainTime: 90, increment: 60 }, tEn)).toBe(
+      '1h 30m + 60s (Fischer)',
+    )
+    expect(formatTimeControlShort({ type: 'byoyomi', mainTime: 40, byoyomiTime: 30, byoyomiPeriods: 1 }, tEn)).toBe(
+      '40m + 30s (Byoyomi)',
+    )
+    expect(
+      formatTimeControlShort({ type: 'canadian', mainTime: 60, canadianTime: 300, canadianMoves: 15 }, tEn),
+    ).toBe('1h + 300s / 15 moves (Canadian)')
   })
 })
 

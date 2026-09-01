@@ -81,7 +81,7 @@ export function TournamentMeta({ tournament }: TournamentMetaProps) {
         <BsHourglassSplit className="h-4 w-4 opacity-60 shrink-0" />
         <span>{tcStr}</span>
         <HiOutlineUserGroup className="h-4 w-4 opacity-60 shrink-0" />
-        <span>{participantCount}</span>
+        <span>{t('tournament.view.playersCount', { count: participantCount })}</span>
         <BsPlayFill className="h-4 w-4 opacity-60 shrink-0" />
         <span>{t('tournament.view.roundsCount', { count: roundCount })}</span>
       </div>

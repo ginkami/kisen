@@ -143,20 +143,38 @@ export function formatDayRanges(days: Date[], locale: string): string {
 
 /**
  * Format time control in a compact human-readable form.
- * Uses i18next `t` function for type names and pluralization.
+ * Short time units come from i18n keys that include the value-to-unit
+ * spacing themselves (ru: with space, en: without).
  *
  * Examples (ru):
- *   "40 минут (Абсолютный)"
- *   "40 минут + 30 секунд (Фишер)"
- *   "40 минут + 30 секунд × 3 (Бёёми)"
- *   "40 минут + 30 секунд / 15 ходов (Канадский)"
+ *   "40 мин"                          (absolute — no type suffix)
+ *   "40 мин + 30 с (Фишер)"
+ *   "1 ч 30 мин + 60 с (Фишер)"
+ *   "40 мин + 30 с × 3 (бёёми)"
+ *   "40 мин + 30 с (бёёми)"           (single byoyomi period: no "× 1")
+ *   "1 ч + 300 с / 15 ходов (канадский)"
+ *
+ * Examples (en):
+ *   "40m"
+ *   "1h 30m + 60s (Fischer)"
+ *   "40m + 30s × 3 (Byoyomi)"
+ *   "1h + 300s / 15 moves (Canadian)"
  */
 export function formatTimeControlShort(
   tc: TimeControl,
   t: (key: string, opts?: Record<string, unknown>) => string
 ): string {
-  const main = `${tc.mainTime} ${t('tournament.view.minutes', { count: tc.mainTime })}`
-  const typeName = t(`tournament.timeControl.${tc.type}`)
+  const hours = Math.floor(tc.mainTime / 60)
+  const minutes = tc.mainTime % 60
+  let main: string
+  if (hours > 0) {
+    main = t('tournament.view.hourShort', { count: hours })
+    if (minutes > 0) {
+      main += ` ${t('tournament.view.minuteShort', { count: minutes })}`
+    }
+  } else {
+    main = t('tournament.view.minuteShort', { count: minutes })
+  }
 
   let extra = ''
   switch (tc.type) {
@@ -165,17 +183,20 @@ export function formatTimeControlShort(
     case 'fischer':
     case 'bronstein':
     case 'delay':
-      extra = ` + ${tc.increment} ${t('tournament.view.seconds', { count: tc.increment })}`
+      extra = ` + ${t('tournament.view.secondShort', { count: tc.increment })}`
       break
-    case 'byoyomi':
-      extra = ` + ${tc.byoyomiTime} ${t('tournament.view.seconds', { count: tc.byoyomiTime })} × ${tc.byoyomiPeriods}`
+    case 'byoyomi': {
+      extra = ` + ${t('tournament.view.secondShort', { count: tc.byoyomiTime })}`
+      if (tc.byoyomiPeriods > 1) extra += ` × ${tc.byoyomiPeriods}`
       break
+    }
     case 'canadian':
-      extra = ` + ${tc.canadianTime} ${t('tournament.view.seconds', { count: tc.canadianTime })} / ${tc.canadianMoves} ${t('tournament.view.perMoves')}`
+      extra = ` + ${t('tournament.view.secondShort', { count: tc.canadianTime })} / ${tc.canadianMoves} ${t('tournament.view.perMoves')}`
       break
   }
 
-  return `${main}${extra} (${typeName})`
+  const suffix = tc.type === 'absolute' ? '' : ` (${t(`tournament.view.tcSuffix.${tc.type}`)})`
+  return `${main}${extra}${suffix}`
 }
 
 /**
