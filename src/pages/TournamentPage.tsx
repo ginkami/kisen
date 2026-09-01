@@ -55,7 +55,17 @@ export function TournamentPage() {
     return tournament.locales[locale]?.title || tournament.locales.ru?.title || ''
   }, [tournament, locale])
 
-  const [activeTab, setActiveTab] = useState<TabId>('description')
+  const [selectedTab, setSelectedTab] = useState<TabId | null>(null)
+  // Default tab: ongoing/finished tournaments open on the crosstable
+  // (only when at least one round is published); otherwise description.
+  // A user click overrides the default for the rest of the session.
+  const activeTab =
+    selectedTab ??
+    (tournament != null &&
+    (tournament.status === 'ongoing' || tournament.status === 'finished') &&
+    tournament.publishedRounds >= 1
+      ? 'crosstable'
+      : 'description')
   useEffect(() => {
     if (tournament && isPublic) document.title = t('tournament.view.pageTitle', { title: tournamentTitle })
   }, [tournamentTitle, isPublic, t])
@@ -110,7 +120,7 @@ export function TournamentPage() {
           const isActive = activeTab === tab.id
           return (
             <button key={tab.id} type="button" role="tab" aria-selected={isActive}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => setSelectedTab(tab.id)}
               className={['tab gap-2', isActive ? 'tab-active' : ''].join(' ')}>
               <Icon className="h-5 w-5" />
               <span className="hidden sm:inline">{tab.label}</span>
