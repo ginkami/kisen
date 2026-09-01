@@ -68,7 +68,6 @@ function NumberField({
 function GeneralInfoSection({
   formState,
   updateLocale,
-  updateBasic,
   updateLocation,
   updateLocationLocale,
   updateArbiter,

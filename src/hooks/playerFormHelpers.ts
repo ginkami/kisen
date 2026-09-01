@@ -4,7 +4,7 @@ import { supportedLocales, type SupportedLocale } from '../domain/locale.ts'
 import { localeHasAnyContent, backfillRequiredLocaleFields } from '../utils/locales.ts'
 import { playerService } from '../services/playerService.ts'
 
-export interface PlayerFormLocaleFields {
+export type PlayerFormLocaleFields = {
   familyName: string
   givenName: string
   location: string

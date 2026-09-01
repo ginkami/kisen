@@ -1,5 +1,5 @@
 import { uuidv7 } from 'uuidv7'
-import type { Game, GameResult, GameStatus, Participant, Sente } from '../../../domain/tournament.ts'
+import type { Game, GameResult, GameStatus, Participant } from '../../../domain/tournament.ts'
 import type { ParticipantRow } from '../../../hooks/useTournamentForm.ts'
 import type { Player } from '../../../domain/player.ts'
 
@@ -550,11 +550,12 @@ export function withPlayersSwapped(
 
   // sente stays attached to the position (unchanged) — under the project invariant
   // (sente ≡ 'player1' when considerSente), the sente holder swaps with the cards.
+  const opp = target.player2 // non-null: bye/not-found guarded above
   return allGames.map((g) => {
     if (g.id !== gameId) return g
     return {
       ...g,
-      player1: target.player2,
+      player1: opp,
       player2: target.player1,
       sente: target.sente,
       result: flippedResult,

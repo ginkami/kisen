@@ -8,6 +8,13 @@ vi.mock('../services/firestoreTournamentRepository.ts', () => ({
   firestoreTournamentRepository: {},
 }))
 
+// AuthContext (imported transitively) pulls in userService, which calls
+// collection(db, 'users') at module scope — stub it out for these pure tests.
+vi.mock('../services/userService.ts', () => ({
+  createUser: vi.fn(),
+  getUserById: vi.fn(),
+}))
+
 import {
   mergeSchedule,
   splitSchedule,

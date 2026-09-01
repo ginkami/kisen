@@ -8,7 +8,6 @@ vi.mock('uuidv7', () => {
 import { rankToColor, computeStandings, parseCellInput, gameToCellInput, withCellEdited, CELL_PARTIAL_RE, handicapForView, normalizeGamesSente } from '../components/tournament/crosstable/crosstableModel.ts'
 import type { Game } from '../domain/tournament.ts'
 import type { TieBreak } from '../domain/tieBreak.ts'
-import type { PlayerRank } from '../domain/playerRating.ts'
 
 try { (globalThis as any).ZodConfig ??= {} } catch { /* ok */ }
 

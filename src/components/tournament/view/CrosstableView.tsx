@@ -23,7 +23,7 @@ interface CrosstableViewProps {
 }
 
 export function CrosstableView({
-  games, participants, roundCount, currentRound, considerSente, tieBreaks,
+  games, participants, roundCount, considerSente, tieBreaks,
 }: CrosstableViewProps) {
   const { t, i18n } = useTranslation()
   const locale = (i18n.language as SupportedLocale) ?? 'ru'
@@ -92,7 +92,7 @@ export function CrosstableView({
       : symbol === '-' ? 'badge-error'
       : symbol === '=' ? 'badge-secondary'
       : 'bg-base-300'
-    const resultBadge = <span className={`badge badge-xs text-white font-mono ${badgeCls}`}>{symbol} {handicap != null && <span className="badge badge-xs bg-base-200">{ handicap }</span>}</span>
+    const resultBadge = <span className={`badge badge-xs text-white font-mono gap-0.5 ${badgeCls}`}>{symbol}{handicap != null && <span className="badge badge-xs bg-base-200">{ handicap }</span>}</span>
     const p = oppId != null ? (rowById.get(oppId) ?? null) : null
     if (!p) {
       return <span className="col-span-6 text-right">{resultBadge}</span>
@@ -112,7 +112,7 @@ export function CrosstableView({
           </span>
         )}
         {rank && (
-          <span className="badge badge-xs text-white flex items-center gap-0.5" style={{ backgroundColor: rc }}>
+          <span className="badge badge-xs text-white flex items-center gap-0.5" style={{ backgroundColor: rc ?? undefined }}>
             {rank}
             {title && (
               <span className="tooltip tooltip-top" data-tip={title}>
@@ -155,11 +155,13 @@ export function CrosstableView({
     return (
       <span className="tooltip tooltip-bottom">
         <div className="grid grid-cols-[auto_auto_max-content_auto_auto_auto] z-50 gap-1 text-xs text-left tooltip-content bg-neutral text-neutral-content shadow-lg rounded-lg p-1.5">
-          <OpponentCard 
-            oppId={oppId} 
-            symbol={sym as '+' | '-' | '=' | '?'} 
-            handicap={g.handicap != null ? handicapForView(g.handicap as string, isP1) : null} 
-          />
+          <div className="contents">
+            <OpponentCard 
+              oppId={oppId} 
+              symbol={sym as '+' | '-' | '=' | '?'} 
+              handicap={g.handicap != null ? handicapForView(g.handicap as string, isP1) : null} 
+            />
+          </div>
         </div>
         <span className="font-mono whitespace-nowrap pl-2 inline-flex items-center gap-0.5">
           {sente && <span>{sente}</span>}
@@ -232,7 +234,7 @@ export function CrosstableView({
                 </td>
                 <td className="sticky bg-base-100 z-10 p-0" style={{ left: OFF_RANK, minWidth: COL_RANK }}>
                   {rank && (
-                    <span className="badge badge-xs text-white flex items-center gap-0.5 w-fit" style={{ backgroundColor: rc }}>
+                    <span className="badge badge-xs text-white flex items-center gap-0.5 w-fit" style={{ backgroundColor: rc ?? undefined }}>
                       {rank}
                       {title && <span className="tooltip tooltip-top" data-tip={title}><PiCrownSimple className="h-3 w-3" /></span>}
                     </span>
@@ -248,13 +250,15 @@ export function CrosstableView({
                       <span className="truncate">{loc?.familyName}, {loc?.givenName}</span>
                       <div className="grid grid-cols-[auto_auto_auto_auto_auto_auto] text-xs text-left tooltip-content bg-neutral text-neutral-content shadow-lg rounded-lg p-1.5 gap-1">
                         {(gamesByPid.get(s.participantId) ?? [])
+                          .filter((e) => e.oppId != null || e.game.status === 'forfeit')
                           .map((e, i) => (
-                            <OpponentCard
-                              key={i}
-                              oppId={e.oppId}
-                              symbol={resultSymbolFor(e.game, s.participantId)}
-                              handicap={e.game.handicap != null ? handicapForView(e.game.handicap as string, e.game.player2 === e.oppId) : null} 
-                            />
+                            <div className="contents" key={i}>
+                              <OpponentCard
+                                oppId={e.oppId}
+                                symbol={resultSymbolFor(e.game, s.participantId)}
+                                handicap={e.game.handicap != null ? handicapForView(e.game.handicap as string, e.game.player2 === e.oppId) : null} 
+                              />
+                            </div>
                           ))}
                       </div>
                     </span>

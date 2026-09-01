@@ -77,15 +77,17 @@ export function AdminDrawer({
   const pendingNavigation = useRef<string | null>(null)
   const [playerSearch, setPlayerSearch] = useState('')
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null)
+  const { data: associationsData = [], isLoading: isLoadingAssociations } = useAssociationsForPanel(
+    firebaseUser?.uid,
+    user?.role
+  )
+  // query data can be null (e.g. initial state); default param only covers undefined
+  const associations = associationsData ?? []
   const canManagePlayers = user?.role === 'admin' || user?.role === 'manager'
   const canBulkImport = user?.role === 'admin'
 
   // Associations
   const [associationSearch, setAssociationSearch] = useState('')
-  const { data: associations = [], isLoading: isLoadingAssociations } = useAssociationsForPanel(
-    firebaseUser?.uid,
-    user?.role
-  )
   const canManageAssociations = user?.role === 'admin' || user?.role === 'manager' || associations.length > 0
 
   const canCreateAssociation = user?.role === 'admin' || user?.role === 'manager'
@@ -159,7 +161,7 @@ export function AdminDrawer({
   // Regulations
   const managedAssociationIds = useMemo(() => associations.map((a) => a.id), [associations])
   const isAdmin = user?.role === 'admin'
-  const { data: regulations = [], isLoading: isLoadingRegulations, error: regulationsError } = useQuery({
+  const { data: regulationsData = [], isLoading: isLoadingRegulations, error: regulationsError } = useQuery({
     queryKey: ['adminRegulations', userId, managedAssociationIds, isAdmin],
     queryFn: async () => {
       if (!userId) return []
@@ -167,6 +169,8 @@ export function AdminDrawer({
     },
     enabled: isAuthenticated && !!userId && isOpen,
   })
+  // query data can be null (e.g. initial state); default param only covers undefined
+  const regulations = regulationsData ?? []
 
   const isSearchingTournaments = tournamentSearch.trim().length >= 3
   const {

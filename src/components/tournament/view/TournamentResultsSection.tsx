@@ -120,7 +120,7 @@ export function TournamentResultsSection({
           {rank && (
             <span
               className="badge badge-xs text-white flex items-center gap-0.5 w-fit"
-              style={{ backgroundColor: rc }}
+              style={{ backgroundColor: rc ?? undefined }}
             >
               {rank}
               {title && (

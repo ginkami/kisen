@@ -1,5 +1,6 @@
 import { uuidv7 } from 'uuidv7'
 import type {
+  Game,
   Tournament,
   TournamentStatus,
   TournamentLocale,

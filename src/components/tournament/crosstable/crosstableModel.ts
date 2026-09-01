@@ -66,22 +66,6 @@ function opponentIdInGame(game: Game, participantId: number): number | null {
   return null
 }
 
-function resultForParticipant(game: Game, participantId: number): GameResult | null {
-  if (game.player1 === participantId) return game.result
-  if (game.player2 === participantId) {
-    if (game.result === 'player1_won') return 'player2_won'
-    if (game.result === 'player2_won') return 'player1_won'
-    return game.result
-  }
-  return null
-}
-
-function resultPoints(r: GameResult | null): number {
-  if (r === null) return 0
-  if (r === 'player1_won' || r === 'player2_won') return 1
-  return 0.5
-}
-
 // ---------------------------------------------------------------------------
 // Tie-break calculators
 // ---------------------------------------------------------------------------
@@ -306,7 +290,7 @@ function parseHandicap(tail: string): string | null {
 export function parseCellInput(
   input: string,
   considerSente: boolean
-): ParsedCell | 'bye' | 'forfeit' | null {
+): ParsedCell | 'bye' | 'bye_draw' | 'forfeit' | null {
   const s = input.trim()
   if (s === '+') return 'bye'
   if (s === '=') return 'bye_draw'

@@ -247,17 +247,6 @@ function createEmptyLocale(): TournamentLocale {
   return { title: '', description: '' }
 }
 
-function createEmptyLocation(): TournamentFormState['location'] {
-  return {
-    latitude: null,
-    longitude: null,
-    country: '',
-    locales: Object.fromEntries(
-      supportedLocales.map((locale) => [locale, { settlement: '', venue: '' }])
-    ) as Record<SupportedLocale, { settlement: string; venue: string }>,
-  }
-}
-
 function createEmptyArbiter(): TournamentFormState['arbiter'] {
   return Object.fromEntries(
     supportedLocales.map((locale) => [locale, { givenName: '', familyName: '' }])
@@ -391,6 +380,7 @@ function formStateToUpdateInput(
     participants: Participant[]
     games: Game[]
     currentRound: number
+    regulations: string[]
     desiredSlug?: string
   } = {
     id: tournament.id,

@@ -1,4 +1,4 @@
-import { supportedLocales, type SupportedLocale } from '../domain/locale.ts'
+import { supportedLocales } from '../domain/locale.ts'
 import type { TournamentLocation } from '../domain/tournament.ts'
 
 const NOMINATIM_BASE = 'https://nominatim.openstreetmap.org'

@@ -26,7 +26,7 @@ interface Frame {
 
 function titleFromHeadingLine(line: string): string {
   return line
-    .replace(HEADING_RE, (_, hashes: string, rest: string | undefined) => (rest ?? '').trim())
+    .replace(HEADING_RE, (_, _hashes: string, rest: string | undefined) => (rest ?? '').trim())
     .replace(/\s+#+\s*$/, '')
     .trim()
 }

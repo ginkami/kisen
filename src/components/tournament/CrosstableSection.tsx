@@ -6,7 +6,7 @@ import { BsCheckLg } from 'react-icons/bs'
 import { getCountryName } from '../../utils/countries.ts'
 import {
   rankToColor, computeStandings,
-  parseCellInput, gameToCellInput, withCellEdited, CELL_PARTIAL_RE,
+  gameToCellInput, withCellEdited, CELL_PARTIAL_RE,
   handicapForView,
 } from './crosstable/crosstableModel.ts'
 import type { Game } from '../../domain/tournament.ts'
@@ -211,7 +211,7 @@ export function CrosstableSection({
                 </td>
                 <td className="sticky bg-base-100 z-10 p-0" style={{ left: OFF_RANK, minWidth: COL_RANK }}>
                   {rank && (
-                    <span className="badge badge-xs text-white flex items-center gap-0.5 w-fit" style={{ backgroundColor: rc }}>
+                    <span className="badge badge-xs text-white flex items-center gap-0.5 w-fit" style={{ backgroundColor: rc ?? undefined }}>
                       {rank}
                       {title && <span className="tooltip tooltip-top" data-tip={title}><PiCrownSimple className="h-3 w-3" /></span>}
                     </span>
