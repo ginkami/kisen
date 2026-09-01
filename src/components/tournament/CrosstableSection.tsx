@@ -219,7 +219,7 @@ export function CrosstableSection({
                 </td>
                 <td className="sticky shadow-[5px_0_10px_-2px_rgba(0,0,0,0.1)] bg-base-100 z-10 whitespace-nowrap max-w-[10rem] truncate font-medium p-0.5" style={{ left: OFF_NAME }}>{loc?.familyName}, {loc?.givenName}</td>
                 <td className="whitespace-nowrap">
-                  {resDiff && ResFlag && <span className="tooltip tooltip-top mr-1" data-tip={getCountryName(res, locale)}><ResFlag className="h-3 w-3 rounded-sm inline" /></span>}
+                  {resDiff && ResFlag && <span className="tooltip tooltip-top mr-1" data-tip={getCountryName(res, locale)}><ResFlag className="h-3 w-3 rounded-sm inline mt-[-3px]" /></span>}
                   {loc?.location || ''}
                 </td>
                 <td className="text-right font-mono">{p.ratingValue || ''}</td>

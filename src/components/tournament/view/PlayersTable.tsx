@@ -35,7 +35,7 @@ export function PlayersTable({ participants }: PlayersTableProps) {
 
   return (
     <div className="table-container w-[calc(100vw-32px)] md:w-auto overflow-x-auto overflow-y-hidden">
-      <table className="table table-xs w-auto table-fixed">
+      <table className="table table-xs md:table-sm w-auto table-fixed border-b border-base-300 pb-2">
         <thead className="bg-base-200 text-base-200-content text-xs">
           <tr>
             <th className="first:rounded-tl-xl sticky left-0 z-30 p-0 bg-base-200" style={{ minWidth: COL_NO }} />
@@ -93,7 +93,7 @@ export function PlayersTable({ participants }: PlayersTableProps) {
                 <td className="whitespace-nowrap">
                   {resDiff && ResFlag && (
                     <span className="tooltip tooltip-top mr-1" data-tip={getCountryName(res, locale)}>
-                      <ResFlag className="h-3 w-3 rounded-sm inline" />
+                      <ResFlag className="h-3 w-3 rounded-sm inline mt-[-3px]" />
                     </span>
                   )}
                   {loc?.location || ''}

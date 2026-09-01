@@ -185,7 +185,7 @@ export function CrosstableView({
 
   return (
     <div className="table-container w-[calc(100vw-32px)] md:w-auto overflow-x-auto overflow-y-hidden">
-      <table className="table table-xs w-auto table-fixed">
+      <table className="table table-xs md:table-sm w-auto table-fixed border-b border-base-300 pb-2">
         <thead className="bg-base-200 text-base-200-content text-xs">
           <tr>
             <th rowSpan={2} className="first:rounded-tl-xl sticky left-0 z-30 p-0 bg-base-200" style={{ minWidth: COL_NO }} />
@@ -240,7 +240,7 @@ export function CrosstableView({
               <tr key={s.participantId} className="hover hover:relative hover:z-30">
                 <td className="sticky left-0 bg-base-100 z-10 font-mono text-center p-0" style={{ minWidth: COL_NO }}>{s.place}</td>
                 <td className="sticky bg-base-100 z-10 p-0" style={{ left: OFF_FLAG, minWidth: COL_FLAG }}>
-                  {Flag && <div className="tooltip tooltip-top" data-tip={getCountryName(nat, locale)}><Flag className="h-3 w-4 rounded-sm" /></div>}
+                  {Flag && <div className="tooltip tooltip-top" data-tip={getCountryName(nat, locale)}><Flag className="h-3 w-4 rounded-sm mt-1" /></div>}
                 </td>
                 <td className="sticky bg-base-100 z-10 p-0" style={{ left: OFF_RANK, minWidth: COL_RANK }}>
                   {rank && (
@@ -250,7 +250,7 @@ export function CrosstableView({
                     </span>
                   )}
                 </td>
-                <td className="sticky shadow-[5px_0_10px_-2px_rgba(0,0,0,0.1)] bg-base-100 z-10 whitespace-nowrap max-w-[10rem] font-medium p-0.5" style={{ left: OFF_NAME }}>
+                <td className="sticky shadow-[5px_0_10px_-2px_rgba(0,0,0,0.1)] bg-base-100 z-10 whitespace-nowrap max-w-[10rem] p-0.5" style={{ left: OFF_NAME }}>
                   {(gamesByPid.get(s.participantId) ?? []).some(
                     (e) => e.oppId != null || e.game.status === 'forfeit',
                   ) ? (
@@ -277,7 +277,7 @@ export function CrosstableView({
                   )}
                 </td>
                 <td className="whitespace-nowrap">
-                  {resDiff && ResFlag && <span className="tooltip tooltip-top mr-1" data-tip={getCountryName(res, locale)}><ResFlag className="h-3 w-3 rounded-sm inline" /></span>}
+                  {resDiff && ResFlag && <span className="tooltip tooltip-top mr-1" data-tip={getCountryName(res, locale)}><ResFlag className="h-3 w-3 rounded-sm inline mt-[-3px]" /></span>}
                   {loc?.location || ''}
                 </td>
                 <td className="text-right font-mono">{p.capturedRating?.value ?? ''}</td>

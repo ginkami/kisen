@@ -135,6 +135,10 @@ div:has(> button[data-val='=']) + .gote-card > div  {
   background-color: oklch(86.71% 0.111 76.54 / 0.5);
 }
 
+.tournament-results td:first-child{
+  background-color: transparent !important;
+}
+
 @media (max-width: 640px) {
   main .card-body {
     padding: 0.5rem;

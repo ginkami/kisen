@@ -178,7 +178,7 @@ export function TournamentResultsSection({
       </div>
 
       <div className="tournament-results table-container w-[calc(100vw-32px)] md:w-auto overflow-x-auto mt-2">
-        <table className="table table-sm w-auto table-fixed">
+        <table className="table table-sm w-auto table-fixed border-b border-base-300 pb-2">
           <thead className="bg-base-200 text-base-200-content text-xs">
             <tr>
               <th className="first:rounded-tl-xl" />
@@ -211,6 +211,7 @@ export function TournamentResultsSection({
                 {playerCells(game.player2)}
               </tr>
             ))}
+            <tr><td colSpan={12}></td></tr>
           </tbody>
         </table>
       </div>
