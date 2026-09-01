@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { eventService } from '../services/eventService.ts'
 import { formatDateToYearMonth } from '../utils/yearMonth.ts'
@@ -43,4 +43,25 @@ export function useEventSearch(query: string) {
     enabled: debouncedQuery.length >= MIN_QUERY_LENGTH,
     staleTime: 30_000,
   })
+}
+
+/** Batch-load events by id; returns a Map keyed by event id. */
+export function useEventsByIds(ids: string[]) {
+  const uniqueIds = [...new Set(ids)].sort()
+  const key = uniqueIds.join(',')
+
+  const query = useQuery({
+    queryKey: ['events', 'byIds', key],
+    queryFn: () => eventService.getByIds(uniqueIds),
+    enabled: uniqueIds.length > 0,
+    staleTime: 30_000,
+  })
+
+  const byId = useMemo(() => {
+    const m = new Map<string, Event>()
+    for (const event of query.data ?? []) m.set(event.id, event)
+    return m
+  }, [query.data])
+
+  return { eventsById: byId, isLoading: query.isLoading }
 }

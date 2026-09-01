@@ -31,6 +31,7 @@ export interface ListEventsFilters {
 
 export interface EventRepository {
   getById(id: string): Promise<Event | null>
+  getByIds(ids: string[]): Promise<Event[]>
   getBySlug(slug: string): Promise<Event | null>
   list(filters?: ListEventsFilters): Promise<Event[]>
   create(event: Event): Promise<Event>

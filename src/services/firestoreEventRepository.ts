@@ -9,12 +9,25 @@ import {
   where,
   orderBy,
   limit,
+  documentId,
 } from 'firebase/firestore'
 import { db } from './firebaseConfig.ts'
 import type { Event } from '../domain/event.ts'
 import type { EventRepository, ListEventsFilters } from './repository.ts'
 import { supportedLocales } from '../domain/locale.ts'
 import { datesToTimestamps, timestampsToDates } from './firestoreHelpers.ts'
+
+/**
+ * Split ids into chunks of `size` (Firestore 'in' queries accept at most 30
+ * disjunctions).
+ */
+export function chunkIds(ids: string[], size = 30): string[][] {
+  const chunks: string[][] = []
+  for (let i = 0; i < ids.length; i += size) {
+    chunks.push(ids.slice(i, i + size))
+  }
+  return chunks
+}
 
 const COLLECTION_NAME = 'events'
 
@@ -43,6 +56,36 @@ export class FirestoreEventRepository implements EventRepository {
       id: snapshot.id,
       ...snapshot.data(),
     } as Record<string, unknown>)
+  }
+
+  async getByIds(ids: string[]): Promise<Event[]> {
+    // Firestore 'in' queries accept at most 30 disjunctions; chunk large id
+    // lists and run the chunks in parallel. Missing docs are skipped.
+    const chunks = chunkIds(ids)
+
+    const snapshots = await Promise.all(
+      chunks.map((chunk) =>
+        getDocs(query(this.collectionRef, where(documentId(), 'in', chunk)))
+      )
+    )
+
+    const byId = new Map<string, Event>()
+    for (const snapshot of snapshots) {
+      for (const docSnap of snapshot.docs) {
+        byId.set(
+          docSnap.id,
+          fromFirestore({
+            id: docSnap.id,
+            ...docSnap.data(),
+          } as Record<string, unknown>)
+        )
+      }
+    }
+
+    return ids
+      .filter((id, index) => ids.indexOf(id) === index)
+      .map((id) => byId.get(id))
+      .filter((event): event is Event => event != null)
   }
 
   async getBySlug(slug: string): Promise<Event | null> {

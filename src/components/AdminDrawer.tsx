@@ -7,7 +7,7 @@ import { BsGear, BsX, BsCalendar2, BsPlus, BsFiletypeCsv, BsPeopleFill, BsFunnel
 import { useAuth } from '../context/AuthContext.tsx'
 import { useAssociationsForPanel } from '../hooks/useAssociations.ts'
 import { useTournamentSearch } from '../hooks/useTournaments.ts'
-import { useEventSearch } from '../hooks/useEvents.ts'
+import { useEventSearch, useEventsByIds } from '../hooks/useEvents.ts'
 import { tournamentService } from '../services/tournamentService.ts'
 import { eventService } from '../services/eventService.ts'
 import { regulationService } from '../services/regulationService.ts'
@@ -192,6 +192,17 @@ export function AdminDrawer({
     })
   }, [tournaments])
 
+  // Parent event titles shown on tournament cards: batch-load every event
+  // referenced by the visible tournament lists (month list + search results).
+  const parentEventIds = useMemo(
+    () =>
+      [...sortedTournaments, ...(isSearchingTournaments ? tournamentSearchResults : [])]
+        .map((tournament) => tournament.parentEvent)
+        .filter((id): id is string => !!id),
+    [sortedTournaments, tournamentSearchResults, isSearchingTournaments]
+  )
+  const { eventsById } = useEventsByIds(parentEventIds)
+
   const handleNavigate = (to: string) => {
     if (hasUnsavedChanges && to !== pathname) {
       pendingNavigation.current = to
@@ -254,6 +265,13 @@ export function AdminDrawer({
     const localized = getTournamentLocale(tournament, i18n.language as 'ru' | 'en')
     const firstRound = tournament.schedule.rounds[0]
     const isActive = tournament.id === activeTournamentId
+    const parentEvent = tournament.parentEvent
+      ? (eventsById.get(tournament.parentEvent) ?? null)
+      : null
+    const parentEventTitle = parentEvent
+      ? parentEvent.locales[i18n.language as keyof typeof parentEvent.locales]?.title ??
+        parentEvent.slug
+      : null
 
     return (
       <button
@@ -270,6 +288,9 @@ export function AdminDrawer({
         <span className="line-clamp-1 font-medium">
           {localized.title || t('admin.untitledTournament')}
         </span>
+        {parentEventTitle && (
+          <span className="line-clamp-1 text-xs opacity-60">{parentEventTitle}</span>
+        )}
         <div className="flex items-center justify-between gap-2 text-xs">
           <span className="opacity-70">
             {firstRound

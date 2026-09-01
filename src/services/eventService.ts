@@ -41,6 +41,11 @@ export class EventService {
     return this.repository.getById(id)
   }
 
+  async getByIds(ids: string[]): Promise<Event[]> {
+    if (ids.length === 0) return []
+    return this.repository.getByIds([...new Set(ids)])
+  }
+
   async getBySlug(slug: string): Promise<Event | null> {
     return this.repository.getBySlug(slug)
   }
