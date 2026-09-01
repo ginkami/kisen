@@ -34,16 +34,16 @@ export function PlayersTable({ participants }: PlayersTableProps) {
   )
 
   return (
-    <div className="table-container w-[calc(100vw-32px)] md:w-auto overflow-x-auto">
+    <div className="table-container w-[calc(100vw-32px)] md:w-auto overflow-x-auto overflow-y-hidden">
       <table className="table table-xs w-auto table-fixed">
         <thead className="bg-base-200 text-base-200-content text-xs">
           <tr>
-            <th className="first:rounded-tl-xl sticky top-0 left-0 z-30 p-0 bg-base-200" style={{ minWidth: COL_NO }} />
-            <th className="sticky top-0 z-20 p-0 bg-base-200" style={{ left: OFF_FLAG, minWidth: COL_FLAG }} />
-            <th className="sticky top-0 z-20 p-0 bg-base-200" style={{ left: OFF_RANK, minWidth: COL_RANK }} />
-            <th className="sticky top-0 shadow-[5px_0_10px_-2px_rgba(0,0,0,0.1)] z-30 whitespace-nowrap p-0.5 bg-base-200" style={{ left: OFF_NAME }}>{t('tournament.edit.crosstable.name')}</th>
-            <th className="sticky top-0 z-20 text-left">{t('tournament.edit.crosstable.residence')}</th>
-            <th className="last:rounded-tr-xl sticky top-0 z-20 text-right">{t('tournament.edit.crosstable.rating')}</th>
+            <th className="first:rounded-tl-xl sticky left-0 z-30 p-0 bg-base-200" style={{ minWidth: COL_NO }} />
+            <th className="sticky z-20 p-0 bg-base-200" style={{ left: OFF_FLAG, minWidth: COL_FLAG }} />
+            <th className="sticky z-20 p-0 bg-base-200" style={{ left: OFF_RANK, minWidth: COL_RANK }} />
+            <th className="sticky shadow-[5px_0_10px_-2px_rgba(0,0,0,0.1)] z-30 whitespace-nowrap p-0.5 bg-base-200" style={{ left: OFF_NAME }}>{t('tournament.edit.crosstable.name')}</th>
+            <th className="z-20 text-left">{t('tournament.edit.crosstable.residence')}</th>
+            <th className="last:rounded-tr-xl z-20 text-right">{t('tournament.edit.crosstable.rating')}</th>
           </tr>
         </thead>
         <tbody>
@@ -65,7 +65,7 @@ export function PlayersTable({ participants }: PlayersTableProps) {
                 <td className="sticky bg-base-100 z-10 p-0" style={{ left: OFF_FLAG, minWidth: COL_FLAG }}>
                   {Flag && (
                     <div className="tooltip tooltip-top" data-tip={getCountryName(nat, locale)}>
-                      <Flag className="h-3 w-4 rounded-sm" />
+                      <Flag className="h-3 w-4 rounded-sm mt-1" />
                     </div>
                   )}
                 </td>

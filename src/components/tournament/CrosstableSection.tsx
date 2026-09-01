@@ -153,25 +153,25 @@ export function CrosstableSection({
   }
 
   return (
-    <div className="table-container w-[calc(100vw-32px)] md:w-auto overflow-x-auto">
+    <div className="table-container w-[calc(100vw-32px)] md:w-auto overflow-x-auto overflow-y-hidden">
       <table className="table table-xs w-auto table-fixed">
         <thead className="bg-base-200 text-base-200-content text-xs">
           <tr>
-            <th rowSpan={2} className="first:rounded-tl-xl sticky top-0 left-0 z-30 p-0 bg-base-200" style={{ minWidth: COL_NO }} />
-            <th rowSpan={2} className="sticky top-0 z-30 p-0 bg-base-200" style={{ left: OFF_FLAG, minWidth: COL_FLAG }} />
-            <th rowSpan={2} className="sticky top-0 z-30 p-0 bg-base-200" style={{ left: OFF_RANK, minWidth: COL_RANK }} />
-            <th rowSpan={2} className="sticky top-0 shadow-[5px_0_10px_-2px_rgba(0,0,0,0.1)] z-30 whitespace-nowrap p-0.5 bg-base-200" style={{ left: OFF_NAME }}>{t('tournament.edit.crosstable.name')}</th>
-            <th rowSpan={2} className="sticky top-0 z-20 whitespace-nowrap">{t('tournament.edit.crosstable.residence')}</th>
-            <th rowSpan={2} className="sticky top-0 z-20 whitespace-nowrap text-right">{t('tournament.edit.crosstable.rating')}</th>
-            <th colSpan={roundCount} className="sticky top-0 z-20 text-center p-0 pt-1 text-[80%] border-b border-b-base-200-content/30">{t('tournament.edit.pairings.title')}</th>
-            <th rowSpan={2} className="sticky top-0 z-20 text-center whitespace-nowrap w-fit">
+            <th rowSpan={2} className="first:rounded-tl-xl sticky left-0 z-30 p-0 bg-base-200" style={{ minWidth: COL_NO }} />
+            <th rowSpan={2} className="sticky z-30 p-0 bg-base-200" style={{ left: OFF_FLAG, minWidth: COL_FLAG }} />
+            <th rowSpan={2} className="sticky z-30 p-0 bg-base-200" style={{ left: OFF_RANK, minWidth: COL_RANK }} />
+            <th rowSpan={2} className="sticky shadow-[5px_0_10px_-2px_rgba(0,0,0,0.1)] z-30 whitespace-nowrap p-0.5 bg-base-200" style={{ left: OFF_NAME }}>{t('tournament.edit.crosstable.name')}</th>
+            <th rowSpan={2} className="z-20 whitespace-nowrap">{t('tournament.edit.crosstable.residence')}</th>
+            <th rowSpan={2} className="z-20 whitespace-nowrap text-right">{t('tournament.edit.crosstable.rating')}</th>
+            <th colSpan={roundCount} className="z-20 text-center p-0 pt-1 text-[80%] border-b border-b-base-200-content/30">{t('tournament.edit.pairings.title')}</th>
+            <th rowSpan={2} className="z-20 text-center whitespace-nowrap w-fit">
               <div className="tooltip tooltip-bottom" data-tip={t('tournament.edit.crosstable.spTooltip')}>{t('tournament.edit.crosstable.sp')}</div>
             </th>
             {tieBreaks.map((tb, index, array) => (
               <th
                 rowSpan={2}
                 key={tb.type}
-                className={`sticky top-0 z-20 text-right whitespace-nowrap w-fit ${index === array.length - 1 ? 'last:rounded-tr-xl' : ''}`}
+                className={`z-20 text-right whitespace-nowrap w-fit ${index === array.length - 1 ? 'last:rounded-tr-xl' : ''}`}
               >
                 <div 
                   className={tb.type !== 'points' ? ' tooltip tooltip-bottom relative z-20' : ''} 
@@ -186,7 +186,7 @@ export function CrosstableSection({
           </tr>
           <tr>
             {Array.from({ length: roundCount }, (_, i) => i + 1).map((r) => (
-              <th key={r} className="sticky top-0 z-20 text-left pl-2.5">{r}</th>
+              <th key={r} className="z-20 text-left pl-2.5">{r}</th>
             ))}
           </tr>
         </thead>
@@ -207,7 +207,7 @@ export function CrosstableSection({
               <tr key={s.participantId} className="hover hover:relative hover:z-30">
                 <td className="sticky left-0 bg-base-100 z-10 font-mono text-center p-0" style={{ minWidth: COL_NO }}>{s.place}</td>
                 <td className="sticky bg-base-100 z-10 p-0" style={{ left: OFF_FLAG, minWidth: COL_FLAG }}>
-                  {Flag && <div className="tooltip tooltip-top" data-tip={getCountryName(nat, locale)}><Flag className="h-3 w-4 rounded-sm" /></div>}
+                  {Flag && <div className="tooltip tooltip-top" data-tip={getCountryName(nat, locale)}><Flag className="h-3 w-4 rounded-sm mt-1" /></div>}
                 </td>
                 <td className="sticky bg-base-100 z-10 p-0" style={{ left: OFF_RANK, minWidth: COL_RANK }}>
                   {rank && (
