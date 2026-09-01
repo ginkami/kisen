@@ -212,7 +212,7 @@
         "givenName": "Given name",
         "familyName": "Family name"
       },
-      "saveDraft": "Save",
+      "save": "Save",
       "publish": "Publish",
       "publishConfirmTitle": "Publish tournament",
       "publishConfirm": "Publish the tournament? It will become visible to everyone.",

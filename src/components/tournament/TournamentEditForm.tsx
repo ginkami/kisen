@@ -884,6 +884,7 @@ export function TournamentEditForm({
     isLoading,
     loadError,
     createError,
+    isDirty,
     isSaving,
     isPublishing,
     isDeleting,
@@ -920,7 +921,7 @@ export function TournamentEditForm({
     publishDraw,
     unpublishDraw,
     updateStartingPoints,
-    saveDraft,
+    save,
     publish,
     deleteTournament,
     slugTaken,
@@ -1065,14 +1066,14 @@ export function TournamentEditForm({
         <div className="flex flex-wrap gap-2">
           <button
             type="button"
-            onClick={saveDraft}
-            disabled={isSaving || isPublishing || isDeleting}
+            onClick={save}
+            disabled={isSaving || isPublishing || isDeleting || !isDirty}
             className="btn btn-primary"
           >
             {isSaving ? (
               <span className="loading loading-spinner loading-xs" />
             ) : (
-              t('tournament.edit.saveDraft')
+              t('tournament.edit.save')
             )}
           </button>
           {tournament?.status === 'draft' && (

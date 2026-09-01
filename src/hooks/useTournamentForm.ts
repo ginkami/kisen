@@ -1153,7 +1153,7 @@ export function useTournamentForm(tournamentId: string | undefined) {
     },
   })
 
-  const saveDraft = useCallback(() => {
+  const save = useCallback(() => {
     if (slugTaken) {
       setValidationErrors({ slug: t('tournament.edit.slugTaken') })
       return
@@ -1281,7 +1281,7 @@ export function useTournamentForm(tournamentId: string | undefined) {
     removeScheduleRow,
     sortScheduleRows,
     sortParticipants,
-    saveDraft,
+    save,
     publish,
     deleteTournament,
     clearCreateError,
