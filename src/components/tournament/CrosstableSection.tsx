@@ -18,7 +18,7 @@ interface CrosstableSectionProps {
   games: Game[]
   participants: ParticipantRow[]
   roundCount: number
-  currentRound: number
+  publishedRounds: number
   considerSente: boolean
   tieBreaks: TieBreak[]
   updateStartingPoints: (participantId: number, value: number) => void
@@ -31,7 +31,7 @@ const OFF_RANK = OFF_FLAG + COL_FLAG
 const OFF_NAME = OFF_RANK + COL_RANK
 
 export function CrosstableSection({
-  games, participants, roundCount, currentRound, considerSente, tieBreaks, updateStartingPoints, updateGames,
+  games, participants, roundCount, publishedRounds, considerSente, tieBreaks, updateStartingPoints, updateGames,
 }: CrosstableSectionProps) {
   const { t, i18n } = useTranslation()
   const locale = (i18n.language as SupportedLocale) ?? 'ru'
@@ -68,7 +68,7 @@ export function CrosstableSection({
   const commitEdit = useCallback(() => {
     if (!editing) return
     const { pid, round } = editing
-    const result = withCellEdited(games, participants.map((p) => ({ id: p.id, startingPoints: p.startingPoints ?? 0 })), tieBreaks, pid, round, editValue, considerSente, currentRound)
+    const result = withCellEdited(games, participants.map((p) => ({ id: p.id, startingPoints: p.startingPoints ?? 0 })), tieBreaks, pid, round, editValue, considerSente, publishedRounds)
     if (result != null) {
       updateGames(round, result.filter((g) => g.round === round))
     }
@@ -86,9 +86,9 @@ export function CrosstableSection({
     commitFlagRef.current = false
   }
 
-  function roundCell(pid: number, round: number, currentRound: number) {
+  function roundCell(pid: number, round: number, publishedRounds: number) {
     const isEditing = editing?.pid === pid && editing?.round === round
-    const canEdit = round <= currentRound + 1
+    const canEdit = round <= publishedRounds + 1
 
     if (isEditing) {
       return (
@@ -116,7 +116,7 @@ export function CrosstableSection({
 
     const g = findGame(pid, round)
     if (!g) {
-      if (round > currentRound + 1)
+      if (round > publishedRounds + 1)
         return <span className="text-xs opacity-40 pl-2">-</span>
       return (
         <button type="button" className="btn btn-xs btn-ghost font-mono" onClick={canEdit ? () => handleOpenEditor(pid, round) : undefined}>
@@ -224,7 +224,7 @@ export function CrosstableSection({
                 </td>
                 <td className="text-right font-mono">{p.ratingValue || ''}</td>
                 {Array.from({ length: roundCount }, (_, i) => i + 1).map((r) => (
-                  <td key={r} className="text-left p-0.5 w-1">{roundCell(s.participantId, r, currentRound)}</td>
+                  <td key={r} className="text-left p-0.5 w-1">{roundCell(s.participantId, r, publishedRounds)}</td>
                 ))}
                 <td className="text-center w-1">
                   <input type="number" min={0} step={1} value={p.startingPoints ?? 0} onChange={(e) => updateStartingPoints(s.participantId, Number(e.target.value) || 0)} onKeyDown={(e) => { if (e.key === '-') e.preventDefault() }} className="input input-xs w-12 text-center" />

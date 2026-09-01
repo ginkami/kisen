@@ -1229,7 +1229,7 @@ export function TournamentEditForm({
       {activeTab === 'pairings' && (
         <PairingsSection
           games={formState.games}
-          currentRound={formState.currentRound}
+          publishedRounds={formState.publishedRounds}
           participants={formState.participants}
           scheduleRounds={formState.scheduleRows.filter((r): r is Extract<typeof r, { kind: 'round' }> => r.kind === 'round').map((r) => ({
             number: r.number,
@@ -1248,7 +1248,7 @@ export function TournamentEditForm({
           games={formState.games}
           participants={formState.participants}
           roundCount={formState.scheduleRows.filter((r): r is Extract<typeof r, { kind: 'round' }> => r.kind === 'round').length}
-          currentRound={formState.currentRound}
+          publishedRounds={formState.publishedRounds}
           considerSente={formState.settings.considerSente}
           tieBreaks={formState.settings.tieBreaks}
           updateStartingPoints={updateStartingPoints}

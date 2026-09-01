@@ -48,15 +48,15 @@ const games: Game[] = [
 
 const tieBreaks: TieBreak[] = [{ type: 'points' }]
 
-function renderView() {
+function renderView(overrides: Partial<Parameters<typeof CrosstableView>[0]> = {}) {
   return render(
     <CrosstableView
       games={games}
       participants={[p1, p2, p3]}
-      roundCount={3}
-      currentRound={3}
+      publishedRounds={3}
       considerSente={false}
       tieBreaks={tieBreaks}
+      {...overrides}
     />,
   )
 }
@@ -85,6 +85,22 @@ function card(cell: HTMLElement): HTMLElement | null {
 }
 
 describe('CrosstableView opponent tooltips', () => {
+  it('hides unpublished rounds: games beyond publishedRounds are not rendered', () => {
+    // Round 4 pairings exist but the draw is not published yet.
+    const unpublished = makeGame({ id: 'g5', round: 4, player1: 1, player2: 2, result: null, status: 'not_started' })
+    const { container } = renderView({ games: [...games, unpublished] })
+    // Only three round columns are rendered (place, flag, rank, name,
+    // residence, rating + one cell per published round + one tie-break).
+    const cells = rowBy(container, 'Иванов').querySelectorAll('td')
+    expect(cells).toHaveLength(6 + 3 + 1)
+    // The name tooltip lists published games only — the round-4 opponent is absent.
+    const nameCell = rowBy(container, 'Иванов').querySelectorAll('td')[3] as HTMLElement
+    const c = nameCell.querySelector('.tooltip-content')
+    expect(c).not.toBeNull()
+    expect(c!.textContent).toContain('Петров, И2')
+    expect(c!.querySelectorAll(':scope > div')).toHaveLength(1)
+  })
+
   it('shows the opponent card on a paired result cell, from the hovered player perspective', () => {
     const { container } = renderView()
     const c = card(roundCellOf(rowBy(container, 'Иванов'), 1))

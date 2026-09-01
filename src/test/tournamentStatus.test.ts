@@ -12,7 +12,7 @@ function makeGame(overrides: Partial<Game> & { round: number }): Game {
 
 const base = {
   existingStatus: 'upcoming' as TournamentStatus,
-  currentRound: 0,
+  publishedRounds: 0,
   games: [] as Game[],
   scheduleRounds: [{ number: 1, scheduledAt: new Date('2099-01-01') }],
   editTime: new Date('2025-01-01'),
@@ -30,8 +30,8 @@ describe('computeTournamentStatus', () => {
   })
 
   describe('draw publication', () => {
-    it('currentRound >= 1 → ongoing', () => {
-      expect(computeTournamentStatus({ ...base, currentRound: 1 })).toBe('ongoing')
+    it('publishedRounds >= 1 → ongoing', () => {
+      expect(computeTournamentStatus({ ...base, publishedRounds: 1 })).toBe('ongoing')
     })
     it('round-1 games exist → ongoing', () => {
       const games = [makeGame({ round: 1, player1: 1, player2: 2, status: 'not_started' })]
@@ -49,19 +49,19 @@ describe('computeTournamentStatus', () => {
         { number: 1, scheduledAt: new Date('2025-01-01') },
         { number: 2, scheduledAt: new Date('2025-01-02') },
       ]
-      expect(computeTournamentStatus({ ...base, existingStatus: 'ongoing', currentRound: 2, games, scheduleRounds })).toBe('finished')
+      expect(computeTournamentStatus({ ...base, existingStatus: 'ongoing', publishedRounds: 2, games, scheduleRounds })).toBe('finished')
     })
     it('bye and forfeit count as fixed outcomes', () => {
       const games = [
         makeGame({ round: 1, player1: 1, player2: null, status: 'bye', result: 'player1_won' }),
         makeGame({ round: 1, player1: 2, player2: null, status: 'forfeit', result: 'player2_won' }),
       ]
-      expect(computeTournamentStatus({ ...base, existingStatus: 'ongoing', currentRound: 1, games })).toBe('finished')
+      expect(computeTournamentStatus({ ...base, existingStatus: 'ongoing', publishedRounds: 1, games })).toBe('finished')
     })
     it('empty last round is not finished', () => {
       const scheduleRounds = [{ number: 1, scheduledAt: new Date('2025-01-01') }, { number: 2, scheduledAt: new Date('2025-01-02') }]
       const games = [makeGame({ round: 1, player1: 1, player2: 2, result: 'player1_won', status: 'completed' })]
-      expect(computeTournamentStatus({ ...base, existingStatus: 'ongoing', currentRound: 1, games, scheduleRounds })).toBe('ongoing')
+      expect(computeTournamentStatus({ ...base, existingStatus: 'ongoing', publishedRounds: 1, games, scheduleRounds })).toBe('ongoing')
     })
     it('last round with undecided result → not finished', () => {
       const games = [
@@ -69,7 +69,7 @@ describe('computeTournamentStatus', () => {
         makeGame({ round: 2, player1: 1, player2: 2, result: null, status: 'not_started' }),
       ]
       const scheduleRounds = [{ number: 1, scheduledAt: new Date('2025-01-01') }, { number: 2, scheduledAt: new Date('2025-01-02') }]
-      expect(computeTournamentStatus({ ...base, existingStatus: 'ongoing', currentRound: 2, games, scheduleRounds })).toBe('ongoing')
+      expect(computeTournamentStatus({ ...base, existingStatus: 'ongoing', publishedRounds: 2, games, scheduleRounds })).toBe('ongoing')
     })
   })
   describe('symmetric rollback', () => {
@@ -79,10 +79,10 @@ describe('computeTournamentStatus', () => {
         makeGame({ round: 2, player1: 1, player2: 2, result: null, status: 'not_started' }),
       ]
       const scheduleRounds = [{ number: 1, scheduledAt: new Date('2025-01-01') }, { number: 2, scheduledAt: new Date('2025-01-02') }]
-      expect(computeTournamentStatus({ ...base, existingStatus: 'finished', currentRound: 2, games, scheduleRounds })).toBe('ongoing')
+      expect(computeTournamentStatus({ ...base, existingStatus: 'finished', publishedRounds: 2, games, scheduleRounds })).toBe('ongoing')
     })
     it('unpublish all draws + future start → upcoming', () => {
-      expect(computeTournamentStatus({ ...base, existingStatus: 'ongoing', currentRound: 0, games: [] })).toBe('upcoming')
+      expect(computeTournamentStatus({ ...base, existingStatus: 'ongoing', publishedRounds: 0, games: [] })).toBe('upcoming')
     })
   })
 
@@ -94,16 +94,16 @@ describe('computeTournamentStatus', () => {
 
   describe('sticky manual statuses', () => {
     it('draft stays draft without explicit upcoming', () => {
-      expect(computeTournamentStatus({ ...base, existingStatus: 'draft', currentRound: 1 })).toBe('draft')
+      expect(computeTournamentStatus({ ...base, existingStatus: 'draft', publishedRounds: 1 })).toBe('draft')
     })
     it('draft leaves via publish (requested upcoming)', () => {
       expect(computeTournamentStatus({ ...base, existingStatus: 'draft', requested: 'upcoming' })).toBe('upcoming')
     })
     it('canceled is sticky', () => {
-      expect(computeTournamentStatus({ ...base, existingStatus: 'canceled', currentRound: 1 })).toBe('canceled')
+      expect(computeTournamentStatus({ ...base, existingStatus: 'canceled', publishedRounds: 1 })).toBe('canceled')
     })
     it('proposed_for_removing is sticky', () => {
-      expect(computeTournamentStatus({ ...base, existingStatus: 'proposed_for_removing', currentRound: 1 })).toBe('proposed_for_removing')
+      expect(computeTournamentStatus({ ...base, existingStatus: 'proposed_for_removing', publishedRounds: 1 })).toBe('proposed_for_removing')
     })
     it('canceled can be changed by explicit request', () => {
       expect(computeTournamentStatus({ ...base, existingStatus: 'canceled', requested: 'upcoming' })).toBe('upcoming')

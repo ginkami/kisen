@@ -909,7 +909,7 @@ describe('dropping forfeited participant into a pair removes forfeit game', () =
       makeGame({ round: 1, player1: 2, player2: 3, status: 'completed', result: 'player1_won' }),
       makeGame({ round: 2, player1: 1, player2: 2, status: 'not_started' }),
     ]
-    // currentRound=2, viewing round 1 (past), drop forfeited participant 4 into players2 row 0
+    // publishedRounds=2, viewing round 1 (past), drop forfeited participant 4 into players2 row 0
     const result = withParticipantDropped(games, participants, 1, 4, 'players2', 0, false, 2)
     const round1 = result.filter((g) => g.round === 1)
 
@@ -1078,7 +1078,7 @@ describe('withAutoForfeits', () => {
     expect(result).toBe(games)
   })
 
-  it('no-op when currentRound is 0', () => {
+  it('no-op when publishedRounds is 0', () => {
     const games: Game[] = []
     const result = withAutoForfeits(games, participants, 1, 0, false)
     expect(result).toBe(games)
@@ -1107,7 +1107,7 @@ describe('past-round unpaired drop creates forfeit', () => {
       makeGame({ round: 1, player1: 3, player2: 4, result: 'draw', status: 'completed' }),
       makeGame({ round: 2, player1: 1, player2: 3, status: 'not_started' }),
     ]
-    // currentRound=2, viewing round 1, drop participant 1 into unpaired
+    // publishedRounds=2, viewing round 1, drop participant 1 into unpaired
     const dropped = withParticipantDropped(games, participants, 1, 1, 'unpaired', 0, false, 2)
     const sorted = sortRoundGamesByPairStrength(dropped, participants, 1)
     // Simulate updateGames: filter by round, normalize
@@ -1148,7 +1148,7 @@ describe('past-round unpaired drop creates forfeit', () => {
     const games = [
       makeGame({ round: 1, player1: 1, player2: 2, status: 'not_started' }),
     ]
-    // currentRound=1, viewing round 1 (current), drop participant 1
+    // publishedRounds=1, viewing round 1 (current), drop participant 1
     const dropped = withParticipantDropped(games, participants, 1, 1, 'unpaired', 0, false, 1)
     const forfeits = dropped.filter((g) => g.round === 1 && g.status === 'forfeit')
     expect(forfeits).toHaveLength(0)

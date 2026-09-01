@@ -6,14 +6,14 @@ import type { Game } from '../domain/tournament.ts'
  * Removal rules:
  * - lone games (`player2 = null`) of a removed participant are removed in all rounds;
  * - paired games of a removed participant in rounds not yet published
- *   (`round > currentRound`) are removed;
+ *   (`round > publishedRounds`) are removed;
  * - paired games of a removed participant in published rounds
- *   (`round <= currentRound`) are kept so standings history is not rewritten.
+ *   (`round <= publishedRounds`) are kept so standings history is not rewritten.
  */
 export function gamesWithoutParticipants(
   games: Game[],
   removedParticipantIds: number[],
-  currentRound: number
+  publishedRounds: number
 ): Game[] {
   if (removedParticipantIds.length === 0) return games
   const removed = new Set(removedParticipantIds)
@@ -25,12 +25,12 @@ export function gamesWithoutParticipants(
       return true
     }
     // Paired game involving a removed participant: keep only published rounds.
-    return game.round <= currentRound
+    return game.round <= publishedRounds
   })
 }
 
 /**
- * Late-joiner forfeit games: for rounds 1..currentRound where the participant
+ * Late-joiner forfeit games: for rounds 1..publishedRounds where the participant
  * has no game yet (as player1 or player2), create a forfeit loss. Rounds where
  * the id already has a game are skipped so re-adding an id that was reused
  * never duplicates games.
@@ -38,18 +38,18 @@ export function gamesWithoutParticipants(
 export function lateJoinerForfeitGames(
   games: Game[],
   participantId: number,
-  currentRound: number,
+  publishedRounds: number,
   considerSente: boolean,
   newId: () => string = () => crypto.randomUUID()
 ): Game[] {
-  if (currentRound <= 0) return []
+  if (publishedRounds <= 0) return []
   const roundsWithGames = new Set(
     games
       .filter((g) => g.player1 === participantId || g.player2 === participantId)
       .map((g) => g.round)
   )
   const forfeitGames: Game[] = []
-  for (let round = 1; round <= currentRound; round++) {
+  for (let round = 1; round <= publishedRounds; round++) {
     if (roundsWithGames.has(round)) continue
     forfeitGames.push({
       id: newId(),

@@ -94,6 +94,24 @@ function remapLegacyLocation(data: Record<string, unknown>): Record<string, unkn
   return { ...rest, location }
 }
 
+/**
+ * Remap legacy rounds bookkeeping: older documents kept the number of
+ * published rounds in `currentRound` (with `publishedRounds` at 0), while
+ * new documents only have `publishedRounds`. Semantics mirror the domain
+ * schema migration (`migrateLegacyRounds`): a non-zero `publishedRounds`
+ * wins, otherwise fall back to the legacy field. `currentRound` is dropped
+ * from the result.
+ */
+export function remapLegacyRounds(data: Record<string, unknown>): Record<string, unknown> {
+  const { currentRound, ...rest } = data
+  if (typeof currentRound !== 'number') return data
+  const publishedRounds =
+    typeof rest.publishedRounds === 'number' && rest.publishedRounds > 0
+      ? rest.publishedRounds
+      : currentRound
+  return { ...rest, publishedRounds }
+}
+
 const COLLECTION_NAME = 'tournaments'
 
 function toFirestore(tournament: Tournament): Record<string, unknown> {
@@ -101,7 +119,9 @@ function toFirestore(tournament: Tournament): Record<string, unknown> {
 }
 
 function fromFirestore(data: Record<string, unknown>): Tournament {
-  return timestampsToDates(withDefaultArbiter(remapLegacyLocation(data))) as Tournament
+  return timestampsToDates(
+    withDefaultArbiter(remapLegacyLocation(remapLegacyRounds(data)))
+  ) as Tournament
 }
 
 export class FirestoreTournamentRepository implements TournamentRepository {

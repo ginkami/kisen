@@ -56,7 +56,7 @@ describe('TournamentResultsSection', () => {
         games={[]}
         participants={participants}
         roundCount={7}
-        currentRound={3}
+        publishedRounds={3}
         considerSente={false}
       />,
     )
@@ -76,7 +76,7 @@ describe('TournamentResultsSection', () => {
         games={[]}
         participants={participants}
         roundCount={7}
-        currentRound={0}
+        publishedRounds={0}
         considerSente={false}
       />,
     )
@@ -105,7 +105,7 @@ describe('TournamentResultsSection', () => {
         games={games}
         participants={[...participants, p5]}
         roundCount={7}
-        currentRound={3}
+        publishedRounds={3}
         considerSente={false}
       />,
     )
@@ -141,7 +141,7 @@ describe('TournamentResultsSection', () => {
         games={games}
         participants={participants}
         roundCount={1}
-        currentRound={1}
+        publishedRounds={1}
         considerSente={false}
       />,
     )
@@ -160,7 +160,7 @@ describe('TournamentResultsSection', () => {
         games={games}
         participants={participants}
         roundCount={1}
-        currentRound={1}
+        publishedRounds={1}
         considerSente={false}
       />,
     )
@@ -179,7 +179,7 @@ describe('TournamentResultsSection', () => {
         games={games}
         participants={participants}
         roundCount={1}
-        currentRound={1}
+        publishedRounds={1}
         considerSente={false}
       />,
     )
@@ -204,7 +204,7 @@ describe('TournamentResultsSection', () => {
         games={games}
         participants={participants}
         roundCount={2}
-        currentRound={2}
+        publishedRounds={2}
         considerSente={false}
       />,
     )
@@ -225,7 +225,7 @@ describe('TournamentResultsSection', () => {
         games={games}
         participants={[p1, p2]}
         roundCount={1}
-        currentRound={1}
+        publishedRounds={1}
         considerSente={false}
       />,
     )
@@ -243,7 +243,7 @@ describe('TournamentResultsSection', () => {
         games={games}
         participants={[p1, p2]}
         roundCount={1}
-        currentRound={1}
+        publishedRounds={1}
         considerSente={true}
       />,
     )
@@ -257,7 +257,7 @@ describe('TournamentResultsSection', () => {
         games={games}
         participants={[p1, p2]}
         roundCount={1}
-        currentRound={1}
+        publishedRounds={1}
         considerSente={false}
       />,
     )
@@ -275,7 +275,7 @@ describe('TournamentResultsSection', () => {
         games={games}
         participants={[p1, p2]}
         roundCount={2}
-        currentRound={2}
+        publishedRounds={2}
         considerSente={false}
       />,
     )

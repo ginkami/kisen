@@ -48,7 +48,7 @@ interface PairingsBoardProps {
   games: Game[]
   participants: Participant[] | ParticipantRow[]
   round: number
-  currentRound: number
+  publishedRounds: number
   considerSente: boolean
   locale: string
   onGamesChange: (games: Game[]) => void
@@ -287,7 +287,7 @@ export function PairingsBoard({
   games,
   participants,
   round,
-  currentRound,
+  publishedRounds,
   considerSente,
   locale,
   onGamesChange,
@@ -296,20 +296,20 @@ export function PairingsBoard({
   const { t } = useTranslation()
   const [activeId, setActiveId] = useState<string | null>(null)
 
-  // Ensure round/currentRound are valid numbers
+  // Ensure round/publishedRounds are valid numbers
   const safeRound = Number.isFinite(round) ? round : 1
-  const safeCurrentRound = Number.isFinite(currentRound) ? currentRound : 0
-  const isPastRound = safeRound < safeCurrentRound
+  const safePublishedRounds = Number.isFinite(publishedRounds) ? publishedRounds : 0
+  const isPastRound = safeRound < safePublishedRounds
   const { participantsMap, participantArray } = useParticipantData(participants, locale)
 
   // Auto-forfeit effect: when viewing a past round, create forfeits for unpaired participants
   useEffect(() => {
-    if (safeRound >= safeCurrentRound || safeCurrentRound === 0) return
-    const withForfeits = withAutoForfeits(games, participantArray, safeRound, safeCurrentRound, considerSente)
+    if (safeRound >= safePublishedRounds || safePublishedRounds === 0) return
+    const withForfeits = withAutoForfeits(games, participantArray, safeRound, safePublishedRounds, considerSente)
     if (withForfeits !== games) {
       onGamesChange(withForfeits)
     }
-  }, [games, participantArray, safeRound, safeCurrentRound, considerSente, onGamesChange])
+  }, [games, participantArray, safeRound, safePublishedRounds, considerSente, onGamesChange])
 
   const containers = useMemo(
     () => containersFromGames(games, participantArray, safeRound),
@@ -426,18 +426,18 @@ export function PairingsBoard({
         targetContainer,
         targetIndex,
         considerSente,
-        safeCurrentRound,
+        safePublishedRounds,
       )
       onGamesChange(sortRoundGamesByPairStrength(newGames, participantArray, safeRound))
     },
-    [games, containers, participantArray, safeRound, safeCurrentRound, considerSente, onGamesChange]
+    [games, containers, participantArray, safeRound, safePublishedRounds, considerSente, onGamesChange]
   )
 
   const handleResultCycle = useCallback(
     (gameId: string, direction: 1 | -1 = 1) => {
-      onGamesChange(withResultCycled(games, gameId, direction, safeCurrentRound))
+      onGamesChange(withResultCycled(games, gameId, direction, safePublishedRounds))
     },
-    [games, onGamesChange, safeCurrentRound]
+    [games, onGamesChange, safePublishedRounds]
   )
 
   const handleForfeitToggle = useCallback(

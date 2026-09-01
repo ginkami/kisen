@@ -9,7 +9,7 @@ import type { SupportedLocale } from '../../domain/locale.ts'
 
 interface PairingsSectionProps {
   games: Game[]
-  currentRound: number
+  publishedRounds: number
   participants: Participant[] | ParticipantRow[]
   scheduleRounds: ScheduleRound[]
   considerSente: boolean
@@ -21,7 +21,7 @@ interface PairingsSectionProps {
 
 export function PairingsSection({
   games,
-  currentRound,
+  publishedRounds,
   participants,
   scheduleRounds,
   considerSente,
@@ -34,8 +34,8 @@ export function PairingsSection({
   const locale = (i18n.language as SupportedLocale) ?? 'ru'
   const roundCount = scheduleRounds.length
 
-  // Validate currentRound to avoid NaN propagation
-  const safeCurrentRound = Number.isFinite(currentRound) ? currentRound : 0
+  // Validate publishedRounds to avoid NaN propagation
+  const safePublishedRounds = Number.isFinite(publishedRounds) ? publishedRounds : 0
   const safeRoundCount = Number.isFinite(roundCount) ? roundCount : 0
 
   // Build Participant[] for isRoundComplete
@@ -55,12 +55,12 @@ export function PairingsSection({
     return participants as Participant[]
   }, [participants])
 
-  // Default active round: currentRound + 1 if possible, else currentRound, else 1
+  // Default active round: publishedRounds + 1 if possible, else publishedRounds, else 1
   const defaultRound = useMemo(() => {
-    if (safeCurrentRound === 0) return 1
-    if (safeCurrentRound + 1 <= safeRoundCount) return safeCurrentRound + 1
-    return safeCurrentRound
-  }, [safeCurrentRound, safeRoundCount])
+    if (safePublishedRounds === 0) return 1
+    if (safePublishedRounds + 1 <= safeRoundCount) return safePublishedRounds + 1
+    return safePublishedRounds
+  }, [safePublishedRounds, safeRoundCount])
 
   const [activeRound, setActiveRound] = useState(defaultRound)
 
@@ -72,8 +72,8 @@ export function PairingsSection({
     [games, participantArray, safeActiveRound]
   )
 
-  const isAlreadyPublished = safeActiveRound <= safeCurrentRound
-  const isCurrentRound = safeActiveRound === safeCurrentRound
+  const isAlreadyPublished = safeActiveRound <= safePublishedRounds
+  const isPublishedRounds = safeActiveRound === safePublishedRounds
   const canPublish = roundComplete && !isAlreadyPublished
 
   const handlePublish = useCallback(() => {
@@ -112,7 +112,7 @@ export function PairingsSection({
             {/* Round sub-tabs */}
             <div className="tabs tabs-box tabs-sm" role="tablist">
               {Array.from({ length: safeRoundCount }, (_, i) => i + 1).map((num) => {
-                const isDisabled = num > safeCurrentRound + 1
+                const isDisabled = num > safePublishedRounds + 1
                 const isActive = num === safeActiveRound
                 return (
                   <button
@@ -133,7 +133,7 @@ export function PairingsSection({
           
           {/* Publish button */}
           <div className="flex gap-2 items-center">
-            {isCurrentRound && safeCurrentRound > 0 && (
+            {isPublishedRounds && safePublishedRounds > 0 && (
               <button
                 type="button"
                 onClick={unpublishDraw}
@@ -146,9 +146,9 @@ export function PairingsSection({
               type="button"
               onClick={handlePublish}
               disabled={!canPublish}
-              className={`btn btn-sm ${isCurrentRound ? 'btn-neutral' : canPublish ? 'btn-success' : 'btn-neutral'}`}
+              className={`btn btn-sm ${isPublishedRounds ? 'btn-neutral' : canPublish ? 'btn-success' : 'btn-neutral'}`}
             >
-              {isCurrentRound
+              {isPublishedRounds
                 ? t('tournament.edit.pairings.drawPublished')
                 : t('tournament.edit.pairings.publishDraw')}
             </button>
@@ -160,7 +160,7 @@ export function PairingsSection({
           games={games}
           participants={participants}
           round={safeActiveRound}
-          currentRound={safeCurrentRound}
+          publishedRounds={safePublishedRounds}
           considerSente={considerSente}
           locale={locale}
           onGamesChange={handleGamesChange}

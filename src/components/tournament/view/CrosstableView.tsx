@@ -16,25 +16,35 @@ const OFF_NAME = OFF_RANK + COL_RANK
 interface CrosstableViewProps {
   games: Game[]
   participants: Participant[]
-  roundCount: number
-  currentRound: number
+  /** Number of published rounds: only these rounds are visible publicly. */
+  publishedRounds: number
   considerSente: boolean
   tieBreaks: TieBreak[]
 }
 
 export function CrosstableView({
-  games, participants, roundCount, considerSente, tieBreaks,
+  games, participants, publishedRounds, considerSente, tieBreaks,
 }: CrosstableViewProps) {
   const { t, i18n } = useTranslation()
   const locale = (i18n.language as SupportedLocale) ?? 'ru'
 
+  const safePublishedRounds = Number.isFinite(publishedRounds) ? publishedRounds : 0
+
+  // Public crosstable shows published rounds only: games of rounds beyond
+  // publishedRounds (drawn but not yet published) must stay hidden, mirroring
+  // the results tab. Tie-breaks are computed over the published rounds too.
+  const publishedGames = useMemo(
+    () => games.filter((g) => g.round <= safePublishedRounds),
+    [games, safePublishedRounds],
+  )
+
   const standings = useMemo(
     () => computeStandings(
-      games,
+      publishedGames,
       participants.map((p) => ({ id: p.id, startingPoints: p.startingPoints ?? 0 })),
-      tieBreaks, roundCount,
+      tieBreaks, safePublishedRounds,
     ),
-    [games, participants, tieBreaks, roundCount],
+    [publishedGames, participants, tieBreaks, safePublishedRounds],
   )
 
   const placeById = useMemo(() => {
@@ -63,7 +73,7 @@ export function CrosstableView({
   const gamesByPid = useMemo(() => {
     const m = new Map<number, Array<{ oppId: number | null; game: Game }>>()
     for (const p of participants) m.set(p.id, [])
-    for (const g of [...games].sort((a, b) => a.round - b.round)) {
+    for (const g of [...publishedGames].sort((a, b) => a.round - b.round)) {
       if (g.player1 != null && m.has(g.player1)) {
         m.get(g.player1)!.push({ oppId: g.player2, game: g })
       }
@@ -72,7 +82,7 @@ export function CrosstableView({
       }
     }
     return m
-  }, [games, participants])
+  }, [publishedGames, participants])
 
   // Result symbol from the given participant's perspective in this game.
   function resultSymbolFor(g: Game, pid: number): '+' | '-' | '=' | '?' {
@@ -131,7 +141,7 @@ export function CrosstableView({
   }
 
   function findGame(pid: number, round: number): Game | undefined {
-    return games.find((g) => g.round === round && (g.player1 === pid || g.player2 === pid))
+    return publishedGames.find((g) => g.round === round && (g.player1 === pid || g.player2 === pid))
   }
 
   function roundCell(pid: number, round: number) {
@@ -184,7 +194,7 @@ export function CrosstableView({
             <th rowSpan={2} className="sticky shadow-[5px_0_10px_-2px_rgba(0,0,0,0.1)] z-30 whitespace-nowrap p-0.5 bg-base-200" style={{ left: OFF_NAME }}>{t('tournament.edit.crosstable.name')}</th>
             <th rowSpan={2} className="z-20 whitespace-nowrap">{t('tournament.edit.crosstable.residence')}</th>
             <th rowSpan={2} className="z-20 whitespace-nowrap text-right">{t('tournament.edit.crosstable.rating')}</th>
-            <th colSpan={roundCount} className="z-20 text-center p-0 pt-1 text-[80%] border-b border-b-base-200-content/30">{t('tournament.edit.pairings.title')}</th>
+            <th colSpan={safePublishedRounds} className="z-20 text-center p-0 pt-1 text-[80%] border-b border-b-base-200-content/30">{t('tournament.edit.pairings.title')}</th>
             {showStartingPoints && (
               <th rowSpan={2} className="z-20 text-center whitespace-nowrap p-0.5">
                 <div className="tooltip tooltip-bottom" data-tip={t('tournament.edit.crosstable.spTooltip')}>{t('tournament.edit.crosstable.sp')}</div>
@@ -208,7 +218,7 @@ export function CrosstableView({
             ))}
           </tr>
           <tr>
-            {Array.from({ length: roundCount }, (_, i) => i + 1).map((r) => (
+            {Array.from({ length: safePublishedRounds }, (_, i) => i + 1).map((r) => (
               <th key={r} className="z-20 text-left pl-2.5">{r}</th>
             ))}
           </tr>
@@ -271,7 +281,7 @@ export function CrosstableView({
                   {loc?.location || ''}
                 </td>
                 <td className="text-right font-mono">{p.capturedRating?.value ?? ''}</td>
-                {Array.from({ length: roundCount }, (_, i) => i + 1).map((r) => (
+                {Array.from({ length: safePublishedRounds }, (_, i) => i + 1).map((r) => (
                   <td key={r} className="text-left p-0.5 w-1">{roundCell(s.participantId, r)}</td>
                 ))}
                 {showStartingPoints && <td className="text-center font-mono w-1">{p.startingPoints ?? 0}</td>}

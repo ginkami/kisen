@@ -50,7 +50,6 @@ export interface UpdateTournamentInput {
   arbiter?: Tournament['arbiter']
   participants?: Tournament['participants']
   games?: Tournament['games']
-  currentRound?: number
   status?: TournamentStatus
   publishedRounds?: number
   parentEvent?: string | null
@@ -90,27 +89,27 @@ function defaultSettings(): Tournament['settings'] {
 
 /**
  * Pure function: derive the tournament status from the merged next state.
- * Called by `update()` with the candidate being written (games, currentRound,
+ * Called by `update()` with the candidate being written (games, publishedRounds,
  * schedule already merged from input + existing).
  *
  * Rules:
  * - `draft` is sticky (left only via publish which requests `'upcoming'`).
  * - `canceled` / `proposed_for_removing` are sticky (changed only by explicit requested status).
  * - Otherwise: last round has ≥1 game and every game has a fixed outcome → `finished`;
- *   `currentRound ≥ 1` or round-1 games exist or first round start time passed → `ongoing`;
+ *   `publishedRounds ≥ 1` or round-1 games exist or first round start time passed → `ongoing`;
  *   else `upcoming`.
  */
 export function computeTournamentStatus({
   requested,
   existingStatus,
-  currentRound,
+  publishedRounds,
   games,
   scheduleRounds,
   editTime,
 }: {
   requested?: TournamentStatus
   existingStatus: TournamentStatus
-  currentRound: number
+  publishedRounds: number
   games: Game[]
   scheduleRounds: { number: number; scheduledAt: Date }[]
   editTime: Date
@@ -139,7 +138,7 @@ export function computeTournamentStatus({
   const hasRound1Games = games.some((g) => g.round === 1)
   const firstRound = scheduleRounds[0]
   const hasStarted = firstRound ? editTime >= firstRound.scheduledAt : false
-  if (currentRound >= 1 || hasRound1Games || hasStarted) return 'ongoing'
+  if (publishedRounds >= 1 || hasRound1Games || hasStarted) return 'ongoing'
 
   // 3. Default: no data supports ongoing or finished
   return 'upcoming'
@@ -195,7 +194,6 @@ export class TournamentService {
       status: 'draft',
       isPublic: false,
       publishedRounds: 0,
-      currentRound: 0,
       startYearMonth: getTournamentStartYearMonth({
         schedule: input.schedule,
       } as Tournament),
@@ -241,7 +239,6 @@ export class TournamentService {
       status: 'draft',
       isPublic: false,
       publishedRounds: 0,
-      currentRound: 0,
       startYearMonth: getTournamentStartYearMonth({
         schedule,
       } as Tournament),
@@ -288,13 +285,13 @@ export class TournamentService {
       input.parentEvent !== undefined ? input.parentEvent : existing.parentEvent
 
     const nextGames = input.games ?? existing.games
-    const nextCurrentRound = input.currentRound ?? existing.currentRound
+    const nextPublishedRounds = input.publishedRounds ?? existing.publishedRounds
 
     // Merge-before-compute: derive status from the merged state
     const nextStatus = computeTournamentStatus({
       requested: input.status,
       existingStatus: existing.status,
-      currentRound: nextCurrentRound,
+      publishedRounds: nextPublishedRounds,
       games: nextGames,
       scheduleRounds: nextSchedule.rounds,
       editTime: now,
@@ -312,10 +309,9 @@ export class TournamentService {
       arbiter: input.arbiter ?? existing.arbiter,
       participants: input.participants ?? existing.participants,
       games: nextGames,
-      currentRound: nextCurrentRound,
       status: nextStatus,
       isPublic,
-      publishedRounds: input.publishedRounds ?? existing.publishedRounds,
+      publishedRounds: nextPublishedRounds,
       startYearMonth: nextStartYearMonth,
       parentEvent: nextParentEvent,
       hostAssociation:

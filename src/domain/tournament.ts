@@ -162,7 +162,7 @@ export type PublishedTournamentSchedule = z.infer<
   typeof publishedTournamentScheduleSchema
 >
 
-export const tournamentSchema = z.object({
+const tournamentObjectSchema = z.object({
   id: z.string().uuid(),
   slug: z.string().min(1).regex(/^[a-z0-9-]+$/),
   createdBy: z.string().min(1),
@@ -172,7 +172,12 @@ export const tournamentSchema = z.object({
   status: tournamentStatusSchema,
   isPublic: z.boolean(),
   publishedRounds: z.number().int().min(0).default(0),
-  currentRound: z.number().int().default(0),
+  /**
+   * Legacy duplicate of publishedRounds. Kept only so old Firestore documents
+   * (where the real value lived in currentRound and publishedRounds was 0)
+   * parse correctly; migrated by migrateLegacyRounds and never written anymore.
+   */
+  currentRound: z.number().int().min(0).optional(),
   startYearMonth: z.string().length(6).regex(/^\d{6}$/),
   locales: localeSchema(tournamentLocaleSchema).refine(
     (locales) => Object.keys(locales).length > 0,
@@ -187,9 +192,27 @@ export const tournamentSchema = z.object({
   games: z.array(gameSchema).default([]),
 })
 
+/**
+ * Legacy data migration: merge the retired `currentRound` field into
+ * `publishedRounds`. Existing documents carry `publishedRounds: 0` with the
+ * real value in `currentRound`; prefer a non-zero publishedRounds and fall
+ * back to the legacy field, then drop `currentRound` from the parsed result.
+ */
+function migrateLegacyRounds<T extends { publishedRounds: number; currentRound?: number }>(
+  t: T
+): Omit<T, 'currentRound'> & { publishedRounds: number } {
+  const { currentRound: legacyRound, ...rest } = t
+  return {
+    ...rest,
+    publishedRounds: t.publishedRounds > 0 ? t.publishedRounds : (legacyRound ?? 0),
+  }
+}
+
+export const tournamentSchema = tournamentObjectSchema.transform(migrateLegacyRounds)
+
 export type Tournament = z.infer<typeof tournamentSchema>
 
-export const publishedTournamentSchema = tournamentSchema
+export const publishedTournamentSchema = tournamentObjectSchema
   .omit({ locales: true, schedule: true, location: true })
   .extend({
     locales: localeSchema(publishedTournamentLocaleSchema).refine(
@@ -210,10 +233,11 @@ export const publishedTournamentSchema = tournamentSchema
   .refine((t) => t.status !== 'draft', {
     message: 'Published tournament cannot have draft status',
   })
+  .transform(migrateLegacyRounds)
 
 export type PublishedTournament = z.infer<typeof publishedTournamentSchema>
 
-export const draftTournamentSchema = tournamentSchema
+export const draftTournamentSchema = tournamentObjectSchema
   .omit({ id: true, slug: true, createdBy: true, updatedAt: true })
   .extend({
     id: z.string().uuid().optional(),
@@ -221,6 +245,7 @@ export const draftTournamentSchema = tournamentSchema
     createdBy: z.string().min(1).optional(),
     updatedAt: z.date().optional(),
   })
+  .transform(migrateLegacyRounds)
 
 export type DraftTournament = z.infer<typeof draftTournamentSchema>
 

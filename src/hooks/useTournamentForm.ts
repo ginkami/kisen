@@ -166,7 +166,7 @@ export interface TournamentFormState {
   scheduleRows: ScheduleRow[]
   participants: ParticipantRow[]
   games: Game[]
-  currentRound: number
+  publishedRounds: number
   regulations: string[]
 }
 
@@ -311,7 +311,7 @@ function tournamentToFormState(tournament: Tournament): TournamentFormState {
     ),
     participants: participantsToRows(tournament.participants),
     games: tournament.games,
-    currentRound: tournament.currentRound,
+    publishedRounds: tournament.publishedRounds,
     regulations: tournament.regulations ?? [],
   }
 }
@@ -365,7 +365,7 @@ function formStateToUpdateInput(
   const games = gamesWithoutParticipants(
     state.games,
     droppedParticipantIds,
-    state.currentRound
+    state.publishedRounds
   )
 
   const input: {
@@ -379,7 +379,7 @@ function formStateToUpdateInput(
     arbiter: Tournament['arbiter']
     participants: Participant[]
     games: Game[]
-    currentRound: number
+    publishedRounds: number
     regulations: string[]
     desiredSlug?: string
   } = {
@@ -397,7 +397,7 @@ function formStateToUpdateInput(
     games: state.settings.considerSente
       ? games.map((g) => ({ ...g, sente: 'player1' as const }))
       : games,
-    currentRound: state.currentRound,
+    publishedRounds: state.publishedRounds,
     regulations: state.regulations,
   }
 
@@ -952,7 +952,7 @@ export function useTournamentForm(tournamentId: string | undefined) {
         const forfeitGames = lateJoinerForfeitGames(
           state.games,
           newId,
-          state.currentRound,
+          state.publishedRounds,
           state.settings.considerSente
         )
 
@@ -1017,7 +1017,7 @@ export function useTournamentForm(tournamentId: string | undefined) {
           participants: state.participants.filter((r) => r.rowId !== rowId),
           games:
             removedRow.id > 0
-              ? gamesWithoutParticipants(state.games, [removedRow.id], state.currentRound)
+              ? gamesWithoutParticipants(state.games, [removedRow.id], state.publishedRounds)
               : state.games,
         }
       })
@@ -1196,7 +1196,7 @@ export function useTournamentForm(tournamentId: string | undefined) {
           ...state.games.filter((g) => g.round !== round),
           ...gamesForRound
             .filter((g) => g.round === round)
-            .map((g) => normalizeGame(g, state.currentRound)),
+            .map((g) => normalizeGame(g, state.publishedRounds)),
         ],
       }))
     },
@@ -1210,7 +1210,7 @@ export function useTournamentForm(tournamentId: string | undefined) {
         const normalized = state.games.map((g) => normalizeGame(g, round))
         return {
           ...state,
-          currentRound: round,
+          publishedRounds: round,
           games: withForfeitsCarriedOver(normalized, round, state.settings.considerSente, maxRound),
         }
       })
@@ -1220,14 +1220,14 @@ export function useTournamentForm(tournamentId: string | undefined) {
 
   const unpublishDraw = useCallback(() => {
     updateForm((state) => {
-      const oldCurrentRound = state.currentRound
-      const newCurrentRound = Math.max(0, oldCurrentRound - 1)
+      const oldPublishedRounds = state.publishedRounds
+      const newPublishedRounds = Math.max(0, oldPublishedRounds - 1)
       return {
         ...state,
-        currentRound: newCurrentRound,
+        publishedRounds: newPublishedRounds,
         games: state.games
-          .filter((g) => g.round !== oldCurrentRound + 1)
-          .map((g) => normalizeGame(g, newCurrentRound)),
+          .filter((g) => g.round !== oldPublishedRounds + 1)
+          .map((g) => normalizeGame(g, newPublishedRounds)),
       }
     })
   }, [updateForm])

@@ -33,13 +33,13 @@ describe('gamesWithoutParticipants', () => {
     expect(result.every((g) => g.player1 !== 22 && g.player2 !== 22)).toBe(true)
   })
 
-  it('removes an unpublished paired game (round > currentRound), leaving the opponent unpaired', () => {
+  it('removes an unpublished paired game (round > publishedRounds), leaving the opponent unpaired', () => {
     const games = [makeGame({ round: 4, player1: 22, player2: 7 })]
     const result = gamesWithoutParticipants(games, [22], 3)
     expect(result).toHaveLength(0)
   })
 
-  it('keeps published paired games (round <= currentRound) unchanged', () => {
+  it('keeps published paired games (round <= publishedRounds) unchanged', () => {
     const games = [
       makeGame({ round: 1, player1: 22, player2: 7, status: 'completed', result: 'player1_won' }),
       makeGame({ round: 3, player1: 7, player2: 22, status: 'completed', result: 'draw' }),
@@ -78,7 +78,7 @@ describe('lateJoinerForfeitGames', () => {
   let idCounter = 0
   const nextId = () => `forfeit-${++idCounter}`
 
-  it('creates forfeit games for rounds 1..currentRound without existing games', () => {
+  it('creates forfeit games for rounds 1..publishedRounds without existing games', () => {
     const forfeits = lateJoinerForfeitGames([], 22, 3, false, nextId)
     expect(forfeits.map((g) => g.round)).toEqual([1, 2, 3])
     expect(forfeits[0]).toEqual({
@@ -98,7 +98,7 @@ describe('lateJoinerForfeitGames', () => {
     expect(game.sente).toBe('player1')
   })
 
-  it('returns no games when currentRound is 0', () => {
+  it('returns no games when publishedRounds is 0', () => {
     expect(lateJoinerForfeitGames([], 22, 0, false, nextId)).toEqual([])
   })
 

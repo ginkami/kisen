@@ -35,25 +35,25 @@ export function applyLoneGameInvariant(game: Game): Game {
 // --- Game status lifecycle ---
 
 /**
- * Derives the game status from the game's own fields and the tournament's currentRound.
+ * Derives the game status from the game's own fields and the tournament's publishedRounds.
  * - forfeit stays forfeit (stored state)
  * - lone non-forfeit (player2 == null) stays bye (stored state)
  * - paired with result → completed
  * - paired without result in active round → live
  * - paired without result otherwise → not_started
  */
-export function deriveGameStatus(game: Game, currentRound: number): GameStatus {
+export function deriveGameStatus(game: Game, publishedRounds: number): GameStatus {
   if (game.status === 'forfeit') return 'forfeit'
   if (game.player2 == null) return 'bye'
   if (game.result != null) return 'completed'
-  return game.round === currentRound ? 'live' : 'not_started'
+  return game.round === publishedRounds ? 'live' : 'not_started'
 }
 
 /**
  * Normalizes a game: derives status and re-applies the lone-game invariant.
  * Returns the same reference when nothing changes.
  */
-export function normalizeGame(game: Game, currentRound: number): Game {
+export function normalizeGame(game: Game, publishedRounds: number): Game {
   // Forfeit games: status stays forfeit, no changes needed
   if (game.status === 'forfeit') return game
 
@@ -70,7 +70,7 @@ export function normalizeGame(game: Game, currentRound: number): Game {
   // Paired games: derive status
   const derivedStatus: GameStatus =
     game.result != null ? 'completed'
-    : game.round === currentRound ? 'live'
+    : game.round === publishedRounds ? 'live'
     : 'not_started'
 
   if (derivedStatus !== game.status) {
@@ -141,7 +141,7 @@ export function withParticipantDropped(
   targetContainer: 'unpaired' | 'players1' | 'players2',
   targetIndex: number,
   considerSente: boolean,
-  currentRound: number = 0,
+  publishedRounds: number = 0,
 ): Game[] {
   const otherRoundsGames = allGames.filter((g) => g.round !== round)
   const roundGames = gamesForRound(allGames, round)
@@ -184,7 +184,7 @@ export function withParticipantDropped(
 
   if (targetContainer === 'unpaired') {
     // Past-round forfeit: dropping into unpaired of a past round creates a forfeit game
-    if (round < currentRound) {
+    if (round < publishedRounds) {
       const hasForfeit = forfeits.some((g) => g.player1 === participantId)
       if (!hasForfeit) {
         forfeits.push({
@@ -242,7 +242,7 @@ export function withParticipantDropped(
         ...target,
         player2: participantId,
         result: null,
-      }, currentRound)
+      }, publishedRounds)
     } else if (target.player2 != null && target.player2 !== participantId) {
       // Slot occupied — append new bye row at end
       pairGames.push({
@@ -263,7 +263,7 @@ export function withResultCycled(
   allGames: Game[],
   gameId: string,
   direction: 1 | -1 = 1,
-  currentRound: number = 0,
+  publishedRounds: number = 0,
 ): Game[] {
   return allGames.map((g) => {
     if (g.id !== gameId) return g
@@ -274,7 +274,7 @@ export function withResultCycled(
       const currentIdx = byeCycle.indexOf(g.result as GameResult)
       const startIdx = currentIdx === -1 ? 0 : currentIdx
       const nextIdx = (startIdx + direction + byeCycle.length) % byeCycle.length
-      return normalizeGame({ ...g, result: byeCycle[nextIdx] }, currentRound)
+      return normalizeGame({ ...g, result: byeCycle[nextIdx] }, publishedRounds)
     }
 
     // Paired rows: 4-state cycle
@@ -282,7 +282,7 @@ export function withResultCycled(
     const currentIdx = cycle.indexOf(g.result)
     const startIdx = currentIdx === -1 ? 0 : currentIdx
     const nextIdx = (startIdx + direction + cycle.length) % cycle.length
-    return normalizeGame({ ...g, result: cycle[nextIdx] }, currentRound)
+    return normalizeGame({ ...g, result: cycle[nextIdx] }, publishedRounds)
   })
 }
 
@@ -611,11 +611,11 @@ export function withAutoForfeits(
   allGames: Game[],
   participants: Participant[],
   round: number,
-  currentRound: number,
+  publishedRounds: number,
   considerSente: boolean,
 ): Game[] {
   // Only applies to past rounds
-  if (round >= currentRound) return allGames
+  if (round >= publishedRounds) return allGames
 
   const roundGames = gamesForRound(allGames, round)
   const covered = new Set<number>()

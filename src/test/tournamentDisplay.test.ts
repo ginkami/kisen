@@ -19,7 +19,6 @@ function makeT(overrides: Partial<Tournament> = {}): Tournament {
     status: 'upcoming',
     isPublic: true,
     publishedRounds: 0,
-    currentRound: 0,
     startYearMonth: '202608',
     locales: { ru: { title: 'Тест' }, en: { title: 'Test' } },
     location: { locales: { ru: {}, en: {} } },

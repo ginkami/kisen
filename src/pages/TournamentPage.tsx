@@ -126,12 +126,12 @@ export function TournamentPage() {
       {activeTab === 'players' && <PlayersTable participants={tournament.participants} />}
       {activeTab === 'results' && (
         <TournamentResultsSection games={tournament.games} participants={tournament.participants}
-          roundCount={roundCount} currentRound={tournament.currentRound}
+          roundCount={roundCount} publishedRounds={tournament.publishedRounds}
           considerSente={tournament.settings.considerSente} />
       )}
       {activeTab === 'crosstable' && (
         <CrosstableView games={tournament.games} participants={tournament.participants}
-          roundCount={roundCount} currentRound={tournament.currentRound}
+          publishedRounds={tournament.publishedRounds}
           considerSente={tournament.settings.considerSente} tieBreaks={tournament.settings.tieBreaks} />
       )}
     </div>

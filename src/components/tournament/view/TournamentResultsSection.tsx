@@ -16,7 +16,7 @@ interface TournamentResultsSectionProps {
   games: Game[]
   participants: Participant[]
   roundCount: number
-  currentRound: number
+  publishedRounds: number
   considerSente: boolean
 }
 
@@ -29,16 +29,16 @@ export function TournamentResultsSection({
   games,
   participants,
   roundCount,
-  currentRound,
+  publishedRounds,
   considerSente,
 }: TournamentResultsSectionProps) {
   const { t, i18n } = useTranslation()
   const locale = (i18n.language as SupportedLocale) ?? 'ru'
 
   const safeRoundCount = Number.isFinite(roundCount) ? roundCount : 0
-  // Published rounds: currentRound equals the number of published draws.
+  // Published rounds: publishedRounds equals the number of published draws.
   // Zero published rounds → empty state, no tabs at all.
-  const publishedRoundCount = currentRound >= 1 ? Math.min(safeRoundCount, currentRound) : 0
+  const publishedRoundCount = publishedRounds >= 1 ? Math.min(safeRoundCount, publishedRounds) : 0
 
   const [selectedRound, setSelectedRound] = useState<number | null>(null)
   const activeRound =

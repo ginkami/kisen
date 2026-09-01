@@ -396,7 +396,7 @@ export function withCellEdited(
   round: number,
   input: string,
   considerSente: boolean,
-  currentRound: number = 0,
+  publishedRounds: number = 0,
 ): Game[] | null {
   if (input.trim() === '') return null
   const parsed = parseCellInput(input, considerSente)
@@ -462,7 +462,7 @@ export function withCellEdited(
       ? (pIsP1 ? parsed.handicap : handicapForView(parsed.handicap, false)) as Game['handicap']
       : null,
     result,
-    status: deriveGameStatus({ player1: player1, player2: player2, result, status: 'not_started', round } as Game, currentRound),
+    status: deriveGameStatus({ player1: player1, player2: player2, result, status: 'not_started', round } as Game, publishedRounds),
     round,
   })
 
