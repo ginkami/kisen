@@ -153,7 +153,7 @@ export function CrosstableView({
       ? (isP1 && g.sente === 'player1') || (!isP1 && g.sente === 'player2') ? '☗' : '☖'
       : ''
     return (
-      <span className="tooltip tooltip-bottom">
+      <span className="tooltip tooltip-top">
         <div className="grid grid-cols-[auto_auto_max-content_auto_auto_auto] z-50 gap-1 text-xs text-left tooltip-content bg-neutral text-neutral-content shadow-lg rounded-lg p-1.5">
           <div className="contents">
             <OpponentCard 
@@ -214,7 +214,7 @@ export function CrosstableView({
           </tr>
         </thead>
         <tbody>
-          {standings.map((s) => {
+          {standings.map((s, index) => {
             const p = rowById.get(s.participantId)
             if (!p) return null
             const loc = p.locales[locale] ?? p.locales.ru ?? p.locales.en
@@ -246,7 +246,7 @@ export function CrosstableView({
                   ) ? (
                     // truncate stays off the td: overflow-hidden here would clip
                     // the absolutely-positioned tooltip-content bubble
-                    <span className="tooltip tooltip-bottom z-50 flex">
+                    <span className={`tooltip tooltip-${index + 1 > standings.length/2 ? 'top' : 'bottom'} z-50 flex`}>
                       <span className="truncate">{loc?.familyName}, {loc?.givenName}</span>
                       <div className="grid grid-cols-[auto_auto_auto_auto_auto_auto] text-xs text-left tooltip-content bg-neutral text-neutral-content shadow-lg rounded-lg p-1.5 gap-1">
                         {(gamesByPid.get(s.participantId) ?? [])
