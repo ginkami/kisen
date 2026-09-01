@@ -22,6 +22,7 @@ export function Layout() {
   const openAdmin = () => setIsAdminOpen(true)
   const closeAdmin = () => setIsAdminOpen(false)
   const toggleAdmin = () => setIsAdminOpen((prev) => !prev)
+  const version = import.meta.env.VITE_APP_VERSION
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -82,7 +83,7 @@ export function Layout() {
       )}
       <footer className="bg-base-100 py-6">
         <div className="max-w-4xl mx-auto px-4 text-center">
-          <Link to="/" className="logo">
+          <Link to="/" className="logo" style={{ '--logo-after': `'v${version}'` } as React.CSSProperties }>
             shogi world
           </Link>
         </div>

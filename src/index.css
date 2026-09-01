@@ -82,11 +82,14 @@
   top: -.05rem;
 }
 .logo::after{
-  content: 'α';
+  content: var(--logo-after, 'α');
   font-size: .8rem;
   vertical-align: top;
   margin-left: .1rem;
   opacity: .5;
+}
+footer .logo::after{
+  font-size: .55rem;
 }
 .newt-btn {
   font-size: 1.0rem;
@@ -157,6 +160,9 @@ div:has(> button[data-val='=']) + .gote-card > div  {
   .logo::after{
     font-size: .6rem;
     margin-left: .1rem;
+  }
+  footer .logo::after{
+    font-size: .5rem;
   }
   
   .drop-zone-card .player-card {
