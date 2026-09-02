@@ -6,6 +6,7 @@ import { getCountryName } from '../../../utils/countries.ts'
 import { rankToColor } from '../crosstable/crosstableModel.ts'
 import type { Participant } from '../../../domain/tournament.ts'
 import type { SupportedLocale } from '../../../domain/locale.ts'
+import { TableScrollProvider, StickyTableCell } from '../tablescroll';
 
 const COL_NO = 28, COL_FLAG = 20, COL_RANK = 45
 const OFF_FLAG = COL_NO
@@ -34,14 +35,14 @@ export function PlayersTable({ participants }: PlayersTableProps) {
   )
 
   return (
-    <div className="table-container w-[calc(100vw-32px)] md:w-auto overflow-x-auto overflow-y-hidden">
+    <TableScrollProvider>
       <table className="table table-xs md:table-sm w-auto table-fixed border-b border-base-300 pb-2">
         <thead className="bg-base-200 text-base-200-content text-xs">
           <tr>
-            <th className="first:rounded-tl-xl sticky left-0 z-30 p-0 bg-base-200" style={{ minWidth: COL_NO }} />
-            <th className="sticky z-20 p-0 bg-base-200" style={{ left: OFF_FLAG, minWidth: COL_FLAG }} />
-            <th className="sticky z-20 p-0 bg-base-200" style={{ left: OFF_RANK, minWidth: COL_RANK }} />
-            <th className="sticky shadow-[5px_0_10px_-2px_rgba(0,0,0,0.1)] z-30 whitespace-nowrap p-0.5 bg-base-200" style={{ left: OFF_NAME }}>{t('tournament.edit.crosstable.name')}</th>
+            <StickyTableCell as="th" rowSpan={2} width={COL_NO} className="first:rounded-tl-xl p-0 bg-base-200" />
+            <StickyTableCell as="th" rowSpan={2} left={OFF_FLAG} width={COL_FLAG} className="p-0 bg-base-200" />
+            <StickyTableCell as="th" rowSpan={2} left={OFF_RANK} width={COL_RANK} className="p-0 bg-base-200" />
+            <StickyTableCell as="th" rowSpan={2} left={OFF_NAME} className="whitespace-nowrap p-0.5 bg-base-200" showShadow>{t('tournament.edit.crosstable.name')}</StickyTableCell>
             <th className="z-20 text-left">{t('tournament.edit.crosstable.residence')}</th>
             <th className="last:rounded-tr-xl z-20 text-right">{t('tournament.edit.crosstable.rating')}</th>
           </tr>
@@ -59,37 +60,23 @@ export function PlayersTable({ participants }: PlayersTableProps) {
             const title = loc?.title || ''
             return (
               <tr key={p.id} className="hover hover:relative hover:z-30">
-                <td className="sticky left-0 bg-base-100 z-10 font-mono text-center p-0" style={{ minWidth: COL_NO }}>
-                  {idx + 1}
-                </td>
-                <td className="sticky bg-base-100 z-10 p-0" style={{ left: OFF_FLAG, minWidth: COL_FLAG }}>
-                  {Flag && (
+                <StickyTableCell width={COL_NO} className="!z-10 bg-base-100 font-mono text-center p-0">{idx + 1}</StickyTableCell>
+                <StickyTableCell left={OFF_FLAG} width={COL_FLAG} className="!z-10 bg-base-100 p-0">
+                  {Flag && 
                     <div className="tooltip tooltip-top" data-tip={getCountryName(nat, locale)}>
                       <Flag className="h-3 w-4 rounded-sm mt-1" />
                     </div>
-                  )}
-                </td>
-                <td className="sticky bg-base-100 z-10 p-0" style={{ left: OFF_RANK, minWidth: COL_RANK }}>
+                  }
+                </StickyTableCell>
+                <StickyTableCell left={OFF_RANK} width={COL_RANK} className="!z-10 bg-base-100 p-0">
                   {rank && (
-                    <span
-                      className="badge badge-xs text-white flex items-center gap-0.5 w-fit"
-                      style={{ backgroundColor: rc ?? undefined }}
-                    >
+                    <span className="badge badge-xs text-white flex items-center gap-0.5 w-fit" style={{ backgroundColor: rc ?? undefined }}>
                       {rank}
-                      {title && (
-                        <span className="tooltip tooltip-top" data-tip={title}>
-                          <PiCrownSimple className="h-3 w-3" />
-                        </span>
-                      )}
+                      {title && <span className="tooltip tooltip-top" data-tip={title}><PiCrownSimple className="h-3 w-3" /></span>}
                     </span>
                   )}
-                </td>
-                <td
-                  className="sticky shadow-[5px_0_10px_-2px_rgba(0,0,0,0.1)] bg-base-100 z-10 whitespace-nowrap max-w-[10rem] truncate font-medium p-0.5"
-                  style={{ left: OFF_NAME }}
-                >
-                  {loc?.familyName}, {loc?.givenName}
-                </td>
+                </StickyTableCell>
+                <StickyTableCell left={OFF_NAME} className="!z-10 bg-base-100 whitespace-nowrap max-w-[10rem] p-0.5" showShadow>{loc?.familyName}, {loc?.givenName}</StickyTableCell>
                 <td className="whitespace-nowrap">
                   {resDiff && ResFlag && (
                     <span className="tooltip tooltip-top mr-1" data-tip={getCountryName(res, locale)}>
@@ -104,6 +91,6 @@ export function PlayersTable({ participants }: PlayersTableProps) {
           })}
         </tbody>
       </table>
-    </div>
+    </TableScrollProvider>
   )
 }
