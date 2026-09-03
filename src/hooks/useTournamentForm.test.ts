@@ -47,6 +47,52 @@ describe('mergeSchedule', () => {
     const rows = mergeSchedule([], [])
     expect(rows).toHaveLength(0)
   })
+
+  it('derives scheduledAtLocal from the instant in the given timezone', () => {
+    const rounds = [
+      { number: 1, scheduledAt: new Date('2026-07-18T06:30:00Z') },
+    ]
+
+    const rows = mergeSchedule([], rounds, 'Asia/Tokyo')
+
+    expect(rows[0].scheduledAtLocal).toEqual({
+      year: 2026,
+      month: 7,
+      day: 18,
+      hour: 15,
+      minute: 30,
+    })
+  })
+
+  it('prefers the stored scheduledAtLocal over the instant derivation', () => {
+    const rounds = [
+      {
+        number: 1,
+        scheduledAt: new Date('2026-07-18T06:30:00Z'),
+        scheduledAtLocal: { year: 2026, month: 7, day: 18, hour: 20, minute: 0 },
+      },
+    ]
+
+    const rows = mergeSchedule([], rounds, 'Asia/Tokyo')
+
+    expect(rows[0].scheduledAtLocal).toEqual({
+      year: 2026,
+      month: 7,
+      day: 18,
+      hour: 20,
+      minute: 0,
+    })
+  })
+
+  it('leaves scheduledAtLocal null without a timezone', () => {
+    const rounds = [
+      { number: 1, scheduledAt: new Date('2026-07-18T06:30:00Z') },
+    ]
+
+    const rows = mergeSchedule([], rounds)
+
+    expect(rows[0].scheduledAtLocal).toBeNull()
+  })
 })
 
 describe('splitSchedule', () => {
@@ -56,12 +102,14 @@ describe('splitSchedule', () => {
         kind: 'event',
         id: '1',
         scheduledAt: new Date('2025-07-01T10:00:00Z'),
+scheduledAtLocal: null,
         locales: { ru: { title: 'Открытие' }, en: { title: 'Opening' } },
       },
       {
         kind: 'round',
         id: '2',
         scheduledAt: new Date('2025-07-01T12:00:00Z'),
+scheduledAtLocal: null,
         number: 1,
       },
     ]
@@ -80,12 +128,14 @@ describe('splitSchedule', () => {
         kind: 'event',
         id: '1',
         scheduledAt: null,
+scheduledAtLocal: null,
         locales: { ru: { title: 'Test' }, en: { title: 'Test' } },
       },
       {
         kind: 'round',
         id: '2',
         scheduledAt: new Date('2025-07-01T12:00:00Z'),
+scheduledAtLocal: null,
         number: 1,
       },
     ]
@@ -102,12 +152,14 @@ describe('splitSchedule', () => {
         kind: 'event',
         id: '1',
         scheduledAt: new Date('2025-07-01T10:00:00Z'),
+scheduledAtLocal: null,
         locales: { ru: { title: '' }, en: { title: '' } },
       },
       {
         kind: 'event',
         id: '2',
         scheduledAt: new Date('2025-07-01T11:00:00Z'),
+scheduledAtLocal: null,
         locales: { ru: { title: 'Тест' }, en: { title: '' } },
       },
     ]
@@ -118,6 +170,76 @@ describe('splitSchedule', () => {
     expect(schedule.events[0].locales.ru.title).toBe('Тест')
     expect(schedule.events[0].locales.en).toBeUndefined()
   })
+
+  it('recomputes the instant from scheduledAtLocal in the location timezone', () => {
+    const rows: ScheduleRow[] = [
+      {
+        kind: 'round',
+        id: '1',
+        scheduledAt: new Date('2026-07-18T06:30:00Z'),
+        scheduledAtLocal: { year: 2026, month: 7, day: 18, hour: 15, minute: 30 },
+        number: 1,
+      },
+    ]
+
+    const schedule = splitSchedule(rows, 'Asia/Tokyo')
+
+    expect(schedule.rounds[0].scheduledAt.toISOString()).toBe(
+      '2026-07-18T06:30:00.000Z'
+    )
+    expect(schedule.rounds[0].scheduledAtLocal).toEqual({
+      year: 2026,
+      month: 7,
+      day: 18,
+      hour: 15,
+      minute: 30,
+    })
+  })
+
+  it('shifts instants when the location timezone changes, keeping local times', () => {
+    const rows: ScheduleRow[] = [
+      {
+        kind: 'round',
+        id: '1',
+        scheduledAt: new Date('2026-07-18T12:30:00Z'),
+        scheduledAtLocal: { year: 2026, month: 7, day: 18, hour: 15, minute: 30 },
+        number: 1,
+      },
+    ]
+
+    const moscow = splitSchedule(rows, 'Europe/Moscow')
+    expect(moscow.rounds[0].scheduledAt.toISOString()).toBe(
+      '2026-07-18T12:30:00.000Z'
+    )
+
+    const tokyo = splitSchedule(rows, 'Asia/Tokyo')
+    expect(tokyo.rounds[0].scheduledAt.toISOString()).toBe(
+      '2026-07-18T06:30:00.000Z'
+    )
+    expect(tokyo.rounds[0].scheduledAtLocal).toEqual({
+      year: 2026,
+      month: 7,
+      day: 18,
+      hour: 15,
+      minute: 30,
+    })
+  })
+
+  it('preserves the existing instant without a timezone', () => {
+    const rows: ScheduleRow[] = [
+      {
+        kind: 'round',
+        id: '1',
+        scheduledAt: new Date('2026-07-18T06:30:00Z'),
+        scheduledAtLocal: { year: 2026, month: 7, day: 18, hour: 15, minute: 30 },
+        number: 1,
+      },
+    ]
+
+    const schedule = splitSchedule(rows)
+
+    expect(schedule.rounds[0].scheduledAt).toEqual(new Date('2026-07-18T06:30:00Z'))
+  })
 })
 
 describe('sortAndRenumber', () => {
@@ -127,18 +249,21 @@ describe('sortAndRenumber', () => {
         kind: 'round',
         id: '1',
         scheduledAt: new Date('2025-07-01T14:00:00Z'),
+scheduledAtLocal: null,
         number: 2,
       },
       {
         kind: 'event',
         id: '2',
         scheduledAt: new Date('2025-07-01T10:00:00Z'),
+scheduledAtLocal: null,
         locales: { ru: { title: 'Opening' }, en: { title: 'Opening' } },
       },
       {
         kind: 'round',
         id: '3',
         scheduledAt: new Date('2025-07-01T12:00:00Z'),
+scheduledAtLocal: null,
         number: 1,
       },
     ]
@@ -156,18 +281,21 @@ describe('sortAndRenumber', () => {
         kind: 'round',
         id: '1',
         scheduledAt: new Date('2025-07-01T14:00:00Z'),
+scheduledAtLocal: null,
         number: 5,
       },
       {
         kind: 'round',
         id: '2',
         scheduledAt: new Date('2025-07-01T12:00:00Z'),
+scheduledAtLocal: null,
         number: 3,
       },
       {
         kind: 'round',
         id: '3',
         scheduledAt: new Date('2025-07-01T10:00:00Z'),
+scheduledAtLocal: null,
         number: 1,
       },
     ]
@@ -186,12 +314,14 @@ describe('sortAndRenumber', () => {
         kind: 'round',
         id: '1',
         scheduledAt: new Date('2025-07-01T12:00:00Z'),
+scheduledAtLocal: null,
         number: 1,
       },
       {
         kind: 'event',
         id: '2',
         scheduledAt: null,
+scheduledAtLocal: null,
         locales: { ru: { title: '' }, en: { title: '' } },
       },
     ]

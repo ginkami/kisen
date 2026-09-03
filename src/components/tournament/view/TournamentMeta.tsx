@@ -9,6 +9,7 @@ import {
   formatDayRanges,
   formatTimeControlShort,
 } from '../../../utils/tournamentDisplay.ts'
+import { resolveLocationTimeZone } from '../../../utils/scheduleTime.ts'
 import type { Tournament } from '../../../domain/tournament.ts'
 import type { SupportedLocale } from '../../../domain/locale.ts'
 
@@ -26,7 +27,7 @@ export function TournamentMeta({ tournament }: TournamentMetaProps) {
   const { t, i18n } = useTranslation()
   const locale = (i18n.language as SupportedLocale) ?? 'ru'
 
-  const days = tournamentScheduleDays(tournament)
+  const days = tournamentScheduleDays(tournament, resolveLocationTimeZone(tournament.location))
   const datesStr = formatDayRanges(days, locale)
 
   const loc = tournament.location

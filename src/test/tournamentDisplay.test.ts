@@ -310,3 +310,29 @@ describe('sortTournamentsByStart', () => {
     expect(sorted[1].id).toBe('00000000-0000-7000-0000-000000000001')
   })
 })
+
+describe('tournamentScheduleDays with venue timezone', () => {
+  it('groups days in the location timezone (Tokyo)', () => {
+    // 2026-07-17 15:00 UTC = 2026-07-18 00:00 Tokyo: the venue-local day is
+    // July 18 while the UTC day is still July 17.
+    const t = makeT({
+      location: { locales: { ru: {}, en: {} }, timeZone: 'Asia/Tokyo' },
+      schedule: {
+        events: [
+          { scheduledAt: new Date('2026-07-17T15:00:00Z'), locales: { ru: { title: 'X' } } },
+        ],
+        rounds: [],
+      },
+    })
+
+    const days = tournamentScheduleDays(t, 'Asia/Tokyo')
+    expect(days).toHaveLength(1)
+    expect(days[0].getUTCMonth()).toBe(6)
+    expect(days[0].getUTCDate()).toBe(18)
+
+    // Without a timezone the legacy UTC-based grouping keeps July 17
+    const utcDays = tournamentScheduleDays(t)
+    expect(utcDays).toHaveLength(1)
+    expect(utcDays[0].getUTCDate()).toBe(17)
+  })
+})

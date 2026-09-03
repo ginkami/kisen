@@ -44,6 +44,7 @@ export const tournamentLocationSchema = z.object({
   latitude: z.number().min(-90).max(90).optional(),
   longitude: z.number().min(-180).max(180).optional(),
   country: z.string().length(2).optional(),
+  timeZone: z.string().min(1).optional(),
   locales: localeSchema(tournamentLocationLocaleSchema).refine(
     (locales) => Object.keys(locales).length > 0,
     'At least one locale is required'
@@ -52,8 +53,19 @@ export const tournamentLocationSchema = z.object({
 
 export type TournamentLocation = z.infer<typeof tournamentLocationSchema>
 
+export const scheduledAtLocalSchema = z.object({
+  year: z.number().int(),
+  month: z.number().int().min(1).max(12),
+  day: z.number().int().min(1).max(31),
+  hour: z.number().int().min(0).max(23),
+  minute: z.number().int().min(0).max(59),
+})
+
+export type ScheduledAtLocal = z.infer<typeof scheduledAtLocalSchema>
+
 export const scheduleEventSchema = z.object({
   scheduledAt: z.date(),
+  scheduledAtLocal: scheduledAtLocalSchema.optional(),
   locales: localeSchema(
     z.object({
       title: z.string().min(1),
@@ -66,6 +78,7 @@ export type ScheduleEvent = z.infer<typeof scheduleEventSchema>
 export const scheduleRoundSchema = z.object({
   number: z.number().int().min(1),
   scheduledAt: z.date(),
+  scheduledAtLocal: scheduledAtLocalSchema.optional(),
 })
 
 export type ScheduleRound = z.infer<typeof scheduleRoundSchema>

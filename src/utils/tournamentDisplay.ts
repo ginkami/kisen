@@ -1,5 +1,6 @@
 import type { Tournament } from '../domain/tournament.ts'
 import type { TimeControl } from '../domain/timeControl.ts'
+import { utcToZonedWallClock } from './scheduleTime.ts'
 
 /**
  * Resolve the "start time" of a tournament:
@@ -27,18 +28,28 @@ export function tournamentStart(t: Tournament): Date {
 
 /**
  * Collect unique calendar days (midnight) from all rounds + events.
- * Falls back to [updatedAt day] when both are empty.
+ * Days are grouped by the venue timezone when it is known; otherwise the
+ * previous UTC-based grouping is used. Falls back to [updatedAt day] when
+ * both are empty.
  */
-export function tournamentScheduleDays(t: Tournament): Date[] {
+export function tournamentScheduleDays(
+  t: Tournament,
+  timeZone?: string | null
+): Date[] {
+  const dayKey = (d: Date): number => {
+    if (timeZone) {
+      const local = utcToZonedWallClock(d, timeZone)
+      return Date.UTC(local.year, local.month - 1, local.day)
+    }
+    return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())
+  }
   const days = new Set<number>()
   for (const r of t.schedule.rounds) {
-    const d = r.scheduledAt
-    days.add(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()))
+    days.add(dayKey(r.scheduledAt))
   }
   for (const e of t.schedule.events) {
     if (!(e.scheduledAt instanceof Date)) continue
-    const d = e.scheduledAt
-    days.add(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()))
+    days.add(dayKey(e.scheduledAt))
   }
   if (days.size === 0) {
     const d = t.updatedAt

@@ -2,15 +2,20 @@ import { useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { ConfirmModal } from '../ConfirmModal.tsx'
 import { useTranslation } from 'react-i18next'
-import { BsSliders2Vertical, BsClock, BsJournalText, BsPlus, BsX, Bs123, BsGrid3X2 } from 'react-icons/bs'
+import { BsSliders2Vertical, BsClock, BsJournalText, BsPlus, BsX, Bs123, BsGrid3X2, BsInfoCircleFill } from 'react-icons/bs'
 import { HiOutlineUserGroup } from "react-icons/hi2";
 import { useAuth } from '../../context/AuthContext.tsx'
 import { sanitizeTextInput } from '../../utils/sanitize.ts'
 import { useTournamentForm } from '../../hooks/useTournamentForm.ts'
 import {
   dateToLocalDatetimeInputValue,
-  localDatetimeInputValueToUtcDate,
 } from '../../utils/dateTime.ts'
+import {
+  inputValueToLocalTime,
+  localTimeToInputValue,
+  resolveLocationTimeZone,
+  zonedWallClockToUtc,
+} from '../../utils/scheduleTime.ts'
 import { formatYearMonthToMonthInput } from '../../utils/yearMonth.ts'
 import { ParticipantsSection } from './ParticipantsSection.tsx'
 import { supportedLocales, type SupportedLocale } from '../../domain/locale.ts'
@@ -767,6 +772,7 @@ function ScheduleEventCombobox({
 function ScheduleSection({
   scheduleRows,
   activeLocale,
+  timeZone,
   onAdd,
   onUpdate,
   onRemove,
@@ -775,6 +781,7 @@ function ScheduleSection({
 }: {
   scheduleRows: ScheduleRow[]
   activeLocale: SupportedLocale
+  timeZone: string | null
   onAdd: (afterId?: string) => void
   onUpdate: (id: string, patch: Partial<ScheduleRow>) => void
   onRemove: (id: string) => void
@@ -791,6 +798,7 @@ function ScheduleSection({
             kind: 'event' as const,
             id: 'empty-row',
             scheduledAt: null,
+            scheduledAtLocal: null,
             locales: Object.fromEntries(
               supportedLocales.map((locale) => [locale, { title: '' }])
             ) as Record<SupportedLocale, { title: string }>,
@@ -810,7 +818,20 @@ function ScheduleSection({
         </div>
 
         <div className="flex items-center gap-2 text-xs text-base-content/60 pb-1">
-          <div className="flex-1">{t('tournament.edit.program.dateTime')}</div>
+          <div className="flex-1 flex items-center gap-1">
+            <span>{t('tournament.edit.program.dateTime')}</span>
+            {timeZone && (
+              <span
+                className="tooltip"
+                data-tip={t('tournament.edit.program.localTimeHint')}
+              >
+                <BsInfoCircleFill
+                  className="h-3 w-3 opacity-50"
+                  aria-label={t('tournament.edit.program.localTimeHint')}
+                />
+              </span>
+            )}
+          </div>
           <div className="flex-1">{t('tournament.edit.program.event')}</div>
           <div className="w-16" />
         </div>
@@ -822,17 +843,36 @@ function ScheduleSection({
                 <input
                   type="datetime-local"
                   value={
-                    row.scheduledAt
-                      ? dateToLocalDatetimeInputValue(row.scheduledAt)
-                      : ''
+                    row.scheduledAtLocal
+                      ? localTimeToInputValue(row.scheduledAtLocal)
+                      : row.scheduledAt
+                        ? dateToLocalDatetimeInputValue(row.scheduledAt)
+                        : ''
                   }
-                  onChange={(e) =>
+                  onChange={(e) => {
+                    const value = e.target.value
+                    if (!value) {
+                      onUpdate(row.id, { scheduledAt: null, scheduledAtLocal: null })
+                      return
+                    }
+                    const local = inputValueToLocalTime(value)
+                    if (!local) return
+                    // Keep the instant in sync for in-form sorting; when the
+                    // venue timezone is unknown, interpret the wall clock in
+                    // the browser timezone (pre-change behavior).
                     onUpdate(row.id, {
-                      scheduledAt: e.target.value
-                        ? localDatetimeInputValueToUtcDate(e.target.value)
-                        : null,
+                      scheduledAtLocal: local,
+                      scheduledAt: timeZone
+                        ? zonedWallClockToUtc(local, timeZone)
+                        : new Date(
+                            local.year,
+                            local.month - 1,
+                            local.day,
+                            local.hour,
+                            local.minute
+                          ),
                     })
-                  }
+                  }}
                   onBlur={onSort}
                   className="input input-bordered input-sm w-full"
                 />
@@ -1205,6 +1245,7 @@ export function TournamentEditForm({
         <ScheduleSection
           scheduleRows={formState.scheduleRows}
           activeLocale={scheduleLocale}
+          timeZone={resolveLocationTimeZone(formState.location)}
           onAdd={addScheduleRow}
           onUpdate={updateScheduleRow}
           onRemove={removeScheduleRow}

@@ -12,8 +12,15 @@ import type {
   TournamentSettings,
   Participant,
   Game,
+  ScheduledAtLocal,
 } from '../domain/tournament.ts'
 import { publishedTournamentSchema } from '../domain/tournament.ts'
+import {
+  resolveLocationTimeZone,
+  resolveTimeZone,
+  utcToZonedWallClock,
+  zonedWallClockToUtc,
+} from '../utils/scheduleTime.ts'
 import { normalizeSlug } from '../services/slugService.ts'
 import { supportedLocales, type SupportedLocale } from '../domain/locale.ts'
 import { backfillRequiredLocaleFields, localeHasAnyContent } from '../utils/locales.ts'
@@ -30,11 +37,18 @@ import type { PlayerRank } from '../domain/playerRating.ts'
 import { resolveLocationByIp, resolvedToTournamentLocation } from '../services/geoService.ts'
 
 export type ScheduleRow =
-  | { kind: 'round'; id: string; scheduledAt: Date | null; number: number }
+  | {
+      kind: 'round'
+      id: string
+      scheduledAt: Date | null
+      scheduledAtLocal: ScheduledAtLocal | null
+      number: number
+    }
   | {
       kind: 'event'
       id: string
       scheduledAt: Date | null
+      scheduledAtLocal: ScheduledAtLocal | null
       locales: Record<SupportedLocale, { title: string }>
     }
 
@@ -50,26 +64,44 @@ function generateRowId(): string {
 
 export function mergeSchedule(
   events: TournamentSchedule['events'],
-  rounds: TournamentSchedule['rounds']
+  rounds: TournamentSchedule['rounds'],
+  timeZone: string | null = null
 ): ScheduleRow[] {
+  const toLocal = (
+    scheduledAt: Date | null,
+    stored: ScheduledAtLocal | undefined
+  ): ScheduledAtLocal | null =>
+    stored ??
+    (scheduledAt && timeZone ? utcToZonedWallClock(scheduledAt, timeZone) : null)
+
   const rows: ScheduleRow[] = [
-    ...events.map((event) => ({
-      kind: 'event' as const,
-      id: generateRowId(),
-      scheduledAt: event.scheduledAt instanceof Date ? event.scheduledAt : null,
-      locales: Object.fromEntries(
-        supportedLocales.map((locale) => [
-          locale,
-          { title: event.locales[locale]?.title ?? '' },
-        ])
-      ) as Record<SupportedLocale, { title: string }>,
-    })),
-    ...rounds.map((round) => ({
-      kind: 'round' as const,
-      id: generateRowId(),
-      scheduledAt: round.scheduledAt instanceof Date ? round.scheduledAt : null,
-      number: round.number,
-    })),
+    ...events.map((event) => {
+      const scheduledAt =
+        event.scheduledAt instanceof Date ? event.scheduledAt : null
+      return {
+        kind: 'event' as const,
+        id: generateRowId(),
+        scheduledAt,
+        scheduledAtLocal: toLocal(scheduledAt, event.scheduledAtLocal),
+        locales: Object.fromEntries(
+          supportedLocales.map((locale) => [
+            locale,
+            { title: event.locales[locale]?.title ?? '' },
+          ])
+        ) as Record<SupportedLocale, { title: string }>,
+      }
+    }),
+    ...rounds.map((round) => {
+      const scheduledAt =
+        round.scheduledAt instanceof Date ? round.scheduledAt : null
+      return {
+        kind: 'round' as const,
+        id: generateRowId(),
+        scheduledAt,
+        scheduledAtLocal: toLocal(scheduledAt, round.scheduledAtLocal),
+        number: round.number,
+      }
+    }),
   ]
   return rows.sort((a, b) => {
     const aTime = a.scheduledAt?.getTime() ?? 0
@@ -78,17 +110,29 @@ export function mergeSchedule(
   })
 }
 
-export function splitSchedule(rows: ScheduleRow[]): TournamentSchedule {
+export function splitSchedule(
+  rows: ScheduleRow[],
+  timeZone: string | null = null
+): TournamentSchedule {
   const events: TournamentSchedule['events'] = []
   const rounds: TournamentSchedule['rounds'] = []
 
   for (const row of rows) {
-    if (!row.scheduledAt) continue
+    // The instant is re-derived from the local wall clock whenever both are
+    // available. Without a timezone the instant is preserved as-is (never
+    // reinterpreted as a wall clock in the editor's browser timezone).
+    const scheduledAt = row.scheduledAtLocal
+      ? timeZone
+        ? zonedWallClockToUtc(row.scheduledAtLocal, timeZone)
+        : row.scheduledAt
+      : row.scheduledAt
+    if (!scheduledAt) continue
 
     if (row.kind === 'round') {
       rounds.push({
         number: row.number,
-        scheduledAt: row.scheduledAt,
+        scheduledAt,
+        scheduledAtLocal: row.scheduledAtLocal ?? undefined,
       })
     } else {
       const hasTitle = supportedLocales.some(
@@ -97,7 +141,8 @@ export function splitSchedule(rows: ScheduleRow[]): TournamentSchedule {
       if (!hasTitle) continue
 
       events.push({
-        scheduledAt: row.scheduledAt,
+        scheduledAt,
+        scheduledAtLocal: row.scheduledAtLocal ?? undefined,
         locales: Object.fromEntries(
           supportedLocales
             .filter((locale) => row.locales[locale]?.title.trim() !== '')
@@ -159,6 +204,7 @@ export interface TournamentFormState {
     latitude: number | null
     longitude: number | null
     country: string
+    timeZone: string | null
     locales: Record<SupportedLocale, { settlement: string; venue: string }>
   }
   arbiter: Record<SupportedLocale, { givenName: string; familyName: string }>
@@ -274,6 +320,7 @@ function tournamentToFormState(tournament: Tournament): TournamentFormState {
     latitude: locationSource?.latitude ?? null,
     longitude: locationSource?.longitude ?? null,
     country: locationSource?.country ?? '',
+    timeZone: locationSource?.timeZone ?? null,
     locales: Object.fromEntries(
       supportedLocales.map((locale) => [
         locale,
@@ -307,7 +354,8 @@ function tournamentToFormState(tournament: Tournament): TournamentFormState {
     settings: tournament.settings,
     scheduleRows: mergeSchedule(
       tournament.schedule.events,
-      tournament.schedule.rounds
+      tournament.schedule.rounds,
+      resolveLocationTimeZone(location)
     ),
     participants: participantsToRows(tournament.participants),
     games: tournament.games,
@@ -320,9 +368,9 @@ function buildLocalesForSave(locales: TournamentFormState['locales']) {
   return backfillRequiredLocaleFields(locales, ['title']) as Tournament['locales']
 }
 
-function buildLocationForSave(
+async function buildLocationForSave(
   location: TournamentFormState['location']
-): Tournament['location'] | undefined {
+): Promise<Tournament['location'] | undefined> {
   // Backfill settlement across location locales
   const backfilled = backfillRequiredLocaleFields(
     location.locales,
@@ -343,6 +391,15 @@ function buildLocationForSave(
   if (location.latitude !== null) result.latitude = location.latitude
   if (location.longitude !== null) result.longitude = location.longitude
   if (location.country) result.country = location.country
+  // Persist the timezone: keep the stored one, or resolve it once from the
+  // coordinates (offline lookup). Lookup failure leaves it unset and never
+  // blocks saving.
+  if (location.timeZone) {
+    result.timeZone = location.timeZone
+  } else if (location.latitude !== null && location.longitude !== null) {
+    const timeZone = await resolveTimeZone(location.latitude, location.longitude)
+    if (timeZone) result.timeZone = timeZone
+  }
 
   return result
 }
@@ -351,11 +408,14 @@ function buildArbiterForSave(arbiter: TournamentFormState['arbiter']) {
   return backfillRequiredLocaleFields(arbiter, ['givenName', 'familyName']) as Tournament['arbiter']['locales']
 }
 
-function formStateToUpdateInput(
+async function formStateToUpdateInput(
   tournament: Tournament,
   state: TournamentFormState
 ) {
-  const schedule = splitSchedule(state.scheduleRows)
+  const schedule = splitSchedule(
+    state.scheduleRows,
+    resolveLocationTimeZone(state.location)
+  )
 
   // Participants dropped as empty rows on save: clean up their games the same
   // way removeParticipant does, so orphaned/late-join games never persist.
@@ -385,7 +445,7 @@ function formStateToUpdateInput(
   } = {
     id: tournament.id,
     locales: buildLocalesForSave(state.locales),
-    location: buildLocationForSave(state.location),
+    location: await buildLocationForSave(state.location),
     settings: state.settings,
     schedule,
     parentEvent: state.parentEvent,
@@ -595,6 +655,7 @@ export function useTournamentForm(tournamentId: string | undefined) {
             latitude: ipLocation.latitude ?? null,
             longitude: ipLocation.longitude ?? null,
             country: ipLocation.country ?? '',
+            timeZone: ipLocation.timeZone ?? null,
             locales: Object.fromEntries(
               supportedLocales.map((locale) => [
                 locale,
@@ -607,6 +668,20 @@ export function useTournamentForm(tournamentId: string | undefined) {
           },
         }
       })
+      // Resolve the venue timezone from the fresh coordinates and keep it in
+      // the form state so schedule times behave as venue-local right away.
+      if (ipLocation.latitude != null && ipLocation.longitude != null) {
+        resolveTimeZone(ipLocation.latitude, ipLocation.longitude).then(
+          (timeZone) => {
+            if (cancelled || !timeZone) return
+            setFormState((prev) =>
+              prev && !prev.location.timeZone
+                ? { ...prev, location: { ...prev.location, timeZone } }
+                : prev
+            )
+          }
+        )
+      }
     })
     return () => { cancelled = true }
   }, [formState?.location.latitude])
@@ -868,6 +943,7 @@ export function useTournamentForm(tournamentId: string | undefined) {
           kind: 'event',
           id: generateRowId(),
           scheduledAt: null,
+          scheduledAtLocal: null,
           locales: createEmptyEventLocales(),
         }
         if (!afterId) {
@@ -903,6 +979,7 @@ export function useTournamentForm(tournamentId: string | undefined) {
             kind: 'event',
             id,
             scheduledAt: null,
+            scheduledAtLocal: null,
             locales: createEmptyEventLocales(),
             ...patch,
           } as ScheduleRow
@@ -1050,7 +1127,7 @@ export function useTournamentForm(tournamentId: string | undefined) {
   const saveMutation = useMutation({
     mutationFn: async () => {
       if (!tournament || !formState) throw new Error('Tournament not loaded')
-      const input = formStateToUpdateInput(tournament, formState)
+      const input = await formStateToUpdateInput(tournament, formState)
 
       // IP fallback: if no coordinates, try to resolve by IP
       if (!input.location?.latitude || !input.location?.longitude) {
@@ -1066,6 +1143,20 @@ export function useTournamentForm(tournamentId: string | undefined) {
             },
           }
         }
+      }
+
+      // Resolve the venue timezone once coordinates are known (offline
+      // lookup); failure leaves it unset and never blocks saving.
+      if (
+        input.location?.latitude != null &&
+        input.location.longitude != null &&
+        !input.location.timeZone
+      ) {
+        const timeZone = await resolveTimeZone(
+          input.location.latitude,
+          input.location.longitude
+        )
+        if (timeZone) input.location.timeZone = timeZone
       }
 
       const updated = await tournamentService.update({
@@ -1088,8 +1179,11 @@ export function useTournamentForm(tournamentId: string | undefined) {
   const publishMutation = useMutation({
     mutationFn: async () => {
       if (!tournament || !formState) throw new Error('Tournament not loaded')
-      const schedule = splitSchedule(formState.scheduleRows)
-      const location = buildLocationForSave(formState.location)
+      const schedule = splitSchedule(
+        formState.scheduleRows,
+        resolveLocationTimeZone(formState.location)
+      )
+      const location = await buildLocationForSave(formState.location)
 
       // IP fallback: if no coordinates, try to resolve by IP
       let resolvedLocation = location
@@ -1106,6 +1200,20 @@ export function useTournamentForm(tournamentId: string | undefined) {
             },
           }
         }
+      }
+
+      // Resolve the venue timezone once coordinates are known (offline
+      // lookup); failure leaves it unset and never blocks publishing.
+      if (
+        resolvedLocation?.latitude != null &&
+        resolvedLocation.longitude != null &&
+        !resolvedLocation.timeZone
+      ) {
+        const timeZone = await resolveTimeZone(
+          resolvedLocation.latitude,
+          resolvedLocation.longitude
+        )
+        if (timeZone) resolvedLocation = { ...resolvedLocation, timeZone }
       }
 
       const candidate = {

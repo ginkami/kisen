@@ -11,7 +11,9 @@
     "parentEvent": "UUIDv7 | null", // (Required, FK Ref: event.id) Мероприятие, частью которого является турнир
     "updatedAt": "Date",  // (Required) Время последнего обновления по турниру 
     "status": "'draft' | 'upcoming' | 'ongoing' | 'finished' | 'canceled' | 'proposed_for_removing'", 
+    "isPublic": "Bool", // (Required) Опубликован ли турнир публично (true для любого статуса, кроме 'draft')
     "publishedRounds": "Int", // (Required) Число опубликованных туров, так мы сможем скрывать черновики жеребьёвки и откатывать уже опубликованные результаты, сохраняя при этом их.
+    "currentRound": "Int", // (Legacy, только чтение) Устаревший дубликат publishedRounds. Встречается только в старых документах Firestore (реальное значение хранилось здесь, а publishedRounds был 0). При парсинге мигрируется в publishedRounds (migrateLegacyRounds) и больше не записывается.
     "startYearMonth": "yyyyMM", // (Required) Год и месяц старта турнира (первого тура) для быстрого поиска по месяцам.
     // ^ (Required) При создании и до публикации (кнопка Опубликовать) статус турнира - 'draft', в этом статусе турнир недоступен по урл.
     // После публикации - 'upcoming'. Остальные режимы через текстовые кнопки в выпадающем списке. 
@@ -29,6 +31,10 @@
         "latitude": "Decimal", // (Required)
         "longitude": "Decimal", // (Required)
         "country": "ISO 3166-1 alpha-2",
+        "timeZone": "String", // IANA-имя таймзоны места проведения (например: 'Europe/Moscow')
+        // ^ Вычисляется по координатам (offline lookup) при сохранении/публикации турнира.
+        // Используется для отображения расписания в локальном («настенном») времени места
+        // и для вычисления UTC-инстантов из scheduledAtLocal. null/отсутствие — таймзона неизвестна.
         "locales": {
             "ru": {  // [ >= 1] Должна быть хотя бы одна локаль. При рендеринге берутся значения для текущей локали, либо другой существующей
                 "settlement": "String", // Место (город/посёлок)
@@ -66,7 +72,14 @@
     "schedule": { // (Required)
         "events": [ // Массив событий в рамках турнира
             {
-                "scheduledAt": "Date", // (Required) Время начала события
+                "scheduledAt": "Date", // (Required) Время начала события (UTC-инстант)
+                "scheduledAtLocal": { // Время начала события как локальное «настенное» время в таймзоне места проведения. Источник истины для отображения расписания; "scheduledAt" вычисляется из него вместе с location.timeZone (zonedWallClockToUtc). Отсутствует в старых документах.
+                    "year": "Int", // (Required)
+                    "month": "Int", // (Required) 1-12
+                    "day": "Int", // (Required) 1-31
+                    "hour": "Int", // (Required) 0-23
+                    "minute": "Int" // (Required) 0-59
+                },
                 "locales": { // (Required) Набор локалей
                     "ru": { // [ >= 1] Должна быть хотя бы одна локаль. При рендеринге берутся значения для текущей локали, либо другой существующей
                         "title": "String" // (Required) Название события (например: Opening Ceremony)
@@ -77,7 +90,14 @@
         "rounds": [ // [ > 0 ] (Required) Массив туров
             {
                 "number": "Int", // (Required) Номер тура
-                "scheduledAt": "Date" // (Required) Время начала тура
+                "scheduledAt": "Date", // (Required) Время начала тура (UTC-инстант)
+                "scheduledAtLocal": { // Время начала тура как локальное «настенное» время в таймзоне места проведения (см. schedule.events[].scheduledAtLocal). Отсутствует в старых документах.
+                    "year": "Int", // (Required)
+                    "month": "Int", // (Required) 1-12
+                    "day": "Int", // (Required) 1-31
+                    "hour": "Int", // (Required) 0-23
+                    "minute": "Int" // (Required) 0-59
+                }
             }
         ]
     },
@@ -127,8 +147,8 @@
             // Направление '+': player2 даёт фору (убирает свои фигуры/камни).
             // Коды: "L", "B", "R", "RL", "2p", "4p", "5p", "6p", "8p", "10p"
             // Ref: handicap.ts
-            "startedAt": "Date", // Время начала игры
-            "endedAt": "Date", // Время окончания игры
+            "startedAt": "Date", // Время начала игры (optional — задаётся при старте)
+            "endedAt": "Date", // Время окончания игры (optional — задаётся при завершении)
             "result": "'draw' | 'player1_won' | 'player2_won' | null", // (Required)
             "status": "'not_started' | 'forfeit' | 'bye' | 'live' | 'adjourned' | 'completed'", 
             "round": "Int" // (Required) Номер тура

@@ -20,6 +20,7 @@ import {
   parseMonthInputToYearMonth,
 } from '../utils/yearMonth.ts'
 import { formatDateTimeShort } from '../utils/dateTime.ts'
+import { resolveLocationTimeZone } from '../utils/scheduleTime.ts'
 import { getTournamentLocale } from '../domain/tournament.ts'
 import { NewTournamentButton } from './NewTournamentButton.tsx'
 import type { Tournament, TournamentStatus } from '../domain/tournament.ts'
@@ -294,7 +295,11 @@ export function AdminDrawer({
         <div className="flex items-center justify-between gap-2 text-xs">
           <span className="opacity-70">
             {firstRound
-              ? formatDateTimeShort(firstRound.scheduledAt, i18n.language)
+              ? formatDateTimeShort(
+                  firstRound.scheduledAt,
+                  i18n.language,
+                  resolveLocationTimeZone(tournament.location)
+                )
               : t('admin.noDate')}
           </span>
           <span className={['badge badge-sm', statusBadgeClass(tournament.status)].join(' ')}>

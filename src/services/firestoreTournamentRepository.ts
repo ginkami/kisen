@@ -17,6 +17,7 @@ import type {
   TournamentRepository,
 } from './repository.ts'
 import { supportedLocales } from '../domain/locale.ts'
+import { resolveTimeZone, utcToZonedWallClock } from '../utils/scheduleTime.ts'
 import {
   datesToTimestamps,
   timestampsToDates,
@@ -118,10 +119,95 @@ function toFirestore(tournament: Tournament): Record<string, unknown> {
   return removeUndefined(datesToTimestamps(tournament)) as Record<string, unknown>
 }
 
-function fromFirestore(data: Record<string, unknown>): Tournament {
-  return timestampsToDates(
-    withDefaultArbiter(remapLegacyLocation(remapLegacyRounds(data)))
-  ) as Tournament
+/**
+ * One-time legacy migration on read: backfill `scheduledAtLocal` for schedule
+ * entries that lack it, by interpreting the stored instant's wall clock in the
+ * location timezone, and backfill `location.timeZone` from the coordinates
+ * via an offline lat/lng lookup when it is missing. Purely in-memory —
+ * never writes to Firestore. Without a resolvable timezone nothing is
+ * reinterpreted, so the legacy instant-based display behavior is preserved.
+ */
+export async function backfillScheduleLocalTime(
+  data: Record<string, unknown>
+): Promise<Record<string, unknown>> {
+  const location = data.location as Record<string, unknown> | undefined
+  if (!location || typeof location !== 'object') return data
+
+  let timeZone =
+    typeof location.timeZone === 'string' && location.timeZone
+      ? location.timeZone
+      : undefined
+  const latitude =
+    typeof location.latitude === 'number' ? location.latitude : undefined
+  const longitude =
+    typeof location.longitude === 'number' ? location.longitude : undefined
+
+  if (!timeZone && latitude !== undefined && longitude !== undefined) {
+    timeZone = (await resolveTimeZone(latitude, longitude)) ?? undefined
+  }
+
+  const next: Record<string, unknown> = { ...data }
+  if (timeZone && !location.timeZone) {
+    next.location = { ...location, timeZone }
+  }
+  if (!timeZone) return next
+
+  const schedule = data.schedule as
+    | {
+        events?: unknown[]
+        rounds?: unknown[]
+      }
+    | undefined
+  if (!schedule || typeof schedule !== 'object') return next
+
+  const backfillEntry = (entry: unknown): unknown => {
+    if (!entry || typeof entry !== 'object') return entry
+    const source = entry as Record<string, unknown>
+    if (source.scheduledAtLocal) return source
+    const instant = entryInstant(source.scheduledAt)
+    if (!instant) return source
+    return {
+      ...source,
+      scheduledAtLocal: utcToZonedWallClock(instant, timeZone as string),
+    }
+  }
+
+  next.schedule = {
+    ...schedule,
+    events: Array.isArray(schedule.events)
+      ? schedule.events.map(backfillEntry)
+      : schedule.events,
+    rounds: Array.isArray(schedule.rounds)
+      ? schedule.rounds.map(backfillEntry)
+      : schedule.rounds,
+  }
+
+  return next
+}
+
+/**
+ * Extract a Date from a schedule entry's `scheduledAt`, which may already be
+ * a Date (after timestampsToDates) or still a Firestore Timestamp (which
+ * exposes toDate()) at migration time.
+ */
+function entryInstant(value: unknown): Date | null {
+  if (value instanceof Date) return value
+  if (
+    value &&
+    typeof value === 'object' &&
+    typeof (value as { toDate?: unknown }).toDate === 'function'
+  ) {
+    return (value as { toDate: () => Date }).toDate()
+  }
+  return null
+}
+
+async function fromFirestore(data: Record<string, unknown>): Promise<Tournament> {
+  const remapped = withDefaultArbiter(
+    remapLegacyLocation(remapLegacyRounds(data))
+  )
+  const backfilled = await backfillScheduleLocalTime(remapped)
+  return timestampsToDates(backfilled) as Tournament
 }
 
 export class FirestoreTournamentRepository implements TournamentRepository {
@@ -189,11 +275,13 @@ export class FirestoreTournamentRepository implements TournamentRepository {
     const q = query(this.collectionRef, ...constraints)
     const snapshot = await getDocs(q)
 
-    return snapshot.docs.map((docSnap) =>
-      fromFirestore({
-        id: docSnap.id,
-        ...docSnap.data(),
-      } as Record<string, unknown>)
+    return Promise.all(
+      snapshot.docs.map((docSnap) =>
+        fromFirestore({
+          id: docSnap.id,
+          ...docSnap.data(),
+        } as Record<string, unknown>)
+      )
     )
   }
 
@@ -250,7 +338,7 @@ export class FirestoreTournamentRepository implements TournamentRepository {
         if (seen.has(id)) continue
         seen.add(id)
         merged.push(
-          fromFirestore({
+          await fromFirestore({
             id,
             ...docSnap.data(),
           } as Record<string, unknown>)
