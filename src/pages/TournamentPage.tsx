@@ -18,16 +18,27 @@ import { TournamentDescriptionSection } from '../components/tournament/view/Tour
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 type TabId = 'description' | 'schedule' | 'players' | 'results' | 'crosstable'
 
-export function TournamentPage() {
+interface TournamentPageProps {
+  /** When set, the page loads the tournament by id instead of sniffing the URL param (used by the event page). */
+  tournamentId?: string
+}
+
+export function TournamentPage({ tournamentId }: TournamentPageProps = {}) {
   const { slug } = useParams<{ slug: string }>()
   const { t, i18n } = useTranslation()
   const locale = (i18n.language as SupportedLocale) ?? 'ru'
-  const isUuid = slug ? UUID_RE.test(slug) : false
+  const isUuid = tournamentId != null || (slug ? UUID_RE.test(slug) : false)
+  const lookupKey = tournamentId ?? slug
 
   const tournamentQuery = useQuery({
-    queryKey: ['tournament', 'view', slug],
-    queryFn: () => isUuid ? tournamentService.getById(slug!) : tournamentService.getBySlug(slug!),
-    enabled: !!slug,
+    queryKey: ['tournament', 'view', tournamentId != null ? ['id', tournamentId] : slug],
+    queryFn: () =>
+      tournamentId != null
+        ? tournamentService.getById(tournamentId)
+        : isUuid
+          ? tournamentService.getById(slug!)
+          : tournamentService.getBySlug(slug!),
+    enabled: !!lookupKey,
   })
   const tournament = tournamentQuery.data ?? null
   const isPublic = tournament?.isPublic === true

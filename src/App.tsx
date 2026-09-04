@@ -8,6 +8,7 @@ import { ProfilePage } from './pages/ProfilePage.tsx'
 import { PlayerEditPage } from './pages/PlayerEditPage.tsx'
 import { AssociationEditPage } from './pages/AssociationEditPage.tsx'
 import { EventEditPage } from './pages/EventEditPage.tsx'
+import { EventPage } from './pages/EventPage.tsx'
 import { RegulationEditPage } from './pages/RegulationEditPage.tsx'
 import { useAuth } from './context/AuthContext.tsx'
 import './i18n'
@@ -43,6 +44,7 @@ function App() {
           <Route path="assn/:id/edit" element={<AssociationEditPage />} />
           <Route path="events/new" element={<EventEditPage />} />
           <Route path="events/:id/edit" element={<EventEditPage />} />
+          <Route path="events/:slug" element={<EventPage />} />
           <Route path="regulations/new" element={<RegulationEditPage />} />
           <Route path="regulations/:id/edit" element={<RegulationEditPage />} />
         </Route>

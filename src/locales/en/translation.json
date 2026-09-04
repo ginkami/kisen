@@ -351,6 +351,13 @@
     }
   },
   "event": {
+    "view": {
+      "pageTitle": "{{title}} | shogi·world",
+      "notFound": "Event not found",
+      "errors": {
+        "load": "Failed to load event."
+      }
+    },
     "edit": {
       "managementPanel": "Event editing",
       "newTitle": "New event",

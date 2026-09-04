@@ -220,3 +220,17 @@ export function sortTournamentsByStart(list: Tournament[]): Tournament[] {
     return a.id.localeCompare(b.id)
   })
 }
+
+/**
+ * Return the tournament with the greatest start time (max of tournamentStart),
+ * tie-broken by id (same direction as sortTournamentsByStart).
+ * Returns null for an empty list.
+ */
+export function latestTournament(list: Tournament[]): Tournament | null {
+  if (list.length === 0) return null
+  return list.reduce((latest, t) => {
+    const diff = tournamentStart(t).getTime() - tournamentStart(latest).getTime()
+    if (diff !== 0) return diff > 0 ? t : latest
+    return t.id.localeCompare(latest.id) > 0 ? t : latest
+  })
+}

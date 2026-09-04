@@ -355,6 +355,13 @@
     }
   },
   "event": {
+    "view": {
+      "pageTitle": "{{title}} | shogi·world",
+      "notFound": "Мероприятие не найдено",
+      "errors": {
+        "load": "Не удалось загрузить мероприятие."
+      }
+    },
     "edit": {
       "managementPanel": "Редактирование мероприятия",
       "newTitle": "Новое мероприятие",

@@ -5,6 +5,7 @@ import {
   formatDayRanges,
   formatTimeControlShort,
   sortTournamentsByStart,
+  latestTournament,
 } from '../utils/tournamentDisplay.ts'
 import type { Tournament } from '../domain/tournament.ts'
 
@@ -308,6 +309,44 @@ describe('sortTournamentsByStart', () => {
     // t1 (Aug 1) comes first in sorted order
     expect(sorted[0].id).toBe('00000000-0000-7000-0000-000000000002')
     expect(sorted[1].id).toBe('00000000-0000-7000-0000-000000000001')
+  })
+})
+
+describe('latestTournament', () => {
+  it('returns null for an empty list', () => {
+    expect(latestTournament([])).toBeNull()
+  })
+
+  it('returns the single tournament', () => {
+    const t1 = makeT({
+      schedule: { rounds: [{ number: 1, scheduledAt: new Date('2026-08-10T10:00:00Z') }], events: [] },
+    })
+    expect(latestTournament([t1])?.id).toBe(t1.id)
+  })
+
+  it('returns the tournament with the greatest start time', () => {
+    const t1 = makeT({
+      id: '00000000-0000-7000-0000-000000000001',
+      schedule: { rounds: [{ number: 1, scheduledAt: new Date('2026-08-10T10:00:00Z') }], events: [] },
+    })
+    const t2 = makeT({
+      id: '00000000-0000-7000-0000-000000000002',
+      schedule: { rounds: [{ number: 1, scheduledAt: new Date('2026-08-12T10:00:00Z') }], events: [] },
+    })
+    expect(latestTournament([t1, t2])?.id).toBe('00000000-0000-7000-0000-000000000002')
+    expect(latestTournament([t2, t1])?.id).toBe('00000000-0000-7000-0000-000000000002')
+  })
+
+  it('tie-breaks by id when start times are equal', () => {
+    const t1 = makeT({
+      id: '00000000-0000-7000-0000-000000000001',
+      schedule: { rounds: [{ number: 1, scheduledAt: new Date('2026-08-10T10:00:00Z') }], events: [] },
+    })
+    const t2 = makeT({
+      id: '00000000-0000-7000-0000-000000000002',
+      schedule: { rounds: [{ number: 1, scheduledAt: new Date('2026-08-10T10:00:00Z') }], events: [] },
+    })
+    expect(latestTournament([t1, t2])?.id).toBe('00000000-0000-7000-0000-000000000002')
   })
 })
 
