@@ -23,7 +23,8 @@
     "locales": { // (Required)
         "ru": { // [ >= 1] Должна быть хотя бы одна локаль. При рендеринге берутся значения для текущей локали, либо другой существующей
             "familyName": "String", // (Required)
-            "givenName": "String" // (Required)
+            "givenName": "String", // (Required)
+            "displayName": "String" // (Required)
         }
     },
     

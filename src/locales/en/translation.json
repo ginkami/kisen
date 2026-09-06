@@ -50,7 +50,53 @@
   },
   "profile": {
     "title": "Profile",
-    "placeholder": "Profile editing form will appear here."
+    "edit": {
+      "managementPanel": "Profile editing and management",
+      "untitled": "Unnamed",
+      "save": "Save",
+      "delete": "Delete",
+      "email": "Email",
+      "role": "Role",
+      "roles": {
+        "user": "User",
+        "admin": "Administrator",
+        "manager": "Manager"
+      },
+      "profileData": "Profile data",
+      "familyName": "Family name",
+      "givenName": "Given name",
+      "displayName": "Display name",
+      "providers": {
+        "title": "Authentication providers",
+        "password": "Email / Password"
+      },
+      "password": {
+        "change": "Change password",
+        "add": "Add password",
+        "old": "Old password",
+        "new": "New password",
+        "repeat": "Repeat new password",
+        "success": "Password updated successfully.",
+        "errors": {
+          "oldRequired": "Enter the old password.",
+          "tooShort": "Password must be at least 6 characters.",
+          "mismatch": "Passwords do not match.",
+          "wrongPassword": "Wrong old password.",
+          "weakPassword": "Password is too weak: use at least 6 characters.",
+          "requiresRecentLogin": "Your session is stale. Log out and sign in again, then retry.",
+          "emailAlreadyInUse": "This account is already linked to an email sign-in.",
+          "tooManyRequests": "Too many attempts. Please try again later.",
+          "generic": "Failed to update the password. Please try again later."
+        }
+      },
+      "associations": {
+        "title": "Associations you manage",
+        "empty": "You do not manage any associations yet."
+      },
+      "errors": {
+        "save": "Failed to save changes. Please try again."
+      }
+    }
   },
   "player": {
     "new": "New player",

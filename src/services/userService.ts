@@ -4,6 +4,7 @@ import {
   getDoc,
   getDocs,
   setDoc,
+  updateDoc,
   query,
   where,
   orderBy,
@@ -167,4 +168,38 @@ export async function createUser(input: CreateUserInput): Promise<User> {
   }
 
   return created
+}
+
+export interface UpdateUserInput {
+  locales?: UserLocales
+  auth?: User['auth']
+}
+
+export async function updateUser(id: string, input: UpdateUserInput): Promise<User> {
+  const userRef = doc(db, USERS_COLLECTION, id)
+
+  const patch: Record<string, unknown> = { updatedAt: serverTimestamp() }
+  if (input.locales !== undefined) patch.locales = input.locales
+  if (input.auth !== undefined) patch.auth = input.auth
+
+  await updateDoc(userRef, patch)
+
+  const updated = await getUserById(id)
+  if (!updated) {
+    throw new Error('Failed to update user')
+  }
+
+  return updated
+}
+
+export async function updateUserProviders(
+  id: string,
+  providers: AuthProvider[]
+): Promise<void> {
+  const userRef = doc(db, USERS_COLLECTION, id)
+  // Dot-path patch so that sibling auth fields (passwordHash etc.) are preserved.
+  await updateDoc(userRef, {
+    'auth.providers': providers,
+    updatedAt: serverTimestamp(),
+  })
 }
