@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import App from './App'
 
@@ -52,5 +52,23 @@ describe('App', () => {
 
     expect(screen.getByText('auth.email')).toBeInTheDocument()
     expect(screen.getByText('auth.password')).toBeInTheDocument()
+  })
+
+  it('toggles password visibility in the auth form', () => {
+    mockedUseQuery().mockReturnValue({
+      data: null,
+      isLoading: false,
+      isError: false,
+    } as ReturnType<typeof useQuery>)
+
+    window.history.pushState({}, 'Login', '/login')
+    render(<App />)
+
+    const passwordField = screen.getByPlaceholderText('auth.password')
+    expect(passwordField).toHaveAttribute('type', 'password')
+    fireEvent.click(screen.getByRole('button', { name: 'auth.showPassword' }))
+    expect(passwordField).toHaveAttribute('type', 'text')
+    fireEvent.click(screen.getByRole('button', { name: 'auth.hidePassword' }))
+    expect(passwordField).toHaveAttribute('type', 'password')
   })
 })

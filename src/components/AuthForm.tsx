@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../context/AuthContext.tsx'
+import { PasswordInput } from './PasswordInput.tsx'
 
 export function AuthForm() {
   const { t } = useTranslation()
@@ -83,13 +84,11 @@ export function AuthForm() {
 
       <label className="floating-label">
         <span>{t('auth.password')}</span>
-        <input
-          type="password"
+        <PasswordInput
           value={password}
-          onChange={(e) => setPassword(e.target.value)}
+          onChange={setPassword}
           required
           placeholder={t('auth.password')}
-          className="input input-bordered w-full"
         />
       </label>
 

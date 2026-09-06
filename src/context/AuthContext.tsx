@@ -24,6 +24,16 @@ export { useAuth, type AuthContextValue } from './useAuth.ts'
 
 const USER_QUERY_KEY = 'authUser'
 
+/**
+ * Splits a display name by whitespace into at most two tokens:
+ * the first token becomes givenName, the second becomes familyName.
+ * A single token fills only givenName; an empty name yields empty values.
+ */
+function splitDisplayName(displayName: string): { givenName: string; familyName: string } {
+  const [givenName = '', familyName = ''] = displayName.trim().split(/\s+/)
+  return { givenName, familyName }
+}
+
 interface AuthProviderProps {
   children: ReactNode
 }
@@ -42,8 +52,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         }
 
         const displayName = fbUser.displayName ?? ''
-        const [givenName = 'Placeholder', familyName = 'Placeholder'] =
-          displayName.split(' ')
+        const { givenName, familyName } = splitDisplayName(displayName)
 
         return await createUser({
           id: fbUser.uid,
@@ -57,8 +66,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
           emailVerified: fbUser.emailVerified,
           isActive: true,
           locales: {
-            ru: { familyName, givenName, displayName: givenName },
-            en: { familyName, givenName, displayName: givenName },
+            ru: { familyName, givenName, displayName },
+            en: { familyName, givenName, displayName },
           },
         })
       } catch (error) {
@@ -109,8 +118,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const fbUser = credential.user
 
       const displayName = input.displayName.trim()
-      const [givenName = 'Placeholder', familyName = 'Placeholder'] =
-        displayName.split(' ')
+      const { givenName, familyName } = splitDisplayName(displayName)
 
       const created = await createUser({
         id: fbUser.uid,

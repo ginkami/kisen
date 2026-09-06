@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, Outlet } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { BsBoxArrowRight, BsGear } from 'react-icons/bs'
@@ -18,6 +18,13 @@ export function Layout() {
 
   const [isAdminOpen, setIsAdminOpen] = useState(false)
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
+
+  // The admin drawer is only meaningful for an authenticated session.
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setIsAdminOpen(false)
+    }
+  }, [isAuthenticated])
 
   const openAdmin = () => setIsAdminOpen(true)
   const closeAdmin = () => setIsAdminOpen(false)

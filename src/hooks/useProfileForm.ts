@@ -49,18 +49,36 @@ export function useProfileForm(user: User) {
 
   const clearSaveError = useCallback(() => setSaveError(false), [])
 
-  const save = useCallback(async () => {
-    setIsSaving(true)
-    setSaveError(false)
-    try {
-      const updated = await updateUser(user.id, { locales: formLocales })
-      queryClient.setQueryData(['authUser', user.id], updated)
-    } catch {
-      setSaveError(true)
-    } finally {
-      setIsSaving(false)
-    }
-  }, [formLocales, queryClient, user.id])
+  const save = useCallback(
+    async (activeLocale?: SupportedLocale) => {
+      setIsSaving(true)
+      setSaveError(false)
+      const localesToSave: UserLocales = {
+        ru: { ...formLocales.ru },
+        en: { ...formLocales.en },
+      }
+      const fallbackDisplayName = activeLocale
+        ? formLocales[activeLocale].displayName.trim()
+        : ''
+      if (fallbackDisplayName) {
+        for (const loc of LOCALES) {
+          if (localesToSave[loc].displayName.trim() === '') {
+            localesToSave[loc].displayName = fallbackDisplayName
+          }
+        }
+      }
+      try {
+        const updated = await updateUser(user.id, { locales: localesToSave })
+        queryClient.setQueryData(['authUser', user.id], updated)
+        setFormLocales(localesToSave)
+      } catch {
+        setSaveError(true)
+      } finally {
+        setIsSaving(false)
+      }
+    },
+    [formLocales, queryClient, user.id]
+  )
 
   return {
     locales: formLocales,

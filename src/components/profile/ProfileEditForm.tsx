@@ -36,11 +36,14 @@ export function ProfileEditForm({ profile }: ProfileEditFormProps) {
   const { data: associations = [] } = useMyAssociations(profile.id)
 
   const activeLocaleData = locales[activeLocale]
+  const displayNameInvalid = activeLocaleData.displayName.trim().length === 0
   const headerTitle =
     [activeLocaleData.familyName, activeLocaleData.givenName]
       .map((part) => part.trim())
       .filter(Boolean)
-      .join(' ') || t('profile.edit.untitled')
+      .join(' ') ||
+    activeLocaleData.displayName.trim() ||
+    t('profile.edit.untitled')
 
   useEffect(() => {
     document.title = `${headerTitle} — ${t('profile.edit.managementPanel')} | shogi·world`
@@ -61,8 +64,8 @@ export function ProfileEditForm({ profile }: ProfileEditFormProps) {
         <div className="flex flex-wrap gap-2">
           <button
             type="button"
-            onClick={() => void save()}
-            disabled={isSaving || !isDirty}
+            onClick={() => void save(activeLocale)}
+            disabled={isSaving || !isDirty || displayNameInvalid}
             className="btn btn-primary"
           >
             {isSaving ? <span className="loading loading-spinner loading-xs" /> : t('profile.edit.save')}
@@ -106,6 +109,28 @@ export function ProfileEditForm({ profile }: ProfileEditFormProps) {
             <LocaleTabs locale={activeLocale} onChange={setActiveLocale} />
           </div>
           <div className="form-control">
+            <label className="label" htmlFor="profile-display-name">
+              <span className="label-text">
+                {t('profile.edit.displayName')}
+                <span className="text-error ml-1">*</span>
+              </span>
+            </label>
+            <input
+              id="profile-display-name"
+              type="text"
+              value={activeLocaleData.displayName}
+              onChange={(e) => updateLocale(activeLocale, 'displayName', e.target.value)}
+              className={`input input-bordered w-full ${
+                displayNameInvalid ? 'input-error' : ''
+              }`}
+            />
+            {displayNameInvalid && (
+              <span className="text-error mt-1 text-xs">
+                {t('profile.edit.errors.displayNameRequired')}
+              </span>
+            )}
+          </div>
+          <div className="form-control">
             <label className="label" htmlFor="profile-family-name">
               <span className="label-text">{t('profile.edit.familyName')}</span>
             </label>
@@ -129,18 +154,6 @@ export function ProfileEditForm({ profile }: ProfileEditFormProps) {
               className="input input-bordered w-full"
             />
           </div>
-          <div className="form-control">
-            <label className="label" htmlFor="profile-display-name">
-              <span className="label-text">{t('profile.edit.displayName')}</span>
-            </label>
-            <input
-              id="profile-display-name"
-              type="text"
-              value={activeLocaleData.displayName}
-              onChange={(e) => updateLocale(activeLocale, 'displayName', e.target.value)}
-              className="input input-bordered w-full"
-            />
-          </div>
         </div>
       </div>
 
@@ -149,7 +162,7 @@ export function ProfileEditForm({ profile }: ProfileEditFormProps) {
           <h2 className="card-title">{t('profile.edit.providers.title')}</h2>
           <div className="flex flex-wrap gap-2">
             {(firebaseUser?.providerData ?? []).map((provider) => (
-              <span key={provider.providerId} className="badge badge-lg badge-ghost">
+              <span key={provider.providerId} className="badge badge-sm badge-primary">
                 {providerLabel(provider.providerId, t)}
               </span>
             ))}
@@ -169,7 +182,7 @@ export function ProfileEditForm({ profile }: ProfileEditFormProps) {
                 <Link
                   key={association.id}
                   to={`/assn/${association.id}/edit`}
-                  className="badge badge-lg badge-ghost gap-1 hover:badge-primary"
+                  className="badge badge-sm badge-primary gap-1 hover:badge-secondary"
                 >
                   {associationTitle(association)}
                   {association.createdBy === profile.id && (

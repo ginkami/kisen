@@ -144,6 +144,31 @@ describe('ProfilePage header', () => {
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Петров Иван')
   })
 
+  it('falls back the header title to the display name, then to the untitled placeholder', () => {
+    authState.user = {
+      ...makeUser(),
+      locales: {
+        ru: { familyName: '', givenName: '', displayName: 'Ив' },
+        en: { familyName: 'Ivanov', givenName: 'Ivan', displayName: 'Iv' },
+      },
+    }
+    const firstRender = renderProfilePage()
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Ив')
+    firstRender.unmount()
+
+    authState.user = {
+      ...makeUser(),
+      locales: {
+        ru: { familyName: '', givenName: '', displayName: '' },
+        en: { familyName: '', givenName: '', displayName: '' },
+      },
+    }
+    renderProfilePage()
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
+      'profile.edit.untitled'
+    )
+  })
+
   it('keeps the delete button disabled', () => {
     renderProfilePage()
     expect(screen.getByRole('button', { name: 'profile.edit.delete' })).toBeDisabled()
@@ -195,6 +220,55 @@ describe('ProfilePage save flow', () => {
     )
   })
 
+  it('blocks saving while the active display name is empty and shows an inline error', () => {
+    authState.user = {
+      ...makeUser(),
+      locales: {
+        ru: { familyName: 'Иванов', givenName: 'Иван', displayName: '' },
+        en: { familyName: 'Ivanov', givenName: 'Ivan', displayName: 'Iv' },
+      },
+    }
+    renderProfilePage()
+    const saveButton = screen.getByRole('button', { name: 'profile.edit.save' })
+    expect(saveButton).toBeDisabled()
+    expect(screen.getByText('profile.edit.errors.displayNameRequired')).toBeInTheDocument()
+
+    fireEvent.change(screen.getByLabelText('profile.edit.displayName'), {
+      target: { value: 'Ив' },
+    })
+    expect(saveButton).toBeEnabled()
+    expect(
+      screen.queryByText('profile.edit.errors.displayNameRequired')
+    ).not.toBeInTheDocument()
+  })
+
+  it('fills the empty display name of other locales from the active locale on save', async () => {
+    vi.mocked(updateUser).mockResolvedValue(makeUser())
+    authState.user = {
+      ...makeUser(),
+      locales: {
+        ru: { familyName: 'Иванов', givenName: 'Иван', displayName: 'Ив' },
+        en: { familyName: 'Ivanov', givenName: 'Ivan', displayName: '' },
+      },
+    }
+    renderProfilePage()
+    fireEvent.change(screen.getByLabelText('profile.edit.givenName'), {
+      target: { value: 'Сергей' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'profile.edit.save' }))
+    await waitFor(() =>
+      expect(updateUser).toHaveBeenCalledWith(
+        UID,
+        expect.objectContaining({
+          locales: expect.objectContaining({
+            ru: expect.objectContaining({ displayName: 'Ив', givenName: 'Сергей' }),
+            en: expect.objectContaining({ displayName: 'Ив' }),
+          }),
+        })
+      )
+    )
+  })
+
   it('switches locale tabs without losing edits', () => {
     renderProfilePage()
     fireEvent.change(screen.getByLabelText('profile.edit.familyName'), {
@@ -216,6 +290,20 @@ describe('ProfilePage providers and password', () => {
     expect(
       screen.getByRole('button', { name: 'profile.edit.password.change' })
     ).toBeInTheDocument()
+  })
+
+  it('toggles password visibility on the profile password fields', () => {
+    renderProfilePage()
+    const newPassword = screen.getByLabelText('profile.edit.password.new')
+    expect(newPassword).toHaveAttribute('type', 'password')
+
+    const toggles = screen.getAllByRole('button', { name: 'auth.showPassword' })
+    expect(toggles).toHaveLength(3)
+    fireEvent.click(toggles[1])
+    expect(newPassword).toHaveAttribute('type', 'text')
+    expect(screen.getAllByRole('button', { name: 'auth.hidePassword' })).toHaveLength(1)
+    fireEvent.click(screen.getByRole('button', { name: 'auth.hidePassword' }))
+    expect(newPassword).toHaveAttribute('type', 'password')
   })
 
   it('offers add-password mode without the old password field', () => {
@@ -261,6 +349,13 @@ describe('ProfilePage providers and password', () => {
     await waitFor(() => expect(updatePassword).toHaveBeenCalled())
     expect(reauthenticateWithCredential).toHaveBeenCalled()
     expect(screen.getByText('profile.edit.password.success')).toBeInTheDocument()
+    expect(screen.getByText('profile.edit.password.success')).toHaveClass('text-success')
+
+    // The success message is cleared as soon as a field changes again.
+    fireEvent.change(screen.getByLabelText('profile.edit.password.old'), {
+      target: { value: 'a' },
+    })
+    expect(screen.queryByText('profile.edit.password.success')).not.toBeInTheDocument()
   })
 
   it('maps wrong old password to a localized message', async () => {

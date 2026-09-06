@@ -9,6 +9,7 @@ import {
 import type { FirebaseError } from 'firebase/app'
 import { useTranslation } from 'react-i18next'
 import { updateUserProviders } from '../../services/userService.ts'
+import { PasswordInput } from '../PasswordInput.tsx'
 import type { User } from '../../types/user.ts'
 
 const MIN_PASSWORD_LENGTH = 6
@@ -38,7 +39,9 @@ export function PasswordSection({ firebaseUser, profile }: PasswordSectionProps)
   const [attempted, setAttempted] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [oldPasswordError, setOldPasswordError] = useState<string | null>(null)
-  const [formError, setFormError] = useState<string | null>(null)
+  const [formMessage, setFormMessage] = useState<
+    { kind: 'error' | 'success'; text: string } | null
+  >(null)
 
   const isChangeMode = hasPasswordProvider(firebaseUser)
 
@@ -50,6 +53,7 @@ export function PasswordSection({ firebaseUser, profile }: PasswordSectionProps)
   const setField = (field: keyof PasswordFields, value: string) => {
     setFields((prev) => ({ ...prev, [field]: value }))
     setOldPasswordError(null)
+    setFormMessage(null)
   }
 
   const showOldError = oldInvalid && (attempted || fields.oldPassword.length > 0)
@@ -79,7 +83,7 @@ export function PasswordSection({ firebaseUser, profile }: PasswordSectionProps)
   const handleApply = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setAttempted(true)
-    setFormError(null)
+    setFormMessage(null)
     if (!isValid || isSubmitting) return
 
     setIsSubmitting(true)
@@ -109,10 +113,10 @@ export function PasswordSection({ firebaseUser, profile }: PasswordSectionProps)
       setFields({ oldPassword: '', newPassword: '', repeatPassword: '' })
       setAttempted(false)
       setOldPasswordError(null)
-      setFormError(t('profile.edit.password.success'))
+      setFormMessage({ kind: 'success', text: t('profile.edit.password.success') })
     } catch (error) {
       const message = firebaseErrorMessage(error as FirebaseError)
-      if (message) setFormError(message)
+      if (message) setFormMessage({ kind: 'error', text: message })
     } finally {
       setIsSubmitting(false)
     }
@@ -133,13 +137,12 @@ export function PasswordSection({ firebaseUser, profile }: PasswordSectionProps)
       <label className="label" htmlFor={id}>
         <span className="label-text">{labelText}</span>
       </label>
-      <input
+      <PasswordInput
         id={id}
-        type="password"
         autoComplete={autoComplete}
         value={fields[field]}
-        onChange={(e) => setField(field, e.target.value)}
-        className={`input input-bordered w-full ${error ? 'input-error' : ''}`}
+        onChange={(value) => setField(field, value)}
+        hasError={Boolean(error)}
       />
       {error && <span className="text-error mt-1 text-xs">{error}</span>}
     </div>
@@ -170,7 +173,15 @@ export function PasswordSection({ firebaseUser, profile }: PasswordSectionProps)
         'new-password',
         showRepeatError && t('profile.edit.password.errors.mismatch')
       )}
-      {formError && <p className="text-sm text-error">{formError}</p>}
+      {formMessage && (
+        <p
+          className={`text-sm ${
+            formMessage.kind === 'success' ? 'text-success' : 'text-error'
+          }`}
+        >
+          {formMessage.text}
+        </p>
+      )}
       <button type="submit" disabled={!isValid || isSubmitting} className="btn btn-primary">
         {isSubmitting ? <span className="loading loading-spinner loading-xs" /> : label}
       </button>

@@ -4,6 +4,8 @@
     "email": "Email",
     "displayName": "How should we address you",
     "password": "Password",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
     "login": "Sign in",
     "register": "Register",
     "logout": "Log out",
@@ -94,7 +96,8 @@
         "empty": "You do not manage any associations yet."
       },
       "errors": {
-        "save": "Failed to save changes. Please try again."
+        "save": "Failed to save changes. Please try again.",
+        "displayNameRequired": "Display name is required."
       }
     }
   },

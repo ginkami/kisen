@@ -1,8 +1,4 @@
-## Purpose
-
-Authenticated profile page at `/profile`: access guard and header with live title and save flow, immutable account fields, locale-dependent profile data editing, authentication providers display with password management, and managed associations shortcuts.
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: Profile page access and header
 
@@ -32,15 +28,6 @@ The application SHALL serve an authenticated profile page at `/profile` that red
 
 - **WHEN** the profile page renders
 - **THEN** the «Удалить» button is rendered disabled
-
-### Requirement: Immutable account fields
-
-The profile page SHALL render an unnamed section showing the user's Email and Role (localized via `profile.edit.roles.*`), side by side in two columns on large screens. These fields SHALL NOT be editable.
-
-#### Scenario: Account facts display
-
-- **WHEN** the profile page renders for a user with email `user@example.com` and role `manager`
-- **THEN** the section shows `user@example.com` and the localized role name
 
 ### Requirement: Profile data editing
 
@@ -109,22 +96,3 @@ The block SHALL have its own apply button (independent of the header «Сохр�
 
 - **WHEN** the user clicks the show/hide toggle on a profile password field
 - **THEN** the field switches between masked and plain text input
-
-### Requirement: Managed associations shortcuts
-
-The profile page SHALL render an «Ассоциации, которыми управляете» section listing associations the user created (badged with «(создатель)») or is listed in `managers`, as badges linking to `/assn/:id/edit`. When there are none, the section SHALL show a localized empty hint.
-
-#### Scenario: Creator badge
-
-- **WHEN** the user created an association
-- **THEN** its badge shows the localized association title with the «(создатель)» mark and links to `/assn/{id}/edit`
-
-#### Scenario: Manager badge
-
-- **WHEN** the user is a manager (not creator) of an association
-- **THEN** its badge shows the title without the creator mark and links to `/assn/{id}/edit`
-
-#### Scenario: No managed associations
-
-- **WHEN** `useMyAssociations` returns an empty list
-- **THEN** the section shows a localized "no associations" hint
