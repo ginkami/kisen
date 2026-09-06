@@ -45,7 +45,11 @@ export function AssociationManagersSection({
 
   const getUserDisplayName = (user: User) => {
     const loc = user.locales[locale] ?? user.locales.ru ?? user.locales.en
-    return `${loc.familyName}, ${loc.givenName}`
+    return (!loc.familyName || !loc.familyName.trim()) && (!loc.givenName || !loc.givenName.trim()) 
+      ? loc.displayName 
+      : !loc.familyName || !loc.familyName.trim() 
+        ? loc.givenName
+        : `${loc.familyName}, ${loc.givenName}` 
   }
 
   const handleRemoveClick = (type: 'manager' | 'pendingInvite', value: string) => {
