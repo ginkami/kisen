@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { describe, expect, it, vi, beforeEach } from 'vitest'
@@ -10,6 +10,7 @@ import {
   type User as FirebaseUser,
 } from 'firebase/auth'
 import { updateUser } from '../services/userService.ts'
+import { associationService } from '../services/associationService.ts'
 import type { User } from '../types/user.ts'
 import type { Association } from '../domain/association.ts'
 
@@ -39,6 +40,10 @@ vi.mock('firebase/auth', () => ({
 vi.mock('../services/userService.ts', () => ({
   updateUser: vi.fn(),
   updateUserProviders: vi.fn(),
+}))
+
+vi.mock('../services/associationService.ts', () => ({
+  associationService: { update: vi.fn() },
 }))
 
 vi.mock('../hooks/useAssociations.ts', () => ({
@@ -72,11 +77,16 @@ function makeFirebaseUser(providerIds: string[]): FirebaseUser {
   } as unknown as FirebaseUser
 }
 
-function makeAssociation(id: string, createdBy: string, title: string): Association {
+function makeAssociation(
+  id: string,
+  createdBy: string,
+  title: string,
+  managers: string[] = []
+): Association {
   return {
     id,
     createdBy,
-    managers: [],
+    managers,
     locales: { ru: { title }, en: { title: `${title} EN` } },
   } as unknown as Association
 }
@@ -104,6 +114,7 @@ beforeEach(() => {
   authState.isAuthenticated = true
   authState.associations = []
   vi.mocked(updateUser).mockReset()
+  vi.mocked(associationService.update).mockReset()
   vi.mocked(reauthenticateWithCredential).mockReset()
   vi.mocked(updatePassword).mockReset()
   vi.mocked(linkWithCredential).mockReset()
@@ -411,6 +422,70 @@ describe('ProfilePage managed associations', () => {
   it('shows an empty hint when nothing is managed', () => {
     renderProfilePage()
     expect(screen.getByText('profile.edit.associations.empty')).toBeInTheDocument()
+  })
+})
+
+describe('ProfilePage leave association management', () => {
+  function renderWithManagerAssociation() {
+    authState.associations = [
+      makeAssociation(ASSN_ID, UID, 'Ассоциация А'),
+      makeAssociation(ASSN_ID_2, 'other-user', 'Ассоциация Б', [UID, 'other-user']),
+    ]
+    renderProfilePage()
+  }
+
+  it('shows the remove button only on manager badges, not on creator badges', () => {
+    renderWithManagerAssociation()
+    const removeButtons = screen.getAllByRole('button', {
+      name: 'profile.edit.associations.leaveConfirmTitle',
+    })
+    expect(removeButtons).toHaveLength(1)
+  })
+
+  it('cancels the confirmation modal without updating', async () => {
+    renderWithManagerAssociation()
+    fireEvent.click(
+      screen.getByRole('button', { name: 'profile.edit.associations.leaveConfirmTitle' })
+    )
+    const dialog = screen.getByRole('dialog')
+    expect(dialog).toHaveTextContent('profile.edit.associations.leaveConfirmTitle')
+    expect(dialog).toHaveTextContent('profile.edit.associations.leaveConfirm')
+    // the modal backdrop also carries aria-label=cancelText, so pick the first (real) button
+    fireEvent.click(within(dialog).getAllByRole('button', { name: 'common.cancel' })[0])
+    await waitFor(() => expect(dialog).not.toHaveAttribute('open'))
+    expect(associationService.update).not.toHaveBeenCalled()
+  })
+
+  it('removes the user from managers on confirm and closes the modal', async () => {
+    vi.mocked(associationService.update).mockResolvedValue({} as never)
+    renderWithManagerAssociation()
+    fireEvent.click(
+      screen.getByRole('button', { name: 'profile.edit.associations.leaveConfirmTitle' })
+    )
+    const dialog = screen.getByRole('dialog')
+    fireEvent.click(within(dialog).getByRole('button', { name: 'common.confirm' }))
+    await waitFor(() => expect(associationService.update).toHaveBeenCalledTimes(1))
+    expect(associationService.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: ASSN_ID_2,
+        managers: ['other-user'],
+      })
+    )
+    await waitFor(() => expect(dialog).not.toHaveAttribute('open'))
+  })
+
+  it('shows an error alert when the removal fails', async () => {
+    vi.mocked(associationService.update).mockRejectedValue(new Error('permission denied'))
+    renderWithManagerAssociation()
+    fireEvent.click(
+      screen.getByRole('button', { name: 'profile.edit.associations.leaveConfirmTitle' })
+    )
+    const dialog = screen.getByRole('dialog')
+    fireEvent.click(within(dialog).getByRole('button', { name: 'common.confirm' }))
+    await waitFor(() =>
+      expect(screen.getByText('profile.edit.associations.errors.leave')).toBeInTheDocument()
+    )
+    await waitFor(() => expect(dialog).not.toHaveAttribute('open'))
   })
 })
 

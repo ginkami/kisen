@@ -1,9 +1,13 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
+import { BsX } from 'react-icons/bs'
 import { useAuth } from '../../context/AuthContext.tsx'
 import { useProfileForm } from '../../hooks/useProfileForm.ts'
 import { useMyAssociations } from '../../hooks/useAssociations.ts'
+import { ConfirmModal } from '../ConfirmModal.tsx'
+import { associationService } from '../../services/associationService.ts'
 import { LocaleTabs } from '../tournament/LocaleTabs.tsx'
 import { PasswordSection } from './PasswordSection.tsx'
 import type { SupportedLocale } from '../../domain/locale.ts'
@@ -33,7 +37,11 @@ export function ProfileEditForm({ profile }: ProfileEditFormProps) {
 
   const { locales, updateLocale, isDirty, save, isSaving, saveError, clearSaveError } =
     useProfileForm(profile)
+  const queryClient = useQueryClient()
   const { data: associations = [] } = useMyAssociations(profile.id)
+  const [pendingLeave, setPendingLeave] = useState<Association | null>(null)
+  const [isLeaving, setIsLeaving] = useState(false)
+  const [leaveError, setLeaveError] = useState(false)
 
   const activeLocaleData = locales[activeLocale]
   const displayNameInvalid = activeLocaleData.displayName.trim().length === 0
@@ -51,6 +59,27 @@ export function ProfileEditForm({ profile }: ProfileEditFormProps) {
 
   const associationTitle = (association: Association) =>
     association.locales[i18n.language]?.title ?? association.slug
+
+  const handleConfirmLeave = async () => {
+    if (!pendingLeave || isLeaving) return
+    const association = pendingLeave
+    setIsLeaving(true)
+    setLeaveError(false)
+    try {
+      await associationService.update({
+        id: association.id,
+        existing: association,
+        managers: association.managers.filter((managerId) => managerId !== profile.id),
+      })
+      setPendingLeave(null)
+      await queryClient.invalidateQueries({ queryKey: ['associations', 'my', profile.id] })
+    } catch {
+      setLeaveError(true)
+      setPendingLeave(null)
+    } finally {
+      setIsLeaving(false)
+    }
+  }
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -80,6 +109,13 @@ export function ProfileEditForm({ profile }: ProfileEditFormProps) {
         <div className="alert alert-error">
           <p className="flex-1">{t('profile.edit.errors.save')}</p>
           <button type="button" onClick={clearSaveError} className="btn btn-sm btn-ghost">×</button>
+        </div>
+      )}
+
+      {leaveError && (
+        <div className="alert alert-error">
+          <p className="flex-1">{t('profile.edit.associations.errors.leave')}</p>
+          <button type="button" onClick={() => setLeaveError(false)} className="btn btn-sm btn-ghost">×</button>
         </div>
       )}
 
@@ -178,24 +214,54 @@ export function ProfileEditForm({ profile }: ProfileEditFormProps) {
             <p className="text-sm opacity-70">{t('profile.edit.associations.empty')}</p>
           ) : (
             <div className="flex flex-wrap gap-2">
-              {associations.map((association) => (
-                <Link
-                  key={association.id}
-                  to={`/assn/${association.id}/edit`}
-                  className="badge badge-sm badge-primary gap-1 hover:badge-secondary"
-                >
-                  {associationTitle(association)}
-                  {association.createdBy === profile.id && (
+              {associations.map((association) =>
+                association.createdBy === profile.id ? (
+                  <Link
+                    key={association.id}
+                    to={`/assn/${association.id}/edit`}
+                    className="badge badge-sm badge-primary gap-1 hover:badge-secondary"
+                  >
+                    {associationTitle(association)}
                     <span className="ml-1 text-xs opacity-70">
                       ({t('association.edit.creator')})
                     </span>
-                  )}
-                </Link>
-              ))}
+                  </Link>
+                ) : (
+                  <span key={association.id} className="badge badge-sm badge-primary gap-1 pl-2">
+                    <Link to={`/assn/${association.id}/edit`} className="hover:badge-secondary">
+                      {associationTitle(association)}
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLeaveError(false)
+                        setPendingLeave(association)
+                      }}
+                      aria-label={t('profile.edit.associations.leaveConfirmTitle')}
+                      className="btn btn-ghost btn-xs px-1"
+                    >
+                      <BsX className="h-3.5 w-3.5" />
+                    </button>
+                  </span>
+                )
+              )}
             </div>
           )}
         </div>
       </div>
+
+      <ConfirmModal
+        isOpen={pendingLeave !== null}
+        title={t('profile.edit.associations.leaveConfirmTitle')}
+        message={t('profile.edit.associations.leaveConfirm', {
+          title: pendingLeave ? associationTitle(pendingLeave) : '',
+        })}
+        confirmText={t('common.confirm')}
+        cancelText={t('common.cancel')}
+        variant="error"
+        onConfirm={() => void handleConfirmLeave()}
+        onCancel={() => setPendingLeave(null)}
+      />
     </div>
   )
 }

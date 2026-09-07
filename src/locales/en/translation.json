@@ -93,7 +93,12 @@
       },
       "associations": {
         "title": "Associations you manage",
-        "empty": "You do not manage any associations yet."
+        "empty": "You do not manage any associations yet.",
+        "leaveConfirmTitle": "Leave association management?",
+        "leaveConfirm": "You will be removed from managing the association \"{{title}}\". You can only return via a new invite.",
+        "errors": {
+          "leave": "Failed to leave the association. Please try again."
+        }
       },
       "errors": {
         "save": "Failed to save changes. Please try again.",
