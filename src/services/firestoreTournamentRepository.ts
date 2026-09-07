@@ -4,6 +4,7 @@ import {
   getDoc,
   getDocs,
   setDoc,
+  writeBatch,
   deleteDoc,
   query,
   where,
@@ -19,6 +20,7 @@ import type {
 import { supportedLocales } from '../domain/locale.ts'
 import { resolveTimeZone, utcToZonedWallClock } from '../utils/scheduleTime.ts'
 import {
+  chunkArray,
   datesToTimestamps,
   timestampsToDates,
   removeUndefined,
@@ -295,6 +297,17 @@ export class FirestoreTournamentRepository implements TournamentRepository {
     const docRef = doc(db, COLLECTION_NAME, tournament.id)
     await setDoc(docRef, toFirestore(tournament))
     return tournament
+  }
+
+  async updateMany(tournaments: Tournament[]): Promise<void> {
+    if (tournaments.length === 0) return
+    for (const chunk of chunkArray(tournaments)) {
+      const batch = writeBatch(db)
+      for (const tournament of chunk) {
+        batch.set(doc(db, COLLECTION_NAME, tournament.id), toFirestore(tournament))
+      }
+      await batch.commit()
+    }
   }
 
   async delete(id: string): Promise<void> {

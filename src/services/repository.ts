@@ -18,6 +18,7 @@ export interface TournamentRepository {
   list(filters?: ListTournamentsFilters): Promise<Tournament[]>
   create(tournament: Tournament): Promise<Tournament>
   update(tournament: Tournament): Promise<Tournament>
+  updateMany(tournaments: Tournament[]): Promise<void>
   delete(id: string): Promise<void>
   slugExists(slug: string): Promise<string | null>
   searchByTitle(prefix: string): Promise<Tournament[]>
@@ -36,16 +37,24 @@ export interface EventRepository {
   list(filters?: ListEventsFilters): Promise<Event[]>
   create(event: Event): Promise<Event>
   update(event: Event): Promise<Event>
+  updateMany(events: Event[]): Promise<void>
   delete(id: string): Promise<void>
   slugExists(slug: string): Promise<string | null>
   searchByTitle(prefix: string): Promise<Event[]>
 }
 
+export interface ListPlayersFilters {
+  primaryAssociation?: string
+  secondaryAssociations?: string
+}
+
 export interface PlayerRepository {
   getById(id: string): Promise<Player | null>
   listAll(): Promise<Player[]>
+  list(filters?: ListPlayersFilters): Promise<Player[]>
   create(player: Player): Promise<Player>
   update(player: Player): Promise<Player>
+  updateMany(players: Player[]): Promise<void>
   delete(id: string): Promise<void>
   searchByFamilyName(prefix: string): Promise<Player[]>
 }
@@ -64,6 +73,7 @@ export interface RegulationRepository {
   list(filters?: ListRegulationsFilters): Promise<Regulation[]>
   create(regulation: Regulation): Promise<Regulation>
   update(regulation: Regulation): Promise<Regulation>
+  updateMany(regulations: Regulation[]): Promise<void>
   delete(id: string): Promise<void>
 }
 

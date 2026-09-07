@@ -90,6 +90,18 @@ export function datesToTimestamps(value: unknown): unknown {
 }
 
 /**
+ * Splits an array into chunks of at most `size` elements (Firestore
+ * `writeBatch` accepts at most 500 operations per batch).
+ */
+export function chunkArray<T>(items: T[], size = 500): T[][] {
+  const chunks: T[][] = []
+  for (let i = 0; i < items.length; i += size) {
+    chunks.push(items.slice(i, i + size))
+  }
+  return chunks
+}
+
+/**
  * Recursively removes all `undefined` values from objects and arrays.
  */
 export function removeUndefined(value: unknown): unknown {

@@ -43,6 +43,16 @@ service cloud.firestore {
       return isManagerOf(resource.data.primaryAssociation);
     }
 
+    // True when the user can act for at least one association listed in the
+    // player's secondaryAssociations (i.e. the list is non-empty and the user
+    // is manager/creator of at least one of its entries).
+    function hasSecondaryAssociationAccess(resource) {
+      return isAuthenticated()
+        && !(resource.data.get('secondaryAssociations', []).all(
+          associationId, !canActForAssociation(associationId)
+        ));
+    }
+
     // ---------- Users (Профили пользователей) ----------
     match /users/{userId} {
       allow read: if isAuthenticated();
@@ -78,9 +88,15 @@ service cloud.firestore {
           && isManagerOf(request.resource.data.primaryAssociation)
         );
 
+      // Clearing primaryAssociation (null) or removing an id from
+      // secondaryAssociations is allowed for admin/owner/primary-manager and
+      // for anyone who can act for the old primary or one of the old secondary
+      // associations (e.g. while that association is being deleted).
       allow update: if isAdmin()
         || isOwner(resource.data.createdBy)
-        || hasPlayerManagerAccess(resource);
+        || hasPlayerManagerAccess(resource)
+        || canActForAssociation(resource.data.get('primaryAssociation', null))
+        || hasSecondaryAssociationAccess(resource);
 
       allow delete: if isAdmin() || hasPlayerManagerAccess(resource);
     }
@@ -96,10 +112,13 @@ service cloud.firestore {
         );
       }
 
-      // Если хост-ассоциация меняется, пользователь должен быть менеджером или создателем новой
+      // Если хост-ассоциация меняется, пользователь должен быть менеджером или создателем новой.
+      // Очистка ссылки (null) разрешена тому, кто может действовать от имени старой ассоциации
+      // (например, при её удалении).
       function isValidHostAssociationChange() {
         return request.resource.data.get('hostAssociation', null) == resource.data.get('hostAssociation', null)
-          || canActForAssociation(request.resource.data.get('hostAssociation', null));
+          || canActForAssociation(request.resource.data.get('hostAssociation', null))
+          || canActForAssociation(resource.data.get('hostAssociation', null));
       }
 
       allow read: if true;
@@ -128,9 +147,11 @@ service cloud.firestore {
     match /events/{eventId} {
       allow read: if true;
 
+      // Очистка ссылки (null) разрешена тому, кто может действовать от имени старой ассоциации.
       function isValidEventHostAssociationChange() {
         return request.resource.data.get('hostAssociation', null) == resource.data.get('hostAssociation', null)
-          || canActForAssociation(request.resource.data.get('hostAssociation', null));
+          || canActForAssociation(request.resource.data.get('hostAssociation', null))
+          || canActForAssociation(resource.data.get('hostAssociation', null));
       }
 
       allow create: if isAuthenticated()
@@ -155,9 +176,11 @@ service cloud.firestore {
     match /regulations/{regulationId} {
       allow read: if true;
 
+      // Очистка ссылки (null) разрешена тому, кто может действовать от имени старой ассоциации.
       function isValidAssociationChange() {
         return request.resource.data.get('association', null) == resource.data.get('association', null)
-          || canActForAssociation(request.resource.data.get('association', null));
+          || canActForAssociation(request.resource.data.get('association', null))
+          || canActForAssociation(resource.data.get('association', null));
       }
 
       allow create: if isAuthenticated()

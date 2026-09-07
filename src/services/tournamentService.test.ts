@@ -14,6 +14,7 @@ function createMockRepository(): TournamentRepository {
     list: vi.fn().mockResolvedValue([]),
     create: vi.fn((tournament: Tournament) => Promise.resolve(tournament)),
     update: vi.fn((tournament: Tournament) => Promise.resolve(tournament)),
+    updateMany: vi.fn().mockResolvedValue(undefined),
     delete: vi.fn().mockResolvedValue(undefined),
     slugExists: vi.fn().mockResolvedValue(false),
     searchByTitle: vi.fn().mockResolvedValue([]),

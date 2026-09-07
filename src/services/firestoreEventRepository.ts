@@ -4,6 +4,7 @@ import {
   getDoc,
   getDocs,
   setDoc,
+  writeBatch,
   deleteDoc,
   query,
   where,
@@ -15,7 +16,7 @@ import { db } from './firebaseConfig.ts'
 import type { Event } from '../domain/event.ts'
 import type { EventRepository, ListEventsFilters } from './repository.ts'
 import { supportedLocales } from '../domain/locale.ts'
-import { datesToTimestamps, timestampsToDates } from './firestoreHelpers.ts'
+import { chunkArray, datesToTimestamps, timestampsToDates } from './firestoreHelpers.ts'
 
 /**
  * Split ids into chunks of `size` (Firestore 'in' queries accept at most 30
@@ -139,6 +140,17 @@ export class FirestoreEventRepository implements EventRepository {
     const docRef = doc(db, COLLECTION_NAME, event.id)
     await setDoc(docRef, toFirestore(event))
     return event
+  }
+
+  async updateMany(events: Event[]): Promise<void> {
+    if (events.length === 0) return
+    for (const chunk of chunkArray(events)) {
+      const batch = writeBatch(db)
+      for (const event of chunk) {
+        batch.set(doc(db, COLLECTION_NAME, event.id), toFirestore(event))
+      }
+      await batch.commit()
+    }
   }
 
   async delete(id: string): Promise<void> {

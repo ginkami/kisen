@@ -4,6 +4,7 @@ import {
   getDoc,
   getDocs,
   setDoc,
+  writeBatch,
   deleteDoc,
   query,
   where,
@@ -12,9 +13,10 @@ import {
 } from 'firebase/firestore'
 import { db } from './firebaseConfig.ts'
 import type { Player } from '../domain/player.ts'
-import type { PlayerRepository } from './repository.ts'
+import type { ListPlayersFilters, PlayerRepository } from './repository.ts'
 import { supportedLocales } from '../domain/locale.ts'
 import {
+  chunkArray,
   datesToTimestamps,
   timestampsToDates,
   removeUndefined,
@@ -69,6 +71,17 @@ export class FirestorePlayerRepository implements PlayerRepository {
     return player
   }
 
+  async updateMany(players: Player[]): Promise<void> {
+    if (players.length === 0) return
+    for (const chunk of chunkArray(players)) {
+      const batch = writeBatch(db)
+      for (const player of chunk) {
+        batch.set(doc(db, COLLECTION_NAME, player.id), toFirestore(player))
+      }
+      await batch.commit()
+    }
+  }
+
   async delete(id: string): Promise<void> {
     const docRef = doc(db, COLLECTION_NAME, id)
     await deleteDoc(docRef)
@@ -76,6 +89,32 @@ export class FirestorePlayerRepository implements PlayerRepository {
 
   async listAll(): Promise<Player[]> {
     const snapshot = await getDocs(this.collectionRef)
+    return snapshot.docs.map((docSnap) =>
+      fromFirestore({
+        id: docSnap.id,
+        ...docSnap.data(),
+      } as Record<string, unknown>)
+    )
+  }
+
+  async list(filters: ListPlayersFilters = {}): Promise<Player[]> {
+    const constraints: ReturnType<typeof where | typeof orderBy>[] = []
+
+    if (filters.primaryAssociation) {
+      constraints.push(where('primaryAssociation', '==', filters.primaryAssociation))
+    }
+    if (filters.secondaryAssociations) {
+      constraints.push(
+        where('secondaryAssociations', 'array-contains', filters.secondaryAssociations)
+      )
+    }
+
+    if (constraints.length === 0) {
+      return this.listAll()
+    }
+
+    const q = query(this.collectionRef, ...constraints)
+    const snapshot = await getDocs(q)
     return snapshot.docs.map((docSnap) =>
       fromFirestore({
         id: docSnap.id,

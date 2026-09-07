@@ -312,6 +312,9 @@ export function useAssociationForm(associationId: string | undefined) {
       queryClient.invalidateQueries({ queryKey: ['associations'] })
       navigate('/')
     },
+    onError: (error) => {
+      console.error('Association delete failed', error)
+    },
   })
 
   const save = useCallback(() => {

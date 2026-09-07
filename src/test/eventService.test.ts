@@ -31,6 +31,7 @@ function makeRepository(): {
     list: async () => [],
     create: async (event) => event,
     update: async (event) => event,
+    updateMany: async () => {},
     delete: async () => {},
     slugExists: async () => null,
     searchByTitle: async () => [],

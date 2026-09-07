@@ -4,6 +4,7 @@ import {
   getDoc,
   getDocs,
   setDoc,
+  writeBatch,
   deleteDoc,
   query,
   where,
@@ -12,7 +13,7 @@ import {
 import { db } from './firebaseConfig.ts'
 import type { Regulation } from '../domain/regulation.ts'
 import type { RegulationRepository, ListRegulationsFilters } from './repository.ts'
-import { datesToTimestamps, timestampsToDates } from './firestoreHelpers.ts'
+import { chunkArray, datesToTimestamps, timestampsToDates } from './firestoreHelpers.ts'
 
 const COLLECTION_NAME = 'regulations'
 
@@ -76,6 +77,17 @@ export class FirestoreRegulationRepository implements RegulationRepository {
     const docRef = doc(db, COLLECTION_NAME, regulation.id)
     await setDoc(docRef, toFirestore(regulation))
     return regulation
+  }
+
+  async updateMany(regulations: Regulation[]): Promise<void> {
+    if (regulations.length === 0) return
+    for (const chunk of chunkArray(regulations)) {
+      const batch = writeBatch(db)
+      for (const regulation of chunk) {
+        batch.set(doc(db, COLLECTION_NAME, regulation.id), toFirestore(regulation))
+      }
+      await batch.commit()
+    }
   }
 
   async delete(id: string): Promise<void> {
