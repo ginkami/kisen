@@ -1,6 +1,6 @@
 ## Purpose
 
-TBD
+The General info section of the tournament edit form: its layout and locale switcher, optional field expansion, ru-to-en value mirroring, geocoded location input, chief arbiter field, slug binding, and parent-event and host-association pickers.
 
 ## Requirements
 

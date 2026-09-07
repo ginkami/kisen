@@ -1,6 +1,6 @@
 ## Purpose
 
-TBD
+The tabbed layout of the tournament editor: the set of editor tabs and the content area each tab renders.
 
 ## Requirements
 

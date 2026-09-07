@@ -1,4 +1,8 @@
-## ADDED Requirements
+## Purpose
+
+Protection of persisted text data: silent stripping of HTML and control characters on input, tolerance of Markdown markup, neutralization of dangerous URL schemes in Markdown links, deep sanitization in services before schema validation, and injection safety of the persistence layer.
+
+## Requirements
 
 ### Requirement: Text inputs are sanitized on entry
 

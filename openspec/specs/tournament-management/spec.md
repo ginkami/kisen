@@ -1,6 +1,6 @@
 ## Purpose
 
-TBD
+Tournament entities and their lifecycle: basic information fields, regulations picker, startYearMonth and currentRound computation, settings such as considerSente, the pairings tab with draw publishing and board drag-and-drop, and title search in the admin drawer.
 
 ## Requirements
 

@@ -1,4 +1,8 @@
-## MODIFIED Requirements
+## Purpose
+
+Player entities and their management: creation/edit routes and the player edit form, form state management, information and rating sections, player cards and duplicate merging, CSV bulk import in the admin drawer, and locale-agnostic family-name search.
+
+## Requirements
 
 ### Requirement: Player create/edit routes and placeholder page
 
@@ -23,8 +27,6 @@ The system SHALL provide routes `/players/new` (for creation) and `/players/:id/
 
 - **WHEN** the user changes the familyName or givenName field
 - **THEN** the h1 heading and document title update immediately to reflect the new name
-
-## ADDED Requirements
 
 ### Requirement: Player form state management
 
@@ -249,8 +251,6 @@ The `usePlayerForm` hook SHALL load player data into form state via the `useQuer
 - **THEN** `formState` is populated with `playerToFormState(player)`
 - **AND** `lastSavedSnapshot` is set to the JSON string of the initial state
 - **AND** no cascading render occurs (no synchronous setState in useEffect body)
-
-## ADDED Requirements
 
 ### Requirement: Player CSV bulk import
 

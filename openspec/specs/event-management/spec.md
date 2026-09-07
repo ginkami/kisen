@@ -1,4 +1,8 @@
-## ADDED Requirements
+## Purpose
+
+Event entities and their management: the admin drawer "Events" section with independent month selection and title search, event edit routes and form including regulation references, and service-level `startYearMonth` synchronization and slug uniqueness checks.
+
+## Requirements
 
 ### Requirement: Events section in admin drawer
 

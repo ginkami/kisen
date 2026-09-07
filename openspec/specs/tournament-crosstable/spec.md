@@ -1,4 +1,8 @@
-## ADDED Requirements
+## Purpose
+
+The tournament crosstable: its tab in the tournament edit form, table columns and rank badge styling, inline editing of pairings and results, and rich opponent hover cards.
+
+## Requirements
 
 ### Requirement: Crosstable tab
 
@@ -142,8 +146,6 @@ The crosstable content SHALL scroll inside its container (`overflow-auto`). The 
 - **WHEN** the table is wider than its container and the user scrolls right
 - **THEN** the row number, flag, rank badge, and name columns remain visible on the left
 
-
-## ADDED Requirements (Part 2)
 
 ### Requirement: Cell input grammar and serialization
 

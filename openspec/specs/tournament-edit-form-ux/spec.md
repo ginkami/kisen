@@ -1,6 +1,6 @@
 ## Purpose
 
-TBD
+User-experience details of the tournament edit form: locale-isolated editing, collapsible optional fields, localized locale switcher, SVG country flags, arbiter handling, default values for new drafts, Buchholz cut tie-break configuration, and the unified schedule section.
 
 ## Requirements
 
