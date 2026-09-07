@@ -42,7 +42,11 @@ function makeGame(overrides: Partial<Game> & { round: number }): Game {
 }
 
 function bodyRows(container: HTMLElement): HTMLElement[] {
-  return Array.from(container.querySelectorAll('tbody tr'))
+  // Exclude the trailing spacer row (<tr><td colSpan={12}></td></tr>):
+  // game rows have 12+ cells, the spacer has a single empty td
+  return Array.from(container.querySelectorAll('tbody tr')).filter(
+    (tr) => tr.children.length > 1,
+  )
 }
 
 function rowTexts(row: HTMLElement): string[] {
