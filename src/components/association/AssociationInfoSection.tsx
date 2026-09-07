@@ -105,7 +105,7 @@ export function AssociationInfoSection({
               value={country}
               onChange={onUpdateCountry}
               lang={i18n.language === 'ru' ? 'ru' : 'en'}
-              placeholder={t('tournament.edit.noCountry')}
+              placeholder={t('common.noCountry')}
             />
           </ExpandableField>
           <ExpandableField

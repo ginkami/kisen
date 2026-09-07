@@ -6,7 +6,9 @@ import { CountrySelect } from '../tournament/CountrySelect.tsx'
 import { LocaleTabs } from '../tournament/LocaleTabs.tsx'
 import { ExpandableField } from '../tournament/ExpandableField.tsx'
 import { AssociationPickerModal } from '../tournament/AssociationPickerModal.tsx'
+import { useAssociationsByIds } from '../../hooks/useAssociations.ts'
 import type { PlayerFormState, PlayerFormLocaleFields } from '../../hooks/playerFormHelpers.ts'
+import type { Association } from '../../domain/association.ts'
 import type { PlayerRank } from '../../domain/playerRating.ts'
 import type { SupportedLocale } from '../../domain/locale.ts'
 
@@ -46,6 +48,17 @@ export function PlayerInfoSection({
     ...(formState.primaryAssociation ? [formState.primaryAssociation] : []),
     ...formState.secondaryAssociations,
   ]
+  const linkedAssociations = useAssociationsByIds(allAssociationIds)
+
+  const associationTitleFor = (id: string) => {
+    const association = linkedAssociations.find((item) => item.id === id)
+    if (!association) return `${id.substring(0, 8)}…`
+    return (
+      association.locales[i18n.language as keyof Association['locales']]?.title ??
+      Object.values(association.locales).find((locale) => locale.title)?.title ??
+      association.slug
+    )
+  }
 
   return (
     <div className="card bg-base-200 shadow-sm">
@@ -106,7 +119,7 @@ export function PlayerInfoSection({
               value={formState.nationality}
               onChange={(value) => onUpdateBasic('nationality', value)}
               lang={i18n.language === 'ru' ? 'ru' : 'en'}
-              placeholder={t('tournament.edit.noCountry')}
+              placeholder={t('common.noCountry')}
             />
             {validationErrors.nationality && (
               <span className="text-error text-xs mt-1">{t('common.fieldRequired')}</span>
@@ -129,7 +142,7 @@ export function PlayerInfoSection({
               value={formState.residence}
               onChange={(value) => onUpdateBasic('residence', value)}
               lang={i18n.language === 'ru' ? 'ru' : 'en'}
-              placeholder={t('tournament.edit.noCountry')}
+              placeholder={t('common.noCountry')}
             />
           </ExpandableField>
           <ExpandableField
@@ -227,7 +240,7 @@ export function PlayerInfoSection({
           <div className="flex flex-wrap gap-2">
             {allAssociationIds.map((id) => (
               <span key={id} className="badge badge-outline gap-2">
-                {id.substring(0, 8)}…
+                {associationTitleFor(id)}
                 {canEditAssociations && (
                   <button
                     type="button"

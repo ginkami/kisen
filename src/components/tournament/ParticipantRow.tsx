@@ -269,7 +269,7 @@ export function ParticipantRow({ row, activeLocale, onUpdate, validationErrors, 
             value={row.nationality}
             onChange={(value) => onUpdate({ nationality: value })}
             lang={i18n.language === 'ru' ? 'ru' : 'en'}
-            placeholder={t('tournament.edit.noCountry')}
+            placeholder={t('common.noCountry')}
             buttonClassName='btn-sm'
           />
         </div>
@@ -301,7 +301,7 @@ export function ParticipantRow({ row, activeLocale, onUpdate, validationErrors, 
             value={row.residence}
             onChange={(value) => onUpdate({ residence: value })}
             lang={i18n.language === 'ru' ? 'ru' : 'en'}
-            placeholder={t('tournament.edit.noCountry')}
+            placeholder={t('common.noCountry')}
             buttonClassName='btn-sm'
           />
         </ExpandableField>
