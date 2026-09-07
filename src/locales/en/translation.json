@@ -385,6 +385,7 @@
       "invitePlaceholder": "Enter user's family name or email",
       "select": "Select",
       "noUsersFound": "No users found",
+      "inviteByEmail": "Invite by email",
       "slugTaken": "This URL slug is already taken",
       "save": "Save",
       "delete": "Delete",

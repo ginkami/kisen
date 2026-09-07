@@ -146,7 +146,7 @@ export async function createUser(input: CreateUserInput): Promise<User> {
     updatedAt: ReturnType<typeof serverTimestamp>
   } = {
     id: input.id,
-    email: input.email,
+    email: input.email.toLowerCase(),
     role: input.role ?? 'user',
     auth: {
       passwordHash: input.passwordHash ?? null,

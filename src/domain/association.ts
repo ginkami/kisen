@@ -9,6 +9,8 @@ export const associationLocaleSchema = z.object({
 
 export type AssociationLocale = z.infer<typeof associationLocaleSchema>
 
+export const emailSchema = z.string().email()
+
 export const associationSchema = z.object({
   id: z.string().uuid(),
   slug: z.string().min(1).regex(/^[a-z0-9-]+$/),
@@ -19,7 +21,7 @@ export const associationSchema = z.object({
   ),
   country: z.string().length(2).optional(),
   managers: z.array(z.string().min(1)).default([]),
-  pendingInvites: z.array(z.string().email()).default([]),
+  pendingInvites: z.array(emailSchema).default([]),
 })
 
 export type Association = z.infer<typeof associationSchema>

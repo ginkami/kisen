@@ -389,6 +389,7 @@
       "invitePlaceholder": "Введите фамилию пользователя или email",
       "select": "Выбрать",
       "noUsersFound": "Пользователи не найдены",
+      "inviteByEmail": "Пригласить по email",
       "slugTaken": "Этот URL-идентификатор уже занят",
       "save": "Сохранить",
       "delete": "Удалить",

@@ -211,7 +211,7 @@ describe('ProfilePage save flow', () => {
   it('shows an error alert when saving fails', async () => {
     vi.mocked(updateUser).mockRejectedValueOnce(new Error('firestore down'))
     renderProfilePage()
-    fireEvent.change(screen.getByLabelText('profile.edit.displayName'), {
+    fireEvent.change(screen.getByLabelText(/^profile\.edit\.displayName/), {
       target: { value: 'Сева' },
     })
     fireEvent.click(screen.getByRole('button', { name: 'profile.edit.save' }))
@@ -233,7 +233,7 @@ describe('ProfilePage save flow', () => {
     expect(saveButton).toBeDisabled()
     expect(screen.getByText('profile.edit.errors.displayNameRequired')).toBeInTheDocument()
 
-    fireEvent.change(screen.getByLabelText('profile.edit.displayName'), {
+    fireEvent.change(screen.getByLabelText(/^profile\.edit\.displayName/), {
       target: { value: 'Ив' },
     })
     expect(saveButton).toBeEnabled()

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { BsSearch } from 'react-icons/bs'
 import { searchByFamilyName, getByEmail } from '../../services/userService.ts'
+import { emailSchema } from '../../domain/association.ts'
 import type { User } from '../../types/user.ts'
 import type { SupportedLocale } from '../../domain/locale.ts'
 
@@ -24,22 +25,37 @@ export function ManagerInviteInput({
   const [inputValue, setInputValue] = useState('')
   const [userResults, setUserResults] = useState<User[]>([])
   const [emailCandidate, setEmailCandidate] = useState<string | null>(null)
+  const [userExcluded, setUserExcluded] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [showDropdown, setShowDropdown] = useState(false)
-
-  const isEmailMode = inputValue.includes('@')
 
   const handleInputChange = async (value: string) => {
     setInputValue(value)
     setUserResults([])
     setEmailCandidate(null)
+    setUserExcluded(false)
 
-    if (isEmailMode) {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-      if (emailRegex.test(value)) {
-        if (!excludeEmails.includes(value.toLowerCase())) {
-          setEmailCandidate(value.toLowerCase())
+    if (value.includes('@')) {
+      if (emailSchema.safeParse(value).success) {
+        const email = value.toLowerCase()
+        if (!excludeEmails.includes(email)) {
+          setIsLoading(true)
           setShowDropdown(true)
+          try {
+            const user = await getByEmail(email)
+            if (user && !excludeUserIds.includes(user.id)) {
+              setUserResults([user])
+            } else if (user) {
+              // the user is the association creator or already a manager
+              setUserExcluded(true)
+            } else {
+              setEmailCandidate(email)
+            }
+          } catch {
+            setEmailCandidate(email)
+          } finally {
+            setIsLoading(false)
+          }
         }
       }
       return
@@ -62,15 +78,18 @@ export function ManagerInviteInput({
   }
 
   const handleSelectUser = (user: User) => {
+    if (excludeUserIds.includes(user.id)) return
     onAddUser(user.id)
     setInputValue('')
     setShowDropdown(false)
   }
 
   const handleSelectEmail = async (email: string) => {
+    if (!emailSchema.safeParse(email).success) return
     setIsLoading(true)
     try {
       const user = await getByEmail(email)
+      if (user && excludeUserIds.includes(user.id)) return
       if (user) {
         onAddUser(user.id)
       } else {
@@ -110,7 +129,7 @@ export function ManagerInviteInput({
           value={inputValue}
           onChange={(e) => handleInputChange(e.target.value)}
           onFocus={() => {
-            if (inputValue.length >= 3 || isEmailMode) setShowDropdown(true)
+            if (inputValue.length >= 3 || inputValue.includes('@')) setShowDropdown(true)
           }}
           onBlur={handleBlur}
           placeholder={t('association.edit.invitePlaceholder')}
@@ -147,14 +166,19 @@ export function ManagerInviteInput({
                 onClick={() => handleSelectEmail(emailCandidate)}
                 className="btn btn-xs btn-primary"
               >
-                {t('association.edit.select')}
+                {t('association.edit.inviteByEmail')}
               </button>
             </div>
           )}
 
-          {!isLoading && userResults.length === 0 && !emailCandidate && inputValue.length >= 3 && (
-            <p className="text-sm opacity-70 px-2 py-1">{t('association.edit.noUsersFound')}</p>
-          )}
+          {!isLoading &&
+            userResults.length === 0 &&
+            ((inputValue.includes('@') && (emailCandidate || userExcluded)) ||
+              (!inputValue.includes('@') && inputValue.length >= 3)) && (
+              <p className="text-sm opacity-70 px-2 py-1">
+                {t('association.edit.noUsersFound')}
+              </p>
+            )}
         </div>
       )}
     </div>
