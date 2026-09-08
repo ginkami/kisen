@@ -7,9 +7,8 @@ import { BsGear, BsX, BsCalendar2, BsPlus, BsFiletypeCsv, BsPeopleFill, BsFunnel
 import { useAuth } from '../context/AuthContext.tsx'
 import { useAssociationsForPanel } from '../hooks/useAssociations.ts'
 import { useTournamentSearch } from '../hooks/useTournaments.ts'
-import { useEventSearch, useEventsByIds } from '../hooks/useEvents.ts'
+import { useEventSearch, useEventsByIds, useEditableEvents } from '../hooks/useEvents.ts'
 import { tournamentService } from '../services/tournamentService.ts'
-import { eventService } from '../services/eventService.ts'
 import { regulationService } from '../services/regulationService.ts'
 import { playerService, type ImportResult } from '../services/playerService.ts'
 import { BulkImportResultModal } from './BulkImportResultModal.tsx'
@@ -24,6 +23,7 @@ import { resolveLocationTimeZone } from '../utils/scheduleTime.ts'
 import { getTournamentLocale } from '../domain/tournament.ts'
 import { NewTournamentButton } from './NewTournamentButton.tsx'
 import { canEditPlayer, type Player } from '../domain/player.ts'
+import { canEditEvent, type Event } from '../domain/event.ts'
 import type { Tournament, TournamentStatus } from '../domain/tournament.ts'
 
 interface AdminDrawerProps {
@@ -150,19 +150,27 @@ export function AdminDrawer({
 
   // Events
   const eventYearMonth = parseMonthInputToYearMonth(selectedEventYearMonth)
-  const canManageEvents = user?.role === 'admin' || user?.role === 'manager'
-  const { data: events = [], isLoading: isLoadingEvents } = useQuery({
-    queryKey: ['adminEvents', eventYearMonth, userId],
-    queryFn: async () => {
-      if (!userId) return []
-      return eventService.listByYearMonth(eventYearMonth, userId)
-    },
-    enabled: isAuthenticated && !!userId && isOpen && canManageEvents,
-  })
+  // Any authenticated user may create events (owner-based, like tournaments);
+  // the month list and search only offer events the user may edit.
+  const canManageEvents = isAuthenticated && !!userId
 
-  // Regulations
+  // Associations the current user manages (creator or invited manager) —
+  // drives the regulations list, the event month list, and the edit-access
+  // filters below.
   const managedAssociationIds = useMemo(() => associations.map((a) => a.id), [associations])
   const isAdmin = user?.role === 'admin'
+  const { data: editableEvents = [], isLoading: isLoadingEvents } = useEditableEvents(
+    userId,
+    managedAssociationIds,
+    isAdmin
+  )
+  // query data can be null (e.g. initial state); default param only covers undefined
+  const events = useMemo(
+    () => (editableEvents ?? []).filter((event) => event.startYearMonth === eventYearMonth),
+    [editableEvents, eventYearMonth]
+  )
+
+  // Regulations
   const { data: regulationsData = [], isLoading: isLoadingRegulations, error: regulationsError } = useQuery({
     queryKey: ['adminRegulations', userId, managedAssociationIds, isAdmin],
     queryFn: async () => {
@@ -194,6 +202,19 @@ export function AdminDrawer({
     data: eventSearchResults = [],
     isFetching: isFetchingEventSearch,
   } = useEventSearch(isSearchingEvents ? eventSearch : '')
+
+  // Drawer event search only offers events the current user may edit
+  // (mirroring the Firestore rules for event updates): admins see all
+  // events, other users only events they created or events under
+  // associations they manage.
+  const eventFilter = useMemo(() => {
+    if (isAdmin || !userId) return undefined
+    return (event: Event) => canEditEvent(event, userId, isAdmin, managedAssociationIds)
+  }, [isAdmin, userId, managedAssociationIds])
+
+  const visibleEventResults = eventFilter
+    ? eventSearchResults.filter(eventFilter)
+    : eventSearchResults
 
   const sortedTournaments = useMemo(() => {
     return [...(tournaments ?? [])].sort((a, b) => {
@@ -551,12 +572,12 @@ export function AdminDrawer({
 
                     {isSearchingEvents && !isFetchingEventSearch && (
                       <div className="flex max-h-96 flex-col gap-2 overflow-y-auto">
-                        {eventSearchResults.length === 0 ? (
+                        {visibleEventResults.length === 0 ? (
                           <p className="text-sm opacity-70">
                             {t('admin.noSearchResults')}
                           </p>
                         ) : (
-                          eventSearchResults.map((event) => {
+                          visibleEventResults.map((event) => {
                             const title = event.locales[i18n.language as keyof typeof event.locales]?.title ?? event.slug
                             return (
                               <button

@@ -438,7 +438,8 @@
       "errors": {
         "load": "Failed to load event.",
         "save": "Failed to save event.",
-        "delete": "Failed to delete event."
+        "delete": "Failed to delete event.",
+        "noAccess": "You do not have permission to edit this event."
       }
     }
   },

@@ -65,3 +65,17 @@ export function useEventsByIds(ids: string[]) {
 
   return { eventsById: byId, isLoading: query.isLoading }
 }
+
+/** Events the current user may edit (creator or managed host association). */
+export function useEditableEvents(
+  userId: string | undefined,
+  managedAssociationIds: string[],
+  isAdmin: boolean
+) {
+  return useQuery({
+    queryKey: ['events', 'editable', userId, managedAssociationIds, isAdmin],
+    queryFn: () => eventService.listEditable(userId!, managedAssociationIds, isAdmin),
+    enabled: !!userId,
+    staleTime: 30 * 1000,
+  })
+}

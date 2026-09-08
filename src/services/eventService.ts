@@ -111,6 +111,40 @@ export class EventService {
     return this.repository.list({ createdBy: userId })
   }
 
+  /**
+   * Events the current user may edit (mirrors the Firestore rules for event
+   * updates): all events for admins; otherwise events created by the user
+   * plus events whose host association belongs to the managed associations.
+   */
+  async listEditable(
+    userId: string,
+    managedAssociationIds: string[],
+    isAdmin: boolean
+  ): Promise<Event[]> {
+    if (isAdmin) {
+      return this.repository.list({})
+    }
+
+    const queries: Promise<Event[]>[] = [
+      this.repository.list({ createdBy: userId }),
+    ]
+    for (const associationId of managedAssociationIds) {
+      queries.push(this.repository.list({ hostAssociation: associationId }))
+    }
+
+    const results = await Promise.all(queries)
+    const byId = new Map<string, Event>()
+    for (const batch of results) {
+      for (const event of batch) {
+        byId.set(event.id, event)
+      }
+    }
+
+    return Array.from(byId.values()).sort(
+      (a, b) => b.updatedAt.getTime() - a.updatedAt.getTime()
+    )
+  }
+
   async searchByTitle(prefix: string): Promise<Event[]> {
     return this.repository.searchByTitle(prefix)
   }

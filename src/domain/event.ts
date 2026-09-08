@@ -35,3 +35,22 @@ export const draftEventSchema = eventSchema
   .partial()
 
 export type DraftEvent = z.infer<typeof draftEventSchema>
+
+/**
+ * Client-side mirror of the Firestore rules guarding event updates:
+ * admins, the event's creator, and managers of the event's host
+ * association may edit.
+ */
+export function canEditEvent(
+  event: Pick<Event, 'createdBy' | 'hostAssociation'>,
+  userId: string,
+  isAdmin: boolean,
+  managedAssociationIds: readonly string[],
+): boolean {
+  if (isAdmin) return true
+  if (event.createdBy === userId) return true
+  return (
+    event.hostAssociation !== null &&
+    managedAssociationIds.includes(event.hostAssociation)
+  )
+}

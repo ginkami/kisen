@@ -14,6 +14,7 @@ import { AssociationPickerModal } from '../tournament/AssociationPickerModal.tsx
 import { RegulationPickerModal } from '../tournament/RegulationPickerModal.tsx'
 import { useMyAssociations } from '../../hooks/useAssociations.ts'
 import { regulationService } from '../../services/regulationService.ts'
+import { canEditEvent } from '../../domain/event.ts'
 import type { SupportedLocale } from '../../domain/locale.ts'
 import type { Association } from '../../domain/association.ts'
 
@@ -54,7 +55,10 @@ export function EventEditForm({ eventId }: EventEditFormProps) {
   } = useEventForm(eventId)
 
   const { firebaseUser: authUser, user } = useAuth()
-  const { data: associations = [] } = useMyAssociations(authUser?.uid)
+  const {
+    data: associations = [],
+    isLoading: isLoadingMyAssociations,
+  } = useMyAssociations(authUser?.uid)
 
   const [showRegulationPicker, setShowRegulationPicker] = useState(false)
   const managedAssociationIds = associations.map((a) => a.id)
@@ -71,6 +75,15 @@ export function EventEditForm({ eventId }: EventEditFormProps) {
     if (!reg) return ''
     return reg.locales[i18n.language as keyof typeof reg.locales]?.title ?? ''
   }
+
+  // Client-side mirror of the Firestore event-update rules: admins, the
+  // creator, and managers of the host association may edit. Guarding here
+  // prevents opening a dead-end editor via a direct URL.
+  const isCheckingAccess = !!event && isLoadingMyAssociations
+  const canEditThisEvent =
+    !event ||
+    !authUser?.uid ||
+    canEditEvent(event, authUser.uid, isAdmin, managedAssociationIds)
 
   const localizedTitle = formState?.locales[activeLocale]?.title ?? ''
   const displayTitle = localizedTitle || (isNew ? t('event.edit.newTitle') : '')
@@ -93,6 +106,25 @@ export function EventEditForm({ eventId }: EventEditFormProps) {
 
   if (loadError) {
     return <p className="text-error">{t('event.edit.errors.load')}</p>
+  }
+
+  // The event query has resolved here (isLoading handled above); wait for
+  // the user's managed associations before deciding, so a legitimate editor
+  // never sees a false "no access" flash.
+  if (event && isCheckingAccess) {
+    return (
+      <div className="flex justify-center py-12">
+        <span className="loading loading-spinner loading-lg" />
+      </div>
+    )
+  }
+
+  if (event && !canEditThisEvent) {
+    return (
+      <div className="alert alert-error" role="alert">
+        <p>{t('event.edit.errors.noAccess')}</p>
+      </div>
+    )
   }
 
   const handleDelete = () => {

@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { BsCalendar2 } from 'react-icons/bs'
-import { useEventsForMonth } from '../../hooks/useEvents.ts'
+import { useAuth } from '../../context/AuthContext.tsx'
+import { useMyAssociations } from '../../hooks/useAssociations.ts'
+import { useEditableEvents } from '../../hooks/useEvents.ts'
 import type { Event } from '../../domain/event.ts'
 import {
   formatDateToYearMonth,
@@ -31,12 +33,23 @@ export function EventPickerModal({
   defaultMonth,
 }: EventPickerModalProps) {
   const { t, i18n } = useTranslation()
+  const { firebaseUser, user } = useAuth()
   const [selectedMonth, setSelectedMonth] = useState(
     defaultMonth ?? formatYearMonthToMonthInput(formatDateToYearMonth(new Date()))
   )
-  const { data: events = [], isLoading } = useEventsForMonth(
-    parseMonthInputToYearMonth(selectedMonth)
+  const { data: associations = [] } = useMyAssociations(firebaseUser?.uid)
+  const managedAssociationIds = associations.map((a) => a.id)
+  const isAdmin = user?.role === 'admin'
+  const { data: editableEvents = [], isLoading } = useEditableEvents(
+    firebaseUser?.uid,
+    managedAssociationIds,
+    isAdmin
   )
+
+  // Only offer events the current user may edit (mirroring the Firestore
+  // rules for event updates), limited to the month selected in the picker.
+  const yearMonth = parseMonthInputToYearMonth(selectedMonth)
+  const events = editableEvents.filter((event) => event.startYearMonth === yearMonth)
 
   return (
     <div className="modal modal-open">
