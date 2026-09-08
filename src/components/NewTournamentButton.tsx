@@ -1,6 +1,7 @@
 import { BsPlus } from 'react-icons/bs'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
 import { useRef, useState } from 'react'
 import { ConfirmModal } from './ConfirmModal.tsx'
 import { useAuth } from '../context/AuthContext.tsx'
@@ -33,6 +34,7 @@ export function NewTournamentButton({
   const { t, i18n } = useTranslation()
   const { isAuthenticated, firebaseUser } = useAuth()
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const [isCreating, setIsCreating] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [confirmModalOpen, setConfirmModalOpen] = useState(false)
@@ -52,6 +54,9 @@ export function NewTournamentButton({
         initialLocale: i18n.language,
         arbiter: arbiterFromDisplayName(firebaseUser.displayName),
       })
+      // Refresh the drawer tournaments list so the new draft shows up
+      // without a page reload.
+      queryClient.invalidateQueries({ queryKey: ['tournaments'] })
       navigate(`/tournaments/${tournament.id}/edit`)
     } catch (err) {
       setError(

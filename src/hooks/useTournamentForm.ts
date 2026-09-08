@@ -627,7 +627,7 @@ export function useTournamentForm(tournamentId: string | undefined) {
           arbiter,
         })
         .then((created) => {
-          queryClient.invalidateQueries({ queryKey: ['adminTournaments'] })
+          queryClient.invalidateQueries({ queryKey: ['tournaments'] })
           navigate(`/tournaments/${created.id}/edit`, { replace: true })
         })
         .catch((err) => {
@@ -1177,9 +1177,8 @@ export function useTournamentForm(tournamentId: string | undefined) {
     },
     onSuccess: (updated) => {
       queryClient.setQueryData([TOURNAMENT_QUERY_KEY, updated.id], updated)
-      queryClient.invalidateQueries({ queryKey: ['adminTournaments'] })
+      queryClient.invalidateQueries({ queryKey: ['tournaments'] })
       queryClient.invalidateQueries({ queryKey: ['events'] })
-      queryClient.invalidateQueries({ queryKey: ['adminEvents'] })
       const snapshot = tournamentToFormState(updated)
       setFormState(snapshot)
       setLastSavedSnapshot(JSON.stringify(snapshot))
@@ -1246,9 +1245,8 @@ export function useTournamentForm(tournamentId: string | undefined) {
     },
     onSuccess: (updated) => {
       queryClient.setQueryData([TOURNAMENT_QUERY_KEY, updated.id], updated)
-      queryClient.invalidateQueries({ queryKey: ['adminTournaments'] })
+      queryClient.invalidateQueries({ queryKey: ['tournaments'] })
       queryClient.invalidateQueries({ queryKey: ['events'] })
-      queryClient.invalidateQueries({ queryKey: ['adminEvents'] })
       const snapshot = tournamentToFormState(updated)
       setFormState(snapshot)
       setLastSavedSnapshot(JSON.stringify(snapshot))
@@ -1264,9 +1262,8 @@ export function useTournamentForm(tournamentId: string | undefined) {
       queryClient.removeQueries({
         queryKey: [TOURNAMENT_QUERY_KEY, tournamentId],
       })
-      queryClient.invalidateQueries({ queryKey: ['adminTournaments'] })
+      queryClient.invalidateQueries({ queryKey: ['tournaments'] })
       queryClient.invalidateQueries({ queryKey: ['events'] })
-      queryClient.invalidateQueries({ queryKey: ['adminEvents'] })
       navigate('/')
     },
   })
