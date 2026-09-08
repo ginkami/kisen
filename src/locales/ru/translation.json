@@ -10,7 +10,10 @@
     "register": "Регистрация",
     "logout": "Выйти",
     "loginWithGoogle": "Войти через Google",
-    "profile": "Профиль"
+    "profile": "Профиль",
+    "errors": {
+      "userBlocked": "Данный пользователь временно заблокирован."
+    }
   },
   "admin": {
     "title": "Управление",

@@ -20,6 +20,7 @@ vi.mock('react-i18next', () => ({
 }))
 
 vi.mock('./context/AuthContext.tsx', () => ({
+  BLOCKED_NOTICE_KEY: 'auth.blockedNotice',
   useAuth: () => ({
     isAuthenticated: false,
     isLoading: false,

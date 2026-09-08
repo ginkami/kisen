@@ -25,6 +25,12 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/associations/$(associationId)).data.createdBy == currentUserId();
     }
 
+    // True when the authenticated user profile exists and is not blocked
+    // (auth.isActive is missing on legacy profiles, which counts as active).
+    function isUserActive() {
+      return get(/databases/$(database)/documents/users/$(currentUserId())).data.auth.isActive != false;
+    }
+
     function isManagerOf(associationId) {
       return isAuthenticated()
         && associationId != null
@@ -53,27 +59,28 @@ service cloud.firestore {
         ));
     }
 
-    // ---------- Users (Профили пользователей) ----------
+    // ---------- Users (РџСЂРѕС„РёР»Рё РїРѕР»СЊР·РѕРІР°С‚РµР»РµР№) ----------
     match /users/{userId} {
       allow read: if isAuthenticated();
       allow create: if isAuthenticated() && currentUserId() == userId;
       allow update: if isAuthenticated() && (currentUserId() == userId || isAdmin())
+        && isUserActive()
         && (
           isAdmin()
-          || !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role'])
+          || !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'auth.isActive'])
         );
       allow delete: if isAdmin();
     }
 
-    // ---------- Associations (Ассоциации) ----------
+    // ---------- Associations (РђСЃСЃРѕС†РёР°С†РёРё) ----------
     match /associations/{associationId} {
       allow read: if true;
-      allow create: if isAdmin() || isAuthenticated();
-      allow update: if isAdmin() || isCreatorOf(associationId) || isManagerOf(associationId);
-      allow delete: if isAdmin() || isCreatorOf(associationId);
+      allow create: if (isAdmin() || isAuthenticated()) && isUserActive();
+      allow update: if (isAdmin() || isCreatorOf(associationId) || isManagerOf(associationId)) && isUserActive();
+      allow delete: if (isAdmin() || isCreatorOf(associationId)) && isUserActive();
     }
 
-    // ---------- Players (Игроки) ----------
+    // ---------- Players (РРіСЂРѕРєРё) ----------
     match /players/{playerId} {
       allow read: if true;
 
@@ -86,25 +93,28 @@ service cloud.firestore {
           isAuthenticated()
           && request.resource.data.get('primaryAssociation', null) != null
           && isManagerOf(request.resource.data.primaryAssociation)
-        );
+        )
+        && isUserActive();
 
       // Clearing primaryAssociation (null) or removing an id from
       // secondaryAssociations is allowed for admin/owner/primary-manager and
       // for anyone who can act for the old primary or one of the old secondary
       // associations (e.g. while that association is being deleted).
-      allow update: if isAdmin()
-        || isOwner(resource.data.createdBy)
-        || hasPlayerManagerAccess(resource)
-        || canActForAssociation(resource.data.get('primaryAssociation', null))
-        || hasSecondaryAssociationAccess(resource);
+      allow update: if (isAdmin()
+          || isOwner(resource.data.createdBy)
+          || hasPlayerManagerAccess(resource)
+          || canActForAssociation(resource.data.get('primaryAssociation', null))
+          || hasSecondaryAssociationAccess(resource)
+        )
+        && isUserActive();
 
-      allow delete: if isAdmin() || hasPlayerManagerAccess(resource);
+      allow delete: if (isAdmin() || hasPlayerManagerAccess(resource)) && isUserActive();
     }
 
-    // ---------- Tournaments (Турниры) ----------
+    // ---------- Tournaments (РўСѓСЂРЅРёСЂС‹) ----------
     match /tournaments/{tournamentId} {
 
-      // Синхронизация isPublic и status
+      // РЎРёРЅС…СЂРѕРЅРёР·Р°С†РёСЏ isPublic Рё status
       function isValidPublicStatus() {
         return request.resource.data.isPublic == (
           request.resource.data.status != 'draft'
@@ -112,9 +122,9 @@ service cloud.firestore {
         );
       }
 
-      // Если хост-ассоциация меняется, пользователь должен быть менеджером или создателем новой.
-      // Очистка ссылки (null) разрешена тому, кто может действовать от имени старой ассоциации
-      // (например, при её удалении).
+      // Р•СЃР»Рё С…РѕСЃС‚-Р°СЃСЃРѕС†РёР°С†РёСЏ РјРµРЅСЏРµС‚СЃСЏ, РїРѕР»СЊР·РѕРІР°С‚РµР»СЊ РґРѕР»Р¶РµРЅ Р±С‹С‚СЊ РјРµРЅРµРґР¶РµСЂРѕРј РёР»Рё СЃРѕР·РґР°С‚РµР»РµРј РЅРѕРІРѕР№.
+      // РћС‡РёСЃС‚РєР° СЃСЃС‹Р»РєРё (null) СЂР°Р·СЂРµС€РµРЅР° С‚РѕРјСѓ, РєС‚Рѕ РјРѕР¶РµС‚ РґРµР№СЃС‚РІРѕРІР°С‚СЊ РѕС‚ РёРјРµРЅРё СЃС‚Р°СЂРѕР№ Р°СЃСЃРѕС†РёР°С†РёРё
+      // (РЅР°РїСЂРёРјРµСЂ, РїСЂРё РµС‘ СѓРґР°Р»РµРЅРёРё).
       function isValidHostAssociationChange() {
         return request.resource.data.get('hostAssociation', null) == resource.data.get('hostAssociation', null)
           || canActForAssociation(request.resource.data.get('hostAssociation', null))
@@ -128,7 +138,8 @@ service cloud.firestore {
           request.resource.data.get('hostAssociation', null) == null
           || canActForAssociation(request.resource.data.hostAssociation)
         )
-        && isValidPublicStatus();
+        && isValidPublicStatus()
+        && isUserActive();
 
       allow update: if (
           isAdmin()
@@ -136,18 +147,21 @@ service cloud.firestore {
           || canActForAssociation(resource.data.hostAssociation)
         )
         && isValidPublicStatus()
-        && isValidHostAssociationChange();
+        && isValidHostAssociationChange()
+        && isUserActive();
 
-      allow delete: if isAdmin()
+      allow delete: if (isAdmin()
         || isOwner(resource.data.createdBy)
-        || canActForAssociation(resource.data.hostAssociation);
+        || canActForAssociation(resource.data.hostAssociation)
+        )
+        && isUserActive();
     }
 
-    // ---------- Events (Мероприятия) ----------
+    // ---------- Events (РњРµСЂРѕРїСЂРёСЏС‚РёСЏ) ----------
     match /events/{eventId} {
       allow read: if true;
 
-      // Очистка ссылки (null) разрешена тому, кто может действовать от имени старой ассоциации.
+      // РћС‡РёСЃС‚РєР° СЃСЃС‹Р»РєРё (null) СЂР°Р·СЂРµС€РµРЅР° С‚РѕРјСѓ, РєС‚Рѕ РјРѕР¶РµС‚ РґРµР№СЃС‚РІРѕРІР°С‚СЊ РѕС‚ РёРјРµРЅРё СЃС‚Р°СЂРѕР№ Р°СЃСЃРѕС†РёР°С†РёРё.
       function isValidEventHostAssociationChange() {
         return request.resource.data.get('hostAssociation', null) == resource.data.get('hostAssociation', null)
           || canActForAssociation(request.resource.data.get('hostAssociation', null))
@@ -158,25 +172,29 @@ service cloud.firestore {
         && (
           request.resource.data.get('hostAssociation', null) == null
           || canActForAssociation(request.resource.data.hostAssociation)
-        );
+        )
+        && isUserActive();
 
       allow update: if (
           isAdmin()
           || isOwner(resource.data.createdBy)
           || canActForAssociation(resource.data.hostAssociation)
         )
-        && isValidEventHostAssociationChange();
+        && isValidEventHostAssociationChange()
+        && isUserActive();
 
-      allow delete: if isAdmin()
+      allow delete: if (isAdmin()
         || isOwner(resource.data.createdBy)
-        || canActForAssociation(resource.data.hostAssociation);
+        || canActForAssociation(resource.data.hostAssociation)
+        )
+        && isUserActive();
     }
 
-    // ---------- Regulations (Регламенты) ----------
+    // ---------- Regulations (Р РµРіР»Р°РјРµРЅС‚С‹) ----------
     match /regulations/{regulationId} {
       allow read: if true;
 
-      // Очистка ссылки (null) разрешена тому, кто может действовать от имени старой ассоциации.
+      // РћС‡РёСЃС‚РєР° СЃСЃС‹Р»РєРё (null) СЂР°Р·СЂРµС€РµРЅР° С‚РѕРјСѓ, РєС‚Рѕ РјРѕР¶РµС‚ РґРµР№СЃС‚РІРѕРІР°С‚СЊ РѕС‚ РёРјРµРЅРё СЃС‚Р°СЂРѕР№ Р°СЃСЃРѕС†РёР°С†РёРё.
       function isValidAssociationChange() {
         return request.resource.data.get('association', null) == resource.data.get('association', null)
           || canActForAssociation(request.resource.data.get('association', null))
@@ -187,17 +205,21 @@ service cloud.firestore {
         && (
           request.resource.data.get('association', null) == null
           || canActForAssociation(request.resource.data.association)
-        );
+        )
+        && isUserActive();
 
       allow update: if (
           isAdmin()
           || isOwner(resource.data.createdBy)
           || canActForAssociation(resource.data.association)
         )
-        && isValidAssociationChange();
+        && isValidAssociationChange()
+        && isUserActive();
 
-      allow delete: if isAdmin()
-        || isOwner(resource.data.createdBy);
+      allow delete: if (isAdmin()
+        || isOwner(resource.data.createdBy)
+        )
+        && isUserActive();
     }
   }
 }

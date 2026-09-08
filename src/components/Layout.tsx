@@ -6,6 +6,7 @@ import { LanguageSwitcher } from './LanguageSwitcher.tsx'
 import { UserMenu } from './UserMenu.tsx'
 import { NewTournamentButton } from './NewTournamentButton.tsx'
 import { AdminDrawer } from './AdminDrawer.tsx'
+import { BlockedNoticeBanner } from './BlockedNoticeBanner.tsx'
 import { useAuth } from '../context/AuthContext.tsx'
 
 export interface LayoutOutletContext {
@@ -59,6 +60,8 @@ export function Layout() {
           )}
         </div>
       </header>
+
+      <BlockedNoticeBanner />
 
       <div className="relative flex flex-1">
         <AdminDrawer

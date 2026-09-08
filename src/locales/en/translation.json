@@ -10,7 +10,10 @@
     "register": "Register",
     "logout": "Log out",
     "loginWithGoogle": "Sign in with Google",
-    "profile": "Profile"
+    "profile": "Profile",
+    "errors": {
+      "userBlocked": "This user is temporarily blocked."
+    }
   },
   "admin": {
     "title": "Admin",

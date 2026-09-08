@@ -1,4 +1,4 @@
-import {
+﻿import {
   useCallback,
   useEffect,
   useMemo,
@@ -6,8 +6,11 @@ import {
   type ReactNode,
 } from 'react'
 import { onAuthStateChanged, type User as FirebaseUser } from 'firebase/auth'
+import { doc, onSnapshot } from 'firebase/firestore'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { auth } from '../services/firebaseConfig.ts'
+import { auth, db } from '../services/firebaseConfig.ts'
+import i18n from '../i18n'
+import { setBlockedNotice } from './blockedNotice.ts'
 import {
   logOut,
   signInWithEmail,
@@ -23,6 +26,18 @@ import { AuthContext, type SignUpInput } from './useAuth.ts'
 export { useAuth, type AuthContextValue } from './useAuth.ts'
 
 const USER_QUERY_KEY = 'authUser'
+
+/**
+ * Client-side mirror of the auth.isActive flag: only an explicit `false`
+ * blocks the user (legacy documents without `auth` count as active).
+ */
+export function isUserBlocked(profile: Pick<User, 'auth'> | null | undefined): boolean {
+  return profile?.auth?.isActive === false
+}
+
+function blockedNoticeMessage(): string {
+  return i18n.t('auth.errors.userBlocked')
+}
 
 /**
  * Splits a display name by whitespace into at most two tokens:
@@ -146,6 +161,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
     async (credentials: AuthCredentials) => {
       const credential = await signInWithEmail(credentials)
       const profile = await ensureUserProfile(credential.user)
+      if (isUserBlocked(profile)) {
+        await logOut()
+        queryClient.removeQueries({ queryKey: [USER_QUERY_KEY] })
+        setBlockedNotice()
+        throw new Error(blockedNoticeMessage())
+      }
       queryClient.setQueryData(
         [USER_QUERY_KEY, credential.user.uid],
         profile
@@ -157,6 +178,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const signInGoogle = useCallback(async () => {
     const credential = await signInWithGoogle()
     const profile = await ensureUserProfile(credential.user)
+    if (isUserBlocked(profile)) {
+      await logOut()
+      queryClient.removeQueries({ queryKey: [USER_QUERY_KEY] })
+      setBlockedNotice()
+      throw new Error(blockedNoticeMessage())
+    }
     queryClient.setQueryData(
       [USER_QUERY_KEY, credential.user.uid],
       profile
@@ -167,6 +194,35 @@ export function AuthProvider({ children }: AuthProviderProps) {
     await logOut()
     queryClient.removeQueries({ queryKey: [USER_QUERY_KEY] })
   }, [queryClient])
+
+  // Live enforcement: when an admin blocks the user mid-session
+  // (auth.isActive flips to false), sign the session out immediately and
+  // store a notice flag for the BlockedNoticeBanner.
+  useEffect(() => {
+    if (!firebaseUser) return
+
+    const unsubscribe = onSnapshot(
+      doc(db, 'users', firebaseUser.uid),
+      (snapshot) => {
+        // Ignore snapshots served from the persistent local cache: after a
+        // block is lifted, the cache can hold a stale isActive=false which
+        // must not block a fresh sign-in. Server snapshots are authoritative.
+        if (snapshot.metadata.fromCache) return
+        const data = snapshot.data() as { auth?: { isActive?: boolean } } | undefined
+        if (snapshot.exists() && data?.auth?.isActive === false) {
+          setBlockedNotice()
+          void logOut().then(() => {
+            queryClient.removeQueries({ queryKey: [USER_QUERY_KEY] })
+          })
+        }
+      },
+      (error) => {
+        console.error('Failed to watch user profile:', error)
+      }
+    )
+
+    return () => unsubscribe()
+  }, [firebaseUser, queryClient])
 
   const value = useMemo(
     () => ({

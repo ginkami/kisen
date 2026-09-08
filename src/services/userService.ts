@@ -36,6 +36,7 @@ function toPublicUser(docSnap: { id: string; data: () => unknown }): User {
     id: docSnap.id,
     email: data.email,
     role: data.role,
+    auth: data.auth,
     locales: data.locales,
     createdAt: data.createdAt.toDate(),
     updatedAt: data.updatedAt.toDate(),
@@ -59,6 +60,10 @@ export async function searchByFamilyName(prefix: string): Promise<User[]> {
 
   const snapshots = await Promise.all(perLocaleQueries)
 
+  // Blocked users (auth.isActive === false) must not be suggestible as
+  // association managers. Legacy documents without the flag stay included.
+  const isSearchable = (user: User) => user.auth?.isActive !== false
+
   const seen = new Set<string>()
   const merged: User[] = []
 
@@ -67,7 +72,9 @@ export async function searchByFamilyName(prefix: string): Promise<User[]> {
       const id = docSnap.id
       if (seen.has(id)) continue
       seen.add(id)
-      merged.push(toPublicUser(docSnap))
+      const user = toPublicUser(docSnap)
+      if (!isSearchable(user)) continue
+      merged.push(user)
       if (merged.length >= MAX_RESULTS) return merged
     }
   }

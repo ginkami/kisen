@@ -12,6 +12,7 @@ import type { Tournament } from '../domain/tournament.ts'
 const i18nState = vi.hoisted(() => ({ language: 'ru' }))
 
 vi.mock('react-i18next', () => ({
+  initReactI18next: { type: '3rdParty', init: vi.fn() },
   useTranslation: () => ({
     t: (key: string, opts?: Record<string, unknown>) =>
       key === 'event.view.pageTitle' ? `${opts?.title} | shogi·world` : key,
