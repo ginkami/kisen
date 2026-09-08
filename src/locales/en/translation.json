@@ -135,7 +135,8 @@
       "errors": {
         "load": "Failed to load player.",
         "save": "Failed to save player.",
-        "delete": "Failed to delete player."
+        "delete": "Failed to delete player.",
+        "noAccess": "You do not have permission to edit this player."
       }
     }
   },

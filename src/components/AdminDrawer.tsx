@@ -23,6 +23,7 @@ import { formatDateTimeShort } from '../utils/dateTime.ts'
 import { resolveLocationTimeZone } from '../utils/scheduleTime.ts'
 import { getTournamentLocale } from '../domain/tournament.ts'
 import { NewTournamentButton } from './NewTournamentButton.tsx'
+import { canEditPlayer, type Player } from '../domain/player.ts'
 import type { Tournament, TournamentStatus } from '../domain/tournament.ts'
 
 interface AdminDrawerProps {
@@ -172,6 +173,15 @@ export function AdminDrawer({
   })
   // query data can be null (e.g. initial state); default param only covers undefined
   const regulations = regulationsData ?? []
+
+  // The drawer player search only offers players the current user may edit
+  // (mirroring the Firestore rules for player updates): admins see all
+  // players, managers only players they created or players affiliated with
+  // associations they manage.
+  const playerFilter = useMemo(() => {
+    if (isAdmin || !userId) return undefined
+    return (player: Player) => canEditPlayer(player, userId, isAdmin, managedAssociationIds)
+  }, [isAdmin, userId, managedAssociationIds])
 
   const isSearchingTournaments = tournamentSearch.trim().length >= 3
   const {
@@ -455,6 +465,7 @@ export function AdminDrawer({
                         handleNavigate(`/players/${player.id}/edit`)
                       }}
                       locale={playerLocale}
+                      filter={playerFilter}
                       selectedId={selectedPlayerId}
                     />
 

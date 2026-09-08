@@ -12,6 +12,8 @@ interface PlayerSearchPanelProps {
   placeholder?: string
   variant?: 'search' | 'inline'
   selectedId?: string | null
+  /** Optional client-side filter (e.g. only players the current user may edit). */
+  filter?: (player: Player) => boolean
 }
 
 export function PlayerSearchPanel({
@@ -22,9 +24,11 @@ export function PlayerSearchPanel({
   placeholder,
   variant = 'search',
   selectedId,
+  filter,
 }: PlayerSearchPanelProps) {
   const { t } = useTranslation()
   const { data: playerResults = [], isLoading: isSearchingPlayers } = usePlayerSearch(query)
+  const visiblePlayers = filter ? playerResults.filter(filter) : playerResults
 
   return (
     <div className="mb-3 flex flex-col gap-2">
@@ -47,15 +51,15 @@ export function PlayerSearchPanel({
         </div>
       )}
 
-      {!isSearchingPlayers && query.length >= 3 && playerResults.length === 0 && (
+      {!isSearchingPlayers && query.length >= 3 && visiblePlayers.length === 0 && (
         <p className="text-sm opacity-70">
           {t('admin.noPlayersFound')}
         </p>
       )}
 
-      {!isSearchingPlayers && playerResults.length > 0 && (
+      {!isSearchingPlayers && visiblePlayers.length > 0 && (
         <div className="flex max-h-96 flex-col gap-2 overflow-y-auto">
-          {playerResults.map((player) => {
+          {visiblePlayers.map((player) => {
             const isActive = player.id === selectedId
             return (
               <button

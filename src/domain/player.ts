@@ -33,3 +33,23 @@ export const playerSchema = z.object({
 })
 
 export type Player = z.infer<typeof playerSchema>
+
+/**
+ * Client-side mirror of the Firestore rules guarding player updates:
+ * admins, the player's creator, and managers of the player's
+ * primary/secondary associations may edit the player.
+ */
+export function canEditPlayer(
+  player: Pick<Player, 'createdBy' | 'primaryAssociation' | 'secondaryAssociations'>,
+  userId: string,
+  isAdmin: boolean,
+  managedAssociationIds: readonly string[],
+): boolean {
+  if (isAdmin) return true
+  if (player.createdBy === userId) return true
+  const managed = new Set(managedAssociationIds)
+  return (
+    (player.primaryAssociation !== null && managed.has(player.primaryAssociation)) ||
+    player.secondaryAssociations.some((id) => managed.has(id))
+  )
+}

@@ -1,10 +1,12 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../../context/AuthContext.tsx'
 import { usePlayerForm } from '../../hooks/usePlayerForm.ts'
+import { useMyAssociations } from '../../hooks/useAssociations.ts'
 import { ConfirmModal } from '../ConfirmModal.tsx'
 import { PlayerInfoSection } from './PlayerInfoSection.tsx'
+import { canEditPlayer } from '../../domain/player.ts'
 import type { SupportedLocale } from '../../domain/locale.ts'
 
 interface PlayerEditFormProps {
@@ -13,7 +15,7 @@ interface PlayerEditFormProps {
 
 export function PlayerEditForm({ playerId }: PlayerEditFormProps) {
   const { t, i18n } = useTranslation()
-  const { isAuthenticated, user } = useAuth()
+  const { isAuthenticated, firebaseUser, user } = useAuth()
   const [activeLocale, setActiveLocale] = useState<SupportedLocale>(
     (i18n.language as SupportedLocale) ?? 'ru'
   )
@@ -42,6 +44,20 @@ export function PlayerEditForm({ playerId }: PlayerEditFormProps) {
 
   const canEditAssociations = user?.role === 'admin' || user?.role === 'manager'
 
+  // Client-side mirror of the Firestore player-update rules: admins, the
+  // creator, and managers of the player's associations may edit. Guarding
+  // here prevents opening a dead-end editor via a direct URL.
+  const isAdmin = user?.role === 'admin'
+  const userId = firebaseUser?.uid
+  const {
+    data: myAssociations = [],
+    isLoading: isLoadingMyAssociations,
+  } = useMyAssociations(userId)
+  const managedAssociationIds = useMemo(
+    () => myAssociations.map((a) => a.id),
+    [myAssociations]
+  )
+
   // Compute display name from active locale
   const localizedFamilyName = formState?.locales[activeLocale]?.familyName ?? ''
   const localizedGivenName = formState?.locales[activeLocale]?.givenName ?? ''
@@ -69,6 +85,25 @@ export function PlayerEditForm({ playerId }: PlayerEditFormProps) {
 
   if (loadError) {
     return <p className="text-error">{t('player.edit.errors.load')}</p>
+  }
+
+  // The player query has resolved here (isLoading handled above); wait for
+  // the user's managed associations before deciding, so a legitimate editor
+  // never sees a false "no access" flash.
+  if (player && isLoadingMyAssociations) {
+    return (
+      <div className="flex justify-center py-12">
+        <span className="loading loading-spinner loading-lg" />
+      </div>
+    )
+  }
+
+  if (player && userId && !canEditPlayer(player, userId, isAdmin, managedAssociationIds)) {
+    return (
+      <div className="alert alert-error" role="alert">
+        <p>{t('player.edit.errors.noAccess')}</p>
+      </div>
+    )
   }
 
   const handleDelete = () => {
