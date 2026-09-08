@@ -180,6 +180,41 @@ export class TournamentService {
     return this.repository.list({ startYearMonth, createdBy })
   }
 
+  /**
+   * Tournaments the current user may edit (mirrors the Firestore rules for
+   * tournament updates): all tournaments for admins; otherwise tournaments
+   * created by the user plus tournaments whose host association belongs to
+   * the managed associations.
+   */
+  async listEditable(
+    userId: string,
+    managedAssociationIds: string[],
+    isAdmin: boolean
+  ): Promise<Tournament[]> {
+    if (isAdmin) {
+      return this.repository.list({})
+    }
+
+    const queries: Promise<Tournament[]>[] = [
+      this.repository.list({ createdBy: userId }),
+    ]
+    for (const associationId of managedAssociationIds) {
+      queries.push(this.repository.list({ hostAssociation: associationId }))
+    }
+
+    const results = await Promise.all(queries)
+    const byId = new Map<string, Tournament>()
+    for (const batch of results) {
+      for (const tournament of batch) {
+        byId.set(tournament.id, tournament)
+      }
+    }
+
+    return Array.from(byId.values()).sort(
+      (a, b) => b.updatedAt.getTime() - a.updatedAt.getTime()
+    )
+  }
+
   async create(input: CreateTournamentInput): Promise<Tournament> {
     const slug = await this.resolveSlug(input.desiredSlug)
     const now = new Date()

@@ -293,3 +293,22 @@ export function getTournamentLocale(
     country: tournament.location?.country,
   }
 }
+
+/**
+ * Client-side mirror of the Firestore rules guarding tournament updates:
+ * admins, the tournament's creator, and managers of the tournament's host
+ * association may edit.
+ */
+export function canEditTournament(
+  tournament: Pick<Tournament, 'createdBy' | 'hostAssociation'>,
+  userId: string,
+  isAdmin: boolean,
+  managedAssociationIds: readonly string[],
+): boolean {
+  if (isAdmin) return true
+  if (tournament.createdBy === userId) return true
+  return (
+    tournament.hostAssociation !== null &&
+    managedAssociationIds.includes(tournament.hostAssociation)
+  )
+}

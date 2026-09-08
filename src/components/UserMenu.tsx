@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { BsBoxArrowRight, BsGear, BsPersonCircle, BsPerson } from 'react-icons/bs'
 import { useAuth } from '../context/AuthContext.tsx'
@@ -10,6 +10,12 @@ interface UserMenuProps {
 export function UserMenu({ onOpenAdmin }: UserMenuProps) {
   const { t, i18n } = useTranslation()
   const { user, logout } = useAuth()
+  const navigate = useNavigate()
+
+  // After sign-out no authenticated-only page should remain: send the user home.
+  const handleLogout = () => {
+    void logout().then(() => navigate('/'))
+  }
 
   const displayName = user
     ? user.locales[i18n.language as keyof typeof user.locales]?.displayName ||
@@ -49,7 +55,7 @@ export function UserMenu({ onOpenAdmin }: UserMenuProps) {
           </button>
         </li>
         <li>
-          <button type="button" onClick={() => void logout()}>
+          <button type="button" onClick={handleLogout}>
             <BsBoxArrowRight className="h-4 w-4" />
             {t('auth.logout')}
           </button>

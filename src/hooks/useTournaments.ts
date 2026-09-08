@@ -34,3 +34,16 @@ export function useTournamentSearch(query: string) {
     staleTime: 30_000,
   })
 }
+/** Tournaments the current user may edit (creator or managed host association). */
+export function useEditableTournaments(
+  userId: string | undefined,
+  managedAssociationIds: string[],
+  isAdmin: boolean
+) {
+  return useQuery({
+    queryKey: ['tournaments', 'editable', userId, managedAssociationIds, isAdmin],
+    queryFn: () => tournamentService.listEditable(userId!, managedAssociationIds, isAdmin),
+    enabled: !!userId,
+    staleTime: 30_000,
+  })
+}

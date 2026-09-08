@@ -6,9 +6,8 @@ import { useQuery } from '@tanstack/react-query'
 import { BsGear, BsX, BsCalendar2, BsPlus, BsFiletypeCsv, BsPeopleFill, BsFunnel, BsSearch } from 'react-icons/bs'
 import { useAuth } from '../context/AuthContext.tsx'
 import { useAssociationsForPanel } from '../hooks/useAssociations.ts'
-import { useTournamentSearch } from '../hooks/useTournaments.ts'
+import { useTournamentSearch, useEditableTournaments } from '../hooks/useTournaments.ts'
 import { useEventSearch, useEventsByIds, useEditableEvents } from '../hooks/useEvents.ts'
-import { tournamentService } from '../services/tournamentService.ts'
 import { regulationService } from '../services/regulationService.ts'
 import { playerService, type ImportResult } from '../services/playerService.ts'
 import { BulkImportResultModal } from './BulkImportResultModal.tsx'
@@ -24,6 +23,7 @@ import { getTournamentLocale } from '../domain/tournament.ts'
 import { NewTournamentButton } from './NewTournamentButton.tsx'
 import { canEditPlayer, type Player } from '../domain/player.ts'
 import { canEditEvent, type Event } from '../domain/event.ts'
+import { canEditTournament } from '../domain/tournament.ts'
 import type { Tournament, TournamentStatus } from '../domain/tournament.ts'
 
 interface AdminDrawerProps {
@@ -31,8 +31,6 @@ interface AdminDrawerProps {
   onClose: () => void
   hasUnsavedChanges: boolean
 }
-
-const TOURNAMENT_QUERY_KEY = 'adminTournaments'
 
 function statusBadgeClass(status: TournamentStatus): string {
   switch (status) {
@@ -135,18 +133,22 @@ export function AdminDrawer({
   const userId = firebaseUser?.uid
   const playerLocale = (i18n.language as 'ru' | 'en') ?? 'ru'
 
+  // Associations the current user manages (creator or invited manager) —
+  // drives the regulations list, the tournaments/events month lists, and
+  // the edit-access filters below.
+  const managedAssociationIds = useMemo(() => associations.map((a) => a.id), [associations])
+  const isAdmin = user?.role === 'admin'
+
   const {
-    data: tournaments = [],
+    data: editableTournaments = [],
     isLoading,
     error,
-  } = useQuery({
-    queryKey: [TOURNAMENT_QUERY_KEY, yearMonth, userId],
-    queryFn: async () => {
-      if (!userId) return []
-      return tournamentService.listByYearMonth(yearMonth, userId)
-    },
-    enabled: isAuthenticated && !!userId && isOpen,
-  })
+  } = useEditableTournaments(userId, managedAssociationIds, isAdmin)
+  // query data can be null (e.g. initial state); default param only covers undefined
+  const tournaments = useMemo(
+    () => (editableTournaments ?? []).filter((t) => t.startYearMonth === yearMonth),
+    [editableTournaments, yearMonth]
+  )
 
   // Events
   const eventYearMonth = parseMonthInputToYearMonth(selectedEventYearMonth)
@@ -154,11 +156,6 @@ export function AdminDrawer({
   // the month list and search only offer events the user may edit.
   const canManageEvents = isAuthenticated && !!userId
 
-  // Associations the current user manages (creator or invited manager) —
-  // drives the regulations list, the event month list, and the edit-access
-  // filters below.
-  const managedAssociationIds = useMemo(() => associations.map((a) => a.id), [associations])
-  const isAdmin = user?.role === 'admin'
   const { data: editableEvents = [], isLoading: isLoadingEvents } = useEditableEvents(
     userId,
     managedAssociationIds,
@@ -197,6 +194,20 @@ export function AdminDrawer({
     isFetching: isFetchingTournamentSearch,
   } = useTournamentSearch(isSearchingTournaments ? tournamentSearch : '')
 
+  // Drawer tournament search only offers tournaments the current user may
+  // edit (mirroring the Firestore rules for tournament updates): admins see
+  // all tournaments, other users only tournaments they created or tournaments
+  // under associations they manage.
+  const tournamentFilter = useMemo(() => {
+    if (isAdmin || !userId) return undefined
+    return (tournament: Tournament) =>
+      canEditTournament(tournament, userId, isAdmin, managedAssociationIds)
+  }, [isAdmin, userId, managedAssociationIds])
+
+  const visibleTournamentResults = tournamentFilter
+    ? tournamentSearchResults.filter(tournamentFilter)
+    : tournamentSearchResults
+
   const isSearchingEvents = eventSearch.trim().length >= 3
   const {
     data: eventSearchResults = [],
@@ -228,10 +239,10 @@ export function AdminDrawer({
   // referenced by the visible tournament lists (month list + search results).
   const parentEventIds = useMemo(
     () =>
-      [...sortedTournaments, ...(isSearchingTournaments ? tournamentSearchResults : [])]
+      [...sortedTournaments, ...(isSearchingTournaments ? visibleTournamentResults : [])]
         .map((tournament) => tournament.parentEvent)
         .filter((id): id is string => !!id),
-    [sortedTournaments, tournamentSearchResults, isSearchingTournaments]
+    [sortedTournaments, visibleTournamentResults, isSearchingTournaments]
   )
   const { eventsById } = useEventsByIds(parentEventIds)
 
@@ -421,12 +432,12 @@ export function AdminDrawer({
 
                 {isSearchingTournaments && !isFetchingTournamentSearch && (
                   <div className="flex max-h-96 flex-col gap-2 overflow-y-auto">
-                    {tournamentSearchResults.length === 0 ? (
+                    {visibleTournamentResults.length === 0 ? (
                       <p className="text-sm opacity-70">
                         {t('admin.noSearchResults')}
                       </p>
                     ) : (
-                      tournamentSearchResults.map(renderTournamentItem)
+                      visibleTournamentResults.map(renderTournamentItem)
                     )}
                   </div>
                 )}

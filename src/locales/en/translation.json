@@ -280,7 +280,8 @@
         "load": "Failed to load tournament.",
         "save": "Failed to save tournament.",
         "publish": "Failed to publish tournament. Please check required fields.",
-        "delete": "Failed to delete tournament."
+        "delete": "Failed to delete tournament.",
+        "noAccess": "You do not have permission to edit this tournament."
       },
       "timeControl": {
         "title": "Time control",

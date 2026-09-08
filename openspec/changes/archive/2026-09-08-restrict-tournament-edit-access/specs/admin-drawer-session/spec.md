@@ -1,8 +1,4 @@
-## Purpose
-
-Session-driven UI state for the admin drawer: it must not remain open once the authenticated session ends.
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: Admin drawer closes on logout
 

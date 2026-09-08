@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Navigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { ConfirmModal } from '../ConfirmModal.tsx'
 import { useTranslation } from 'react-i18next'
@@ -28,6 +29,7 @@ import type { TournamentLocale } from '../../domain/tournament.ts'
 import type { Event } from '../../domain/event.ts'
 import type { Association } from '../../domain/association.ts'
 import { useMyAssociations } from '../../hooks/useAssociations.ts'
+import { canEditTournament } from '../../domain/tournament.ts'
 import { eventService } from '../../services/eventService.ts'
 import { regulationService } from '../../services/regulationService.ts'
 import { LocaleTabs } from './LocaleTabs.tsx'
@@ -917,7 +919,7 @@ export function TournamentEditForm({
   tournamentId,
 }: TournamentEditFormProps) {
   const { t, i18n } = useTranslation()
-  const { firebaseUser, user } = useAuth()
+  const { isAuthenticated, firebaseUser, user } = useAuth()
   const {
     tournament,
     formState,
@@ -966,6 +968,20 @@ export function TournamentEditForm({
     deleteTournament,
     slugTaken,
   } = useTournamentForm(tournamentId)
+
+  // Client-side mirror of the Firestore tournament-update rules: admins, the
+  // creator, and managers of the host association may edit. Guarding here
+  // prevents opening a dead-end editor via a direct URL.
+  const { data: associations = [], isLoading: isLoadingMyAssociations } = useMyAssociations(
+    firebaseUser?.uid
+  )
+  const managedAssociationIds = useMemo(() => associations.map((a) => a.id), [associations])
+  const isAdmin = user?.role === 'admin'
+  const isCheckingAccess = !!tournament && isLoadingMyAssociations
+  const canEditThisTournament =
+    !tournament ||
+    !firebaseUser?.uid ||
+    canEditTournament(tournament, firebaseUser.uid, isAdmin, managedAssociationIds)
 
   type TabId = 'general' | 'settings' | 'schedule' | 'participants' | 'pairings' | 'crosstable'
 
@@ -1026,6 +1042,10 @@ export function TournamentEditForm({
     })
   }, [localizedTitle, i18n.language, t])
 
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />
+  }
+
   if (isLoading || !formState) {
     return (
       <div className="flex justify-center py-12">
@@ -1036,6 +1056,25 @@ export function TournamentEditForm({
 
   if (loadError) {
     return <p className="text-error">{t('tournament.edit.errors.load')}</p>
+  }
+
+  // The tournament query has resolved here (isLoading handled above); wait
+  // for the user's managed associations before deciding, so a legitimate
+  // editor never sees a false "no access" flash.
+  if (tournament && isCheckingAccess) {
+    return (
+      <div className="flex justify-center py-12">
+        <span className="loading loading-spinner loading-lg" />
+      </div>
+    )
+  }
+
+  if (tournament && !canEditThisTournament) {
+    return (
+      <div className="alert alert-error" role="alert">
+        <p>{t('tournament.edit.errors.noAccess')}</p>
+      </div>
+    )
   }
 
   const handlePublish = () => {
