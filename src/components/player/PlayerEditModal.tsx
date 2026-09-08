@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { BsX } from 'react-icons/bs'
 import { playerService } from '../../services/playerService.ts'
 import { PlayerInfoSection } from './PlayerInfoSection.tsx'
+import { usePlayerEditAccess } from '../../hooks/usePlayerAccess.ts'
 import {
   playerToFormState,
   formStateToUpdateInput,
@@ -113,6 +114,13 @@ export function PlayerEditModal({ playerId, onSave, onCancel }: PlayerEditModalP
 
   const canEditAssociations = false // Simplified: no association editing in modal context
 
+  // Client-side mirror of the Firestore player-update rules (see
+  // player-edit-access): a manager who may not edit this player gets the
+  // access-denied alert instead of a dead-end editor.
+  const { isChecking: isCheckingAccess, allowed: canEditThisPlayer } =
+    usePlayerEditAccess(player ?? null)
+  const isDenied = !!player && !isCheckingAccess && !canEditThisPlayer
+
   return (
     <dialog
       ref={dialogRef}
@@ -134,9 +142,15 @@ export function PlayerEditModal({ playerId, onSave, onCancel }: PlayerEditModalP
           </button>
         </div>
 
-        {isLoading && (
+        {(isLoading || isCheckingAccess) && (
           <div className="flex justify-center py-8">
             <span className="loading loading-spinner loading-lg" />
+          </div>
+        )}
+
+        {isDenied && (
+          <div className="alert alert-error mb-4" role="alert">
+            <p className="flex-1">{t('player.edit.errors.noAccess')}</p>
           </div>
         )}
 
@@ -149,7 +163,7 @@ export function PlayerEditModal({ playerId, onSave, onCancel }: PlayerEditModalP
           </div>
         )}
 
-        {formState && (
+        {formState && !isDenied && !isCheckingAccess && (
           <PlayerInfoSection
             formState={formState}
             activeLocale={activeLocale}
@@ -172,18 +186,20 @@ export function PlayerEditModal({ playerId, onSave, onCancel }: PlayerEditModalP
           >
             {t('common.cancel')}
           </button>
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={isSaving || !formState}
-            className="btn btn-primary"
-          >
-            {isSaving ? (
-              <span className="loading loading-spinner loading-xs" />
-            ) : (
-              t('common.confirm')
-            )}
-          </button>
+          {!isDenied && !isCheckingAccess && (
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={isSaving || !formState}
+              className="btn btn-primary"
+            >
+              {isSaving ? (
+                <span className="loading loading-spinner loading-xs" />
+              ) : (
+                t('common.confirm')
+              )}
+            </button>
+          )}
         </div>
       </div>
       <form method="dialog" className="modal-backdrop">
