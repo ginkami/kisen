@@ -7,7 +7,7 @@ import { BsSliders2Vertical, BsClock, BsJournalText, BsPlus, BsX, Bs123, BsGrid3
 import { HiOutlineUserGroup } from "react-icons/hi2";
 import { useAuth } from '../../context/AuthContext.tsx'
 import { sanitizeTextInput } from '../../utils/sanitize.ts'
-import { useTournamentForm } from '../../hooks/useTournamentForm.ts'
+import { useTournamentForm, validateTournamentPublishForm } from '../../hooks/useTournamentForm.ts'
 import {
   dateToLocalDatetimeInputValue,
 } from '../../utils/dateTime.ts'
@@ -780,6 +780,7 @@ function ScheduleSection({
   onRemove,
   onSort,
   onLocaleChange,
+  validationErrors = {},
 }: {
   scheduleRows: ScheduleRow[]
   activeLocale: SupportedLocale
@@ -789,6 +790,7 @@ function ScheduleSection({
   onRemove: (id: string) => void
   onSort: () => void
   onLocaleChange: (locale: SupportedLocale) => void
+  validationErrors?: Record<string, string>
 }) {
   const { t } = useTranslation()
 
@@ -808,6 +810,7 @@ function ScheduleSection({
         ]
 
   const roundCount = scheduleRows.filter((r) => r.kind === 'round').length
+  const hasScheduleError = !!validationErrors.rounds || !!validationErrors.roundTime
 
   return (
     <div className="card bg-base-200 shadow-sm">
@@ -837,6 +840,17 @@ function ScheduleSection({
           <div className="flex-1">{t('tournament.edit.program.event')}</div>
           <div className="w-16" />
         </div>
+
+        {hasScheduleError && (
+          <div className="text-error text-xs space-y-0.5">
+            {validationErrors.rounds && (
+              <p>{t('tournament.edit.program.roundRequired')}</p>
+            )}
+            {validationErrors.roundTime && (
+              <p>{t('tournament.edit.program.roundTimeRequired')}</p>
+            )}
+          </div>
+        )}
 
         <div className="space-y-2">
           {rows.map((row) => (
@@ -876,7 +890,11 @@ function ScheduleSection({
                     })
                   }}
                   onBlur={onSort}
-                  className="input input-bordered input-sm w-full"
+                  className={`input input-bordered input-sm w-full ${
+                    hasScheduleError && row.kind === 'round' && !row.scheduledAt
+                      ? 'input-error'
+                      : ''
+                  }`}
                 />
               </div>
               <div className="flex-1 min-w-0">
@@ -966,6 +984,7 @@ export function TournamentEditForm({
     save,
     publish,
     deleteTournament,
+    setValidationErrors,
     slugTaken,
   } = useTournamentForm(tournamentId)
 
@@ -984,6 +1003,19 @@ export function TournamentEditForm({
     canEditTournament(tournament, firebaseUser.uid, isAdmin, managedAssociationIds)
 
   type TabId = 'general' | 'settings' | 'schedule' | 'participants' | 'pairings' | 'crosstable'
+
+  // First failing validation area determines the tab the publish pre-check
+  // switches the user to.
+  const validationErrorTabByKey: Record<string, TabId> = {
+    slug: 'general',
+    title: 'general',
+    location: 'general',
+    'arbiter.givenName': 'general',
+    'arbiter.familyName': 'general',
+    rounds: 'schedule',
+    roundTime: 'schedule',
+    participants: 'participants',
+  }
 
   const [activeTab, setActiveTab] = useState<TabId>('general')
   const [scheduleLocale, setScheduleLocale] = useState<SupportedLocale>(
@@ -1078,6 +1110,28 @@ export function TournamentEditForm({
   }
 
   const handlePublish = () => {
+    // Surface publish-blocking validation problems before the confirm
+    // dialog: switch to the first failing tab with highlighted fields
+    // instead of failing silently inside the publish mutation.
+    if (formState) {
+      const errors = validateTournamentPublishForm(formState)
+      if (slugTaken) errors.slug = 'taken'
+      if (Object.keys(errors).length > 0) {
+        setValidationErrors(
+          Object.fromEntries(
+            Object.keys(errors).map((key) => [
+              key,
+              key === 'slug' && errors[key] === 'taken'
+                ? t('tournament.edit.slugTaken')
+                : t('common.fieldRequired'),
+            ])
+          )
+        )
+        const firstKey = Object.keys(errors)[0]
+        setActiveTab(validationErrorTabByKey[firstKey] ?? 'general')
+        return
+      }
+    }
     setConfirmModal({ isOpen: true, type: 'publish' })
   }
 
@@ -1290,6 +1344,7 @@ export function TournamentEditForm({
           onRemove={removeScheduleRow}
           onSort={sortScheduleRows}
           onLocaleChange={setScheduleLocale}
+          validationErrors={validationErrors}
         />
       )}
 

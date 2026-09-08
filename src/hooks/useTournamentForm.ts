@@ -474,7 +474,7 @@ function normalizeState(state: TournamentFormState): TournamentFormState {
 
 const TOURNAMENT_QUERY_KEY = 'tournament'
 
-function validateTournamentPublishForm(
+export function validateTournamentPublishForm(
   state: TournamentFormState
 ): Record<string, string> {
   const errors: Record<string, string> = {}
@@ -503,6 +503,16 @@ function validateTournamentPublishForm(
   const hasRounds = state.scheduleRows.some((row) => row.kind === 'round')
   if (!hasRounds) {
     errors.rounds = 'required'
+  } else {
+    // publishedTournamentScheduleSchema requires every round to carry a
+    // scheduledAt; splitSchedule silently drops untimed rows, so check them
+    // here to surface the problem before publishing.
+    const allRoundsHaveTime = state.scheduleRows.every(
+      (row) => row.kind !== 'round' || row.scheduledAt !== null
+    )
+    if (!allRoundsHaveTime) {
+      errors.roundTime = 'required'
+    }
   }
 
   const allParticipantsHaveNames = state.participants.every((row) =>
@@ -1368,6 +1378,7 @@ export function useTournamentForm(tournamentId: string | undefined) {
     publishError: publishMutation.error,
     deleteError: deleteMutation.error,
     validationErrors,
+    setValidationErrors,
     clearSaveError: saveMutation.reset,
     clearPublishError: publishMutation.reset,
     clearDeleteError: deleteMutation.reset,

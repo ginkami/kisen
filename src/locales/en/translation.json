@@ -333,6 +333,8 @@
         "title": "Competition program",
         "dateTime": "Date and time",
         "localTimeHint": "Times are entered in the venue's local time and stored together with its time zone",
+        "roundTimeRequired": "Set the start time for each round of the tournament program.",
+        "roundRequired": "Add at least one round to the tournament program.",
         "event": "Event",
         "round": "Round {{n}}",
         "roundOption": "Round",
