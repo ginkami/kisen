@@ -55,7 +55,8 @@
     "users": "Users",
     "searchUsers": "Search by email",
     "noUsersFound": "No users found",
-    "userBlocked": "Blocked"
+    "userBlocked": "Blocked",
+    "manageApp": "Manage application"
   },
   "profile": {
     "title": "Profile",
@@ -520,6 +521,18 @@
         "tooManyRequests": "Too many attempts. Try again later.",
         "resetGeneric": "Failed to send the password reset email."
       }
+    }
+  },
+  "appAdmin": {
+    "title": "Application management",
+    "tabs": {
+      "settings": "Settings"
+    },
+    "settings": {
+      "empty": "No settings have been added yet."
+    },
+    "errors": {
+      "noAccess": "Only administrators can access this page."
     }
   }
 }

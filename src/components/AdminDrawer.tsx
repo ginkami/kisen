@@ -3,7 +3,7 @@ import { ConfirmModal } from './ConfirmModal.tsx'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { BsGear, BsX, BsCalendar2, BsPlus, BsFiletypeCsv, BsPeopleFill, BsFunnel, BsSearch } from 'react-icons/bs'
+import { BsGear, BsX, BsCalendar2, BsPlus, BsFiletypeCsv, BsPeopleFill, BsFunnel, BsSearch, BsSliders } from 'react-icons/bs'
 import { useAuth } from '../context/AuthContext.tsx'
 import { useAssociationsForPanel } from '../hooks/useAssociations.ts'
 import { useTournamentSearch, useEditableTournaments } from '../hooks/useTournaments.ts'
@@ -411,6 +411,17 @@ export function AdminDrawer({
         </div>
 
         <div className="px-4 pb-4">
+          {isAdmin && (
+            <button
+              type="button"
+              onClick={() => handleNavigate('/app-admin')}
+              className="btn btn-secondary btn-sm mb-2 w-full justify-start"
+            >
+              <BsSliders className="h-4 w-4" />
+              {t('admin.manageApp')}
+            </button>
+          )}
+
           <div className="accordion">
             <div className="collapse collapse-arrow bg-base-100">
               <input type="radio" name="admin-accordion" defaultChecked />

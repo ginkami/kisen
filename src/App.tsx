@@ -11,6 +11,7 @@ import { EventEditPage } from './pages/EventEditPage.tsx'
 import { EventPage } from './pages/EventPage.tsx'
 import { RegulationEditPage } from './pages/RegulationEditPage.tsx'
 import { UserEditPage } from './pages/UserEditPage.tsx'
+import { AppAdminPage } from './pages/AppAdminPage.tsx'
 import { useAuth } from './context/AuthContext.tsx'
 import './i18n'
 
@@ -49,6 +50,7 @@ function App() {
           <Route path="regulations/new" element={<RegulationEditPage />} />
           <Route path="regulations/:id/edit" element={<RegulationEditPage />} />
           <Route path="users/:id/edit" element={<UserEditPage />} />
+          <Route path="app-admin" element={<AppAdminPage />} />
         </Route>
       </Routes>
     </BrowserRouter>
