@@ -10,6 +10,8 @@ import { useTournamentSearch, useEditableTournaments } from '../hooks/useTournam
 import { useEventSearch, useEventsByIds, useEditableEvents } from '../hooks/useEvents.ts'
 import { regulationService } from '../services/regulationService.ts'
 import { playerService, type ImportResult } from '../services/playerService.ts'
+import { useUserSearch } from '../hooks/useUsers.ts'
+import type { User } from '../types/user.ts'
 import { BulkImportResultModal } from './BulkImportResultModal.tsx'
 import { PlayerSearchPanel } from './player/PlayerSearchPanel.tsx'
 import {
@@ -51,6 +53,17 @@ function statusBadgeClass(status: TournamentStatus): string {
   }
 }
 
+// Same display-name logic as the association managers section:
+// locale-specific names with ru → en fallback and displayName as the last resort.
+function getUserDisplayName(user: User, locale: 'ru' | 'en'): string {
+  const loc = user.locales[locale] ?? user.locales.ru ?? user.locales.en
+  return (!loc.familyName || !loc.familyName.trim()) && (!loc.givenName || !loc.givenName.trim())
+    ? loc.displayName
+    : !loc.familyName || !loc.familyName.trim()
+      ? loc.givenName
+      : `${loc.familyName}, ${loc.givenName}`
+}
+
 export function AdminDrawer({
   isOpen,
   onClose,
@@ -77,6 +90,15 @@ export function AdminDrawer({
   const pendingNavigation = useRef<string | null>(null)
   const [playerSearch, setPlayerSearch] = useState('')
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null)
+  // Users (admin only)
+  const [userSearch, setUserSearch] = useState('')
+  const {
+    data: userResultsData = [],
+    isFetching: isFetchingUserSearch,
+    error: userSearchError,
+  } = useUserSearch(userSearch)
+  const userResults = userResultsData ?? []
+  const isSearchingUsers = userSearch.trim().length >= 3
   const { data: associationsData = [], isLoading: isLoadingAssociations } = useAssociationsForPanel(
     firebaseUser?.uid,
     user?.role
@@ -772,6 +794,85 @@ export function AdminDrawer({
                 </div>
               </div>
             </div>
+
+            {isAdmin && (
+              <div className="collapse collapse-arrow bg-base-100 mt-2">
+                <input type="radio" name="admin-accordion" />
+                <div className="collapse-title font-medium">
+                  {t('admin.users')}
+                </div>
+                <div className="collapse-content">
+                  <div className="flex flex-col gap-2">
+                    <label className="input input-sm input-bordered flex items-center gap-2">
+                      <BsSearch className="h-4 w-4 opacity-70" />
+                      <input
+                        type="text"
+                        value={userSearch}
+                        onChange={(e) => setUserSearch(e.target.value)}
+                        placeholder={t('admin.searchUsers')}
+                        className="grow bg-transparent outline-none"
+                      />
+                    </label>
+
+                    {isSearchingUsers && isFetchingUserSearch && (
+                      <div className="flex justify-center py-4">
+                        <span className="loading loading-spinner loading-sm" />
+                      </div>
+                    )}
+
+                    {isSearchingUsers && !isFetchingUserSearch && userSearchError && (
+                      <p className="text-sm text-error">
+                        {t('admin.loadError')}
+                      </p>
+                    )}
+
+                    {isSearchingUsers && !isFetchingUserSearch && !userSearchError && userResults.length === 0 && (
+                      <p className="text-sm opacity-70">
+                        {t('admin.noUsersFound')}
+                      </p>
+                    )}
+
+                    {isSearchingUsers && !isFetchingUserSearch && !userSearchError && userResults.length > 0 && (
+                      <div className="flex max-h-96 flex-col gap-2 overflow-y-auto">
+                        {userResults.map((user) => {
+                          const displayName = getUserDisplayName(
+                            user,
+                            i18n.language as 'ru' | 'en'
+                          )
+                          return (
+                            <button
+                              key={user.id}
+                              type="button"
+                              onClick={() => handleNavigate(`/users/${user.id}/edit`)}
+                              className="group flex w-full flex-col gap-1 rounded-lg border px-3 py-2 text-left transition-colors border-base-300 hover:bg-base-200"
+                            >
+                              <span className="flex w-full items-center justify-between gap-2">
+                                <span className="line-clamp-1 font-medium text-sm">
+                                  {displayName}
+                                </span>
+                                <span className="flex shrink-0 items-center gap-1">
+                                  {user.auth?.isActive === false && (
+                                    <span className="badge badge-error badge-sm">
+                                      {t('admin.userBlocked')}
+                                    </span>
+                                  )}
+                                  <span className="badge badge-ghost badge-sm">
+                                    {t(`user.role.${user.role}`)}
+                                  </span>
+                                </span>
+                              </span>
+                              <span className="line-clamp-1 text-xs opacity-70">
+                                {user.email}
+                              </span>
+                            </button>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

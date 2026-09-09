@@ -93,6 +93,35 @@ export async function getByEmail(email: string): Promise<User | null> {
   return toPublicUser(snapshot.docs[0])
 }
 
+export async function searchByEmailPrefix(prefix: string): Promise<User[]> {
+  const MAX_RESULTS = 20
+  const normalized = prefix.toLowerCase()
+
+  const q = query(
+    USERS_COLLECTION_REF,
+    where('email', '>=', normalized),
+    where('email', '<=', normalized + '\uf8ff'),
+    orderBy('email'),
+    limit(MAX_RESULTS)
+  )
+  const snapshot = await getDocs(q)
+
+  // Unlike searchByFamilyName (invite search), blocked users MUST be
+  // included: finding and unblocking them is the purpose of this search.
+  return snapshot.docs.map(toPublicUser)
+}
+
+export async function setUserRole(
+  id: string,
+  role: 'manager' | 'user'
+): Promise<void> {
+  const userRef = doc(db, USERS_COLLECTION, id)
+  await updateDoc(userRef, {
+    role,
+    updatedAt: serverTimestamp(),
+  })
+}
+
 export async function getByIds(ids: string[]): Promise<User[]> {
   if (ids.length === 0) return []
   const users: User[] = []

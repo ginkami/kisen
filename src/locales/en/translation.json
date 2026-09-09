@@ -51,7 +51,11 @@
     "noAssociations": "No associations",
     "searchTournaments": "Search by title...",
     "searchEvents": "Search by title...",
-    "noSearchResults": "Nothing found"
+    "noSearchResults": "Nothing found",
+    "users": "Users",
+    "searchUsers": "Search by email",
+    "noUsersFound": "No users found",
+    "userBlocked": "Blocked"
   },
   "profile": {
     "title": "Profile",
@@ -483,5 +487,39 @@
     "noResults": "No results found",
     "markdownSupported": "Markdown is supported",
     "noCountry": "Not specified"
+  },
+  "user": {
+    "role": {
+      "user": "User",
+      "manager": "Manager",
+      "admin": "Admin"
+    },
+    "edit": {
+      "title": "Edit user",
+      "back": "Back",
+      "profileSection": "Profile data",
+      "name": "Name",
+      "email": "Email",
+      "accessSection": "Access",
+      "role": "Role",
+      "blocked": "Blocked",
+      "selfEditHint": "You cannot change the role or block state of your own account.",
+      "adminTargetHint": "The admin flag of this account is managed outside the application.",
+      "save": "Save",
+      "accessSuccess": "Changes saved.",
+      "accessError": "Failed to save changes.",
+      "passwordSection": "Change password",
+      "passwordInfo": "The user will receive an email with a link to set a new password. The current password is not required.",
+      "sendReset": "Send password reset email",
+      "resetSent": "Password reset email sent.",
+      "errors": {
+        "noAccess": "Only administrators can access this page.",
+        "load": "Failed to load the user.",
+        "notFound": "User not found.",
+        "userNotFound": "No user found with this email.",
+        "tooManyRequests": "Too many attempts. Try again later.",
+        "resetGeneric": "Failed to send the password reset email."
+      }
+    }
   }
 }
