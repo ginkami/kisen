@@ -137,6 +137,36 @@ beforeEach(() => {
   sessionStorage.clear()
 })
 
+describe('stale blocked-notice flag lifecycle', () => {
+  it('clears a stale flag once an active profile loads', async () => {
+    sessionStorage.setItem('auth.blockedNotice', '1')
+    vi.mocked(getUserById).mockResolvedValue(makeUser(true))
+    renderSignInProbe()
+    authenticate()
+
+    await waitFor(() => {
+      expect(getUserById).toHaveBeenCalled()
+    })
+    await waitFor(() => {
+      expect(sessionStorage.getItem('auth.blockedNotice')).toBeNull()
+    })
+  })
+
+  it('keeps the flag while the loaded profile is blocked', async () => {
+    sessionStorage.setItem('auth.blockedNotice', '1')
+    vi.mocked(getUserById).mockResolvedValue(makeUser(false))
+    renderSignInProbe()
+    authenticate()
+
+    await waitFor(() => {
+      expect(getUserById).toHaveBeenCalled()
+    })
+    await waitFor(() => {
+      expect(sessionStorage.getItem('auth.blockedNotice')).toBe('1')
+    })
+  })
+})
+
 function authenticate() {
   authStateHandler.callback?.({ uid: 'user-1' })
 }

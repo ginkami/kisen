@@ -10,7 +10,7 @@ import { doc, onSnapshot } from 'firebase/firestore'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { auth, db } from '../services/firebaseConfig.ts'
 import i18n from '../i18n'
-import { setBlockedNotice } from './blockedNotice.ts'
+import { setBlockedNotice, clearBlockedNotice } from './blockedNotice.ts'
 import {
   logOut,
   signInWithEmail,
@@ -63,13 +63,20 @@ export function AuthProvider({ children }: AuthProviderProps) {
       try {
         const existing = await getUserById(fbUser.uid)
         if (existing) {
+          // A leftover blocked-notice flag (e.g. from an earlier rejected
+          // sign-in in this tab) is obsolete once an existing, non-blocked
+          // profile loads. Blocked profiles keep the flag so the banner
+          // stays visible.
+          if (!isUserBlocked(existing)) {
+            clearBlockedNotice()
+          }
           return existing
         }
 
         const displayName = fbUser.displayName ?? ''
         const { givenName, familyName } = splitDisplayName(displayName)
 
-        return await createUser({
+        const created = await createUser({
           id: fbUser.uid,
           email: fbUser.email ?? '',
           role: 'user',
@@ -85,6 +92,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
             en: { familyName, givenName, displayName },
           },
         })
+        if (!isUserBlocked(created)) {
+          clearBlockedNotice()
+        }
+        return created
       } catch (error) {
         console.error('Failed to ensure user profile:', error)
         return null

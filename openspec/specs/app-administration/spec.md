@@ -3,14 +3,15 @@
 Entry point and skeleton for site application administration: an admin-only drawer button leading to a guarded administration page with a tab panel (currently a single empty Settings tab) that future settings and management features will extend.
 
 ## Requirements
+
 ### Requirement: Application management entry in the admin panel
 
-The admin drawer panel SHALL show a В«РЈРїСЂР°РІР»РµРЅРёРµ РїСЂРёР»РѕР¶РµРЅРёРµРјВ» button as its first item, positioned above the accordion. The button SHALL be rendered only for users whose profile role is `admin` and SHALL navigate to `/app-admin` through the existing unsaved-changes navigation guard.
+The admin drawer panel SHALL show a «Управление приложением» button as its first item, positioned above the accordion. The button SHALL be rendered only for users whose profile role is `admin` and SHALL navigate to `/app-admin` through the existing unsaved-changes navigation guard.
 
 #### Scenario: Admin sees the entry button
 
 - **WHEN** an admin opens the admin drawer
-- **THEN** the В«РЈРїСЂР°РІР»РµРЅРёРµ РїСЂРёР»РѕР¶РµРЅРёРµРјВ» button is the first item of the panel, above the accordion
+- **THEN** the «Управление приложением» button is the first item of the panel, above the accordion
 
 #### Scenario: Non-admin does not see the entry button
 
@@ -24,7 +25,7 @@ The admin drawer panel SHALL show a В«РЈРїСЂР°РІР»РµРЅРёРµ
 
 ### Requirement: Application administration page access
 
-The page at `/app-admin` SHALL be accessible only to users with the `admin` role. Non-admins SHALL see a localized access-restricted alert instead of the page content.
+The page at `/app-admin` SHALL be accessible only to users with the `admin` role. While authentication and the user profile are loading, the page SHALL render a loading spinner instead of an access verdict. Non-admins SHALL see a localized access-restricted alert instead of the page content once loading has finished.
 
 #### Scenario: Admin opens the page
 
@@ -36,12 +37,17 @@ The page at `/app-admin` SHALL be accessible only to users with the `admin` role
 - **WHEN** a user with role `manager` or `user` opens `/app-admin`
 - **THEN** a localized access-restricted alert is shown instead of the content
 
+#### Scenario: Loading state does not flash the access alert
+
+- **WHEN** the page is opened while authentication or the profile is still loading
+- **THEN** a loading spinner is shown instead of the access-restricted alert
+
 ### Requirement: Application administration page layout
 
-The page SHALL render the title В«РЈРїСЂР°РІР»РµРЅРёРµ РїСЂРёР»РѕР¶РµРЅРёРµРјВ» and a tab panel using the daisyUI `tabs-lift` style. The panel SHALL contain a В«РќР°СЃС‚СЂРѕР№РєРёВ» tab whose section is empty for now, with a neutral localized placeholder marking it as intentionally empty. The panel structure SHALL allow adding further tab/section pairs.
+The page SHALL render the title «Управление приложением» and a tab panel using the daisyUI `tabs-lift` style. The panel SHALL contain a «Настройки» tab whose section is empty for now, with a neutral localized placeholder marking it as intentionally empty. The panel structure SHALL allow adding further tab/section pairs.
 
 #### Scenario: Page layout
 
 - **WHEN** an admin opens `/app-admin`
-- **THEN** the title В«РЈРїСЂР°РІР»РµРЅРёРµ РїСЂРёР»РѕР¶РµРЅРёРµРјВ» and a `tabs-lift` tab panel with the active В«РќР°СЃС‚СЂРѕР№РєРёВ» tab are shown
+- **THEN** the title «Управление приложением» and a `tabs-lift` tab panel with the active «Настройки» tab are shown
 - **AND** the settings section is empty with a placeholder

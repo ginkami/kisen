@@ -18,6 +18,7 @@ vi.mock('react-i18next', () => ({
 const authState = vi.hoisted(() => ({
   user: null as unknown,
   isAuthenticated: true,
+  isLoading: false,
 }))
 
 vi.mock('../context/AuthContext.tsx', () => ({
@@ -90,6 +91,7 @@ function renderEditPage(targetId: string = TARGET_ID) {
 beforeEach(() => {
   authState.user = makeAdmin()
   authState.isAuthenticated = true
+  authState.isLoading = false
   vi.mocked(getUserById).mockReset()
   vi.mocked(setUserRole).mockReset()
   vi.mocked(setUserRole).mockResolvedValue(undefined)
@@ -105,6 +107,16 @@ describe('UserEditPage access', () => {
     renderEditPage()
 
     expect(screen.getByText('user.edit.errors.noAccess')).toBeInTheDocument()
+    expect(getUserById).not.toHaveBeenCalled()
+  })
+
+  it('shows a spinner instead of the access alert while auth is loading', () => {
+    authState.isLoading = true
+    authState.user = null
+    const { container } = renderEditPage()
+
+    expect(container.querySelector('.loading-spinner')).toBeTruthy()
+    expect(screen.queryByText('user.edit.errors.noAccess')).toBeNull()
     expect(getUserById).not.toHaveBeenCalled()
   })
 })

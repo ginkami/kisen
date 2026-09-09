@@ -49,7 +49,7 @@ export function UserEditForm({ userId }: { userId: string }) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { setHasUnsavedChanges } = useOutletContext<LayoutOutletContext>()
-  const { user: currentUser, isAuthenticated } = useAuth()
+  const { user: currentUser, isAuthenticated, isLoading: isAuthLoading } = useAuth()
 
   const isAdmin = isAuthenticated && currentUser?.role === 'admin'
   const isSelf = currentUser?.id === userId
@@ -138,6 +138,14 @@ export function UserEditForm({ userId }: { userId: string }) {
     } finally {
       setIsSendingReset(false)
     }
+  }
+
+  if (isAuthLoading) {
+    return (
+      <div className="flex min-h-[50vh] items-center justify-center">
+        <span className="loading loading-spinner loading-lg text-primary" />
+      </div>
+    )
   }
 
   if (!isAdmin) {

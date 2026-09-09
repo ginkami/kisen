@@ -3,7 +3,15 @@ import { useAuth } from '../../context/AuthContext.tsx'
 
 export function AppAdminPanel() {
   const { t } = useTranslation()
-  const { user, isAuthenticated } = useAuth()
+  const { user, isAuthenticated, isLoading } = useAuth()
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-[50vh] items-center justify-center">
+        <span className="loading loading-spinner loading-lg text-primary" />
+      </div>
+    )
+  }
 
   if (!isAuthenticated || user?.role !== 'admin') {
     return (

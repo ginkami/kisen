@@ -11,6 +11,7 @@ vi.mock('react-i18next', () => ({
 const authState = vi.hoisted(() => ({
   user: null as unknown,
   isAuthenticated: true,
+  isLoading: false,
 }))
 
 vi.mock('../context/AuthContext.tsx', () => ({
@@ -34,6 +35,7 @@ function renderPage() {
 
 beforeEach(() => {
   authState.isAuthenticated = true
+  authState.isLoading = false
   authState.user = { id: 'admin-1', role: 'admin' }
 })
 
@@ -46,6 +48,15 @@ describe('AppAdminPage', () => {
       screen.getByRole('tab', { name: 'appAdmin.tabs.settings' })
     ).toBeInTheDocument()
     expect(screen.getByText('appAdmin.settings.empty')).toBeInTheDocument()
+  })
+
+  it('shows a spinner instead of the access alert while loading', () => {
+    authState.isLoading = true
+    const { container } = renderPage()
+
+    expect(container.querySelector('.loading-spinner')).toBeTruthy()
+    expect(screen.queryByText('appAdmin.errors.noAccess')).toBeNull()
+    expect(screen.queryByText('appAdmin.title')).toBeNull()
   })
 
   it('shows the access alert for a manager', () => {
