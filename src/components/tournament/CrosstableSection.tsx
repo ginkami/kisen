@@ -1,4 +1,4 @@
-﻿import { useMemo, useState, useCallback, useRef } from 'react'
+import { useMemo, useState, useCallback, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import * as Flags from 'country-flag-icons/react/3x2'
 import { PiCrownSimple } from 'react-icons/pi'

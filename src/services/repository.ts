@@ -1,3 +1,4 @@
+import type { QueryDocumentSnapshot } from 'firebase/firestore'
 import type { Tournament } from '../domain/tournament.ts'
 import type { Event } from '../domain/event.ts'
 import type { Player } from '../domain/player.ts'
@@ -12,10 +13,30 @@ export interface ListTournamentsFilters {
   startYearMonth?: string
 }
 
+export type PublishedTournamentStatus = 'finished' | 'ongoing' | 'upcoming'
+
+export interface ListPublishedTournamentsParams {
+  status: PublishedTournamentStatus
+  country?: string
+  startFrom?: Date
+  startTo?: Date
+  pageSize: number
+  /** Firestore document snapshot to start after (cursor pagination). */
+  cursor?: QueryDocumentSnapshot | null
+}
+
+export interface PaginatedTournaments {
+  items: Tournament[]
+  nextCursor: QueryDocumentSnapshot | null
+}
+
 export interface TournamentRepository {
   getBySlug(slug: string): Promise<Tournament | null>
   getById(id: string): Promise<Tournament | null>
   list(filters?: ListTournamentsFilters): Promise<Tournament[]>
+  listPublishedTournaments(
+    params: ListPublishedTournamentsParams
+  ): Promise<PaginatedTournaments>
   create(tournament: Tournament): Promise<Tournament>
   update(tournament: Tournament): Promise<Tournament>
   updateMany(tournaments: Tournament[]): Promise<void>

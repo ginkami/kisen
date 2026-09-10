@@ -98,6 +98,7 @@ function createService(
   const tournamentRepository: TournamentRepository = {
     getBySlug: vi.fn(),
     getById: vi.fn(),
+    listPublishedTournaments: vi.fn(),
     list: vi.fn().mockResolvedValue(linked.tournaments ?? []),
     create: vi.fn(),
     update: vi.fn(),

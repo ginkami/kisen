@@ -1,4 +1,4 @@
-﻿import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { describe, expect, it, vi, beforeEach } from 'vitest'
@@ -127,7 +127,7 @@ function makeFormState() {
     parentEvent: null,
     hostAssociation: null,
     locales: {
-      ru: { title: 'РўРµСЃС‚РѕРІС‹Р№ С‚СѓСЂРЅРёСЂ', description: '' },
+      ru: { title: 'Тестовый турнир', description: '' },
       en: { title: 'Test tournament', description: '' },
     },
     location: {
@@ -141,7 +141,7 @@ function makeFormState() {
       },
     },
     arbiter: {
-      ru: { givenName: 'РРІР°РЅ', familyName: 'РРІР°РЅРѕРІ' },
+      ru: { givenName: 'Иван', familyName: 'Иванов' },
       en: { givenName: 'Ivan', familyName: 'Ivanov' },
     },
     settings: {} as Tournament['settings'],
@@ -166,7 +166,7 @@ function makeTournament(): Tournament {
     regulations: [],
     updatedAt: new Date('2026-01-01T00:00:00Z'),
     locales: {
-      ru: { title: 'РўРµСЃС‚РѕРІС‹Р№ С‚СѓСЂРЅРёСЂ' },
+      ru: { title: 'Тестовый турнир' },
       en: { title: 'Test tournament' },
     },
     location: {

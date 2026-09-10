@@ -43,6 +43,23 @@ export class AssociationService {
     return this.repository.getById(id)
   }
 
+  /** Batch lookup preserving order; missing ids are omitted from the result. */
+  async getByIds(ids: string[]): Promise<Association[]> {
+    const unique = [...new Set(ids)].filter((id) => id.trim().length > 0)
+    if (unique.length === 0) return []
+
+    const results = await Promise.all(
+      unique.map(async (id) => {
+        try {
+          return await this.repository.getById(id)
+        } catch {
+          return null
+        }
+      })
+    )
+    return results.filter((a): a is Association => a !== null)
+  }
+
   async listManagedByUser(userId: string): Promise<Association[]> {
     return this.repository.listManagedByUser(userId)
   }

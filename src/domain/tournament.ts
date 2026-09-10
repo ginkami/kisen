@@ -192,6 +192,13 @@ const tournamentObjectSchema = z.object({
    */
   currentRound: z.number().int().min(0).optional(),
   startYearMonth: z.string().length(6).regex(/^\d{6}$/),
+  /**
+   * Precise tournament start (min of rounds/events `scheduledAt`), used for
+   * public listing order and date-range filters. Maintained by the service
+   * alongside `startYearMonth`; absent on legacy documents (backfilled by
+   * scripts/backfill-tournament-start-at.mjs).
+   */
+  startAt: z.date().optional(),
   locales: localeSchema(tournamentLocaleSchema).refine(
     (locales) => Object.keys(locales).length > 0,
     'At least one locale is required'

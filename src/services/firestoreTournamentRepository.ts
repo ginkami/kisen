@@ -10,11 +10,14 @@ import {
   where,
   orderBy,
   limit,
+  startAfter,
 } from 'firebase/firestore'
 import { db } from './firebaseConfig.ts'
 import type { Tournament } from '../domain/tournament.ts'
 import type {
+  ListPublishedTournamentsParams,
   ListTournamentsFilters,
+  PaginatedTournaments,
   TournamentRepository,
 } from './repository.ts'
 import { supportedLocales } from '../domain/locale.ts'
@@ -285,6 +288,56 @@ export class FirestoreTournamentRepository implements TournamentRepository {
         } as Record<string, unknown>)
       )
     )
+  }
+
+  async listPublishedTournaments(
+    params: ListPublishedTournamentsParams
+  ): Promise<PaginatedTournaments> {
+    // Composite indexes required (firestore.indexes.json):
+    //   (isPublic, status, startAt ASC|DESC)
+    //   (isPublic, status, location.country, startAt ASC|DESC)
+    // Legacy documents without `startAt` are excluded by orderBy until
+    // backfilled (scripts/backfill-tournament-start-at.mjs).
+    const constraints: ReturnType<
+      typeof where | typeof orderBy | typeof startAfter | typeof limit
+    >[] = [
+      where('isPublic', '==', true),
+      where('status', '==', params.status),
+    ]
+    if (params.country) {
+      constraints.push(where('location.country', '==', params.country))
+    }
+    if (params.startFrom) {
+      constraints.push(where('startAt', '>=', params.startFrom))
+    }
+    if (params.startTo) {
+      constraints.push(where('startAt', '<=', params.startTo))
+    }
+    constraints.push(
+      orderBy('startAt', params.status === 'upcoming' ? 'asc' : 'desc')
+    )
+    if (params.cursor) {
+      constraints.push(startAfter(params.cursor))
+    }
+    constraints.push(limit(params.pageSize))
+
+    const q = query(this.collectionRef, ...constraints)
+    const snapshot = await getDocs(q)
+
+    const items = await Promise.all(
+      snapshot.docs.map((docSnap) =>
+        fromFirestore({
+          id: docSnap.id,
+          ...docSnap.data(),
+        } as Record<string, unknown>)
+      )
+    )
+
+    const lastDoc = snapshot.docs[snapshot.docs.length - 1] ?? null
+    return {
+      items,
+      nextCursor: snapshot.docs.length === params.pageSize ? lastDoc : null,
+    }
   }
 
   async create(tournament: Tournament): Promise<Tournament> {

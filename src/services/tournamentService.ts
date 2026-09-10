@@ -12,11 +12,16 @@ import {
   normalizeSlug,
   SLUG_MIN_LENGTH,
 } from './slugService.ts'
-import type { TournamentRepository, ListTournamentsFilters } from './repository.ts'
+import type {
+  TournamentRepository,
+  ListTournamentsFilters,
+  ListPublishedTournamentsParams,
+  PaginatedTournaments,
+} from './repository.ts'
 import { firestoreTournamentRepository } from './firestoreTournamentRepository.ts'
 import { sanitizeDeep } from '../utils/sanitize.ts'
 import { eventService } from './eventService.ts'
-import { getTournamentStartYearMonth } from '../utils/yearMonth.ts'
+import { getTournamentStartYearMonth, getTournamentStartDate } from '../utils/yearMonth.ts'
 import { supportedLocales } from '../domain/locale.ts'
 import { resolveLocationByIp, resolvedToTournamentLocation } from './geoService.ts'
 
@@ -232,6 +237,7 @@ export class TournamentService {
       startYearMonth: getTournamentStartYearMonth({
         schedule: input.schedule,
       } as Tournament),
+      startAt: getTournamentStartDate({ schedule: input.schedule } as Tournament) ?? undefined,
       locales: input.locales,
       location: input.location,
       settings: input.settings,
@@ -277,6 +283,7 @@ export class TournamentService {
       startYearMonth: getTournamentStartYearMonth({
         schedule,
       } as Tournament),
+      startAt: getTournamentStartDate({ schedule } as Tournament) ?? undefined,
       locales: defaultLocales(),
       location,
       settings: defaultSettings(),
@@ -315,6 +322,10 @@ export class TournamentService {
       ...existing,
       schedule: nextSchedule,
     } as Tournament)
+    const nextStartAt = getTournamentStartDate({
+      ...existing,
+      schedule: nextSchedule,
+    } as Tournament)
 
     const nextParentEvent =
       input.parentEvent !== undefined ? input.parentEvent : existing.parentEvent
@@ -348,6 +359,7 @@ export class TournamentService {
       isPublic,
       publishedRounds: nextPublishedRounds,
       startYearMonth: nextStartYearMonth,
+      startAt: nextStartAt ?? undefined,
       parentEvent: nextParentEvent,
       hostAssociation:
         input.hostAssociation !== undefined
@@ -408,6 +420,12 @@ export class TournamentService {
 
   async searchByTitle(prefix: string): Promise<Tournament[]> {
     return this.repository.searchByTitle(prefix)
+  }
+
+  async listPublishedTournaments(
+    params: ListPublishedTournamentsParams
+  ): Promise<PaginatedTournaments> {
+    return this.repository.listPublishedTournaments(params)
   }
 
   private async resolveSlug(

@@ -534,5 +534,27 @@
     "errors": {
       "noAccess": "Only administrators can access this page."
     }
+  },
+  "home": {
+    "title": "Tournaments",
+    "tabs": {
+      "finished": "Finished",
+      "ongoing": "Ongoing",
+      "upcoming": "Upcoming"
+    },
+    "showMore": "Show next {{count}} tournaments",
+    "empty": "No tournaments found",
+    "loadError": "Failed to load tournaments.",
+    "editTournament": "Edit tournament",
+    "filters": {
+      "title": "Search by title",
+      "dateFrom": "Date from",
+      "dateTo": "Date to",
+      "country": "Country",
+      "city": "City",
+      "apply": "Apply",
+      "cancel": "Cancel",
+      "toggle": "Filters"
+    }
   }
 }

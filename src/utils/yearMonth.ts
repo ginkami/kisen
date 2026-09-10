@@ -21,6 +21,14 @@ export function parseMonthInputToYearMonth(value: string): string {
 }
 
 export function getTournamentStartYearMonth(tournament: Tournament): string {
+  return formatDateToYearMonth(getTournamentStartDate(tournament) ?? new Date())
+}
+
+/**
+ * Precise tournament start: the earliest scheduledAt among schedule rounds
+ * and events. Returns null when the schedule has no dated entries.
+ */
+export function getTournamentStartDate(tournament: Tournament): Date | null {
   const allDates: Date[] = []
   for (const round of tournament.schedule.rounds) {
     allDates.push(round.scheduledAt)
@@ -28,9 +36,6 @@ export function getTournamentStartYearMonth(tournament: Tournament): string {
   for (const event of tournament.schedule.events) {
     if (event.scheduledAt) allDates.push(event.scheduledAt)
   }
-  if (allDates.length > 0) {
-    const minDate = new Date(Math.min(...allDates.map((d) => d.getTime())))
-    return formatDateToYearMonth(minDate)
-  }
-  return formatDateToYearMonth(new Date())
+  if (allDates.length === 0) return null
+  return new Date(Math.min(...allDates.map((d) => d.getTime())))
 }

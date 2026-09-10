@@ -68,7 +68,7 @@ export function CountrySelect({
       <button
         type="button"
         tabIndex={0}
-        className={`btn btn-outline w-full justify-start ${buttonClassName ?? ''}`}
+        className={`btn w-full justify-start ${buttonClassName ?? ''}`}
         aria-expanded={isOpen}
         onClick={() => setIsOpen((prev) => !prev)}
       >
