@@ -1,5 +1,43 @@
 # Changelog
 
+## [0.2.0](https://github.com/ginkami/kisen/compare/v0.1.0...v0.2.0) (2026-09-11)
+
+### Features
+
+* **admin:** add app administration entry button and skeleton page ([b37c063](https://github.com/ginkami/kisen/commit/b37c06359e09361351ab70335644d1bdd61d27d9))
+* **admin:** add users management section with role, block, and password reset ([1f94935](https://github.com/ginkami/kisen/commit/1f949350da8b61cd9dd38349a06c8e5d7d7dabaf))
+* **association:** clear association links when deleting an association ([74a1c14](https://github.com/ginkami/kisen/commit/74a1c14c15eae4d295f0a21bad3d75b899ee0da9))
+* **auth:** enforce user blocking via auth.isActive across sign-in, sessions, invites, and rules ([d59bbca](https://github.com/ginkami/kisen/commit/d59bbca7e5df148880f90c5569fec0c23d8e295b))
+* **event:** public event page rendering the latest tournament or event description. ([4b264dd](https://github.com/ginkami/kisen/commit/4b264dd281ea396e95b411003b7f0853af53fcf4))
+* **event:** restrict event management to creator and host-association managers ([6a06c95](https://github.com/ginkami/kisen/commit/6a06c95e36fcafbc6a145ec0f9c7b4279198380c))
+* **home:** public tournaments board with phase tabs, filters, and cursor pagination ([d09461e](https://github.com/ginkami/kisen/commit/d09461e1b7c2142d0e96018e348541493f126be4))
+* output version in the footer ([887fac6](https://github.com/ginkami/kisen/commit/887fac66e150d94f47bd8107ba5ad0f7586203cf))
+* **player:** block unauthorized editing in participant player edit modal ([160444c](https://github.com/ginkami/kisen/commit/160444c69b71d843193b7007fe30d654acda1cbe))
+* **player:** restrict player edit access to eligible managers ([09d728d](https://github.com/ginkami/kisen/commit/09d728d1d7959f8cffd28fdd5b8ed488da209940))
+* **profile:** leave association management from the profile page ([4d016b1](https://github.com/ginkami/kisen/commit/4d016b12104d3b735c193318405fa1de43d7547e))
+* **profile:** profile page with locale-tabbed profile data, providers and password management, managed associations ([c3fb686](https://github.com/ginkami/kisen/commit/c3fb6868ff605eecd3583a1bbf59cb32e31178c8))
+* **tournament:** add table scroll component with sticky cells ([286dcbb](https://github.com/ginkami/kisen/commit/286dcbb26102cd397c71ecac59a55c20fc8c5c7b))
+* **tournament:** compact time units and control type in tournament meta ([5ab4824](https://github.com/ginkami/kisen/commit/5ab4824955f4b674df394a3549ae6ed69fccb030))
+* **tournament:** make active crosstable tab when tournament ongoing or finished ([08f27e6](https://github.com/ginkami/kisen/commit/08f27e64497a199a9dd94ce85ddac5a6ace9b898))
+* **tournament:** open public tournament page on the crosstable tab for ongoing/finished events ([d72955c](https://github.com/ginkami/kisen/commit/d72955c796d329893c0afa08764bc39462751b2e))
+* **tournament:** restrict tournament edit access and navigate home on logout ([9fccc6a](https://github.com/ginkami/kisen/commit/9fccc6abe12acc8a785bdc2b1623259b2d07ffe8))
+* **tournament:** store schedule times as venue-local wall-clock time ([7c70928](https://github.com/ginkami/kisen/commit/7c70928649aa73927f71f19b625014e524cce8e9))
+* **tournament:** surface publish validation errors with tab switch and schedule highlighting ([b3a3cfa](https://github.com/ginkami/kisen/commit/b3a3cfa4eb671f13e14feee05cf0a76233296b2d))
+
+### Bug Fixes
+
+* **association:** safe two-step email invites in manager invite input ([25f0021](https://github.com/ginkami/kisen/commit/25f00215cfd41e88a702510608ae480b5d80f0db))
+* **auth:** clear stale blocked-notice flag on active profile load; spinners instead of premature access alerts ([0c707e9](https://github.com/ginkami/kisen/commit/0c707e910697a332e35314b53199ea180ebb0329))
+* **player:** proper country placeholders and association titles in player form ([21fe388](https://github.com/ginkami/kisen/commit/21fe388cac8ca5bfdcd822365a97ca95c864c1ec))
+* **profile:** fix user dispay name on badges ([5058f0e](https://github.com/ginkami/kisen/commit/5058f0e091fdbef681a7d9c9ddf5831c5110403f))
+* **profile:** required displayName in all locales, real names on sign-up, password visibility toggle and success styling, close AdminDrawer on logout ([c24a666](https://github.com/ginkami/kisen/commit/c24a6665ff12570bec9a3621c0d90d630d581d39))
+* **tournament:** hide unpublished rounds on public crosstable and merge currentRound into publishedRounds ([3e1537d](https://github.com/ginkami/kisen/commit/3e1537d4ae2ff6c2c42656b732ae0ecf96dc5aa0))
+* **tournament:** invalidate drawer tournaments cache on create, save, publish, and delete ([caee2b8](https://github.com/ginkami/kisen/commit/caee2b8d04c7877fde91dab38c12185b7b943b51))
+* **tournament:** render ru month names in genitive case in schedule date ranges ([b656a0e](https://github.com/ginkami/kisen/commit/b656a0ec20ad9160687a9b25a6f59c8e4c0ba005))
+* **ui:** fix crosstable tooltips ([e966ccc](https://github.com/ginkami/kisen/commit/e966ccc2036dc0d78d3d6ecf8d81111f111431bf))
+* **ui:** fix table views ([f99d011](https://github.com/ginkami/kisen/commit/f99d011d3e0bcf56d9bab220a33e2deabad138e1))
+* **ui:** fix table views ([4086918](https://github.com/ginkami/kisen/commit/4086918249d3a6441ee60acab6529cd2b9fe61a7))
+
 ## 0.1.0 (2026-09-01)
 
 ### Features
