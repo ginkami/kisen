@@ -4,6 +4,10 @@ import { supportedLocales } from '../domain/locale.ts'
 import type { PlayerRank } from '../domain/playerRating.ts'
 import type { PlayerRepository } from './repository.ts'
 import { firestorePlayerRepository } from './firestorePlayerRepository.ts'
+import {
+  firestoreAssociationRepository,
+  type FirestoreAssociationRepository,
+} from './firestoreAssociationRepository.ts'
 import { sanitizeDeep } from '../utils/sanitize.ts'
 
 export interface CreatePlayerInput {
@@ -49,6 +53,7 @@ interface ParsedCsvRow {
   residence: string
   enLocation: string
   ruLocation: string
+  association: string
 }
 
 function parseCsv(text: string): { header: string[]; rows: string[][] } {
@@ -103,6 +108,10 @@ function validateRow(row: ParsedCsvRow, rowNum: number): string | null {
 
   if (row.residence && row.residence.length !== 2) {
     return `Строка ${rowNum}: некорректный residence "${row.residence}"`
+  }
+
+  if (row.association && !/^[a-z0-9-]+$/.test(row.association)) {
+    return `Строка ${rowNum}: некорректный slug ассоциации "${row.association}"`
   }
 
   return null
@@ -167,9 +176,14 @@ function buildRating(row: ParsedCsvRow): Player['currentRating'] {
 
 export class PlayerService {
   private readonly repository: PlayerRepository
+  private readonly associationLookup: Pick<FirestoreAssociationRepository, 'getBySlug'>
 
-  constructor(repository: PlayerRepository) {
+  constructor(
+    repository: PlayerRepository,
+    associationLookup: Pick<FirestoreAssociationRepository, 'getBySlug'> = firestoreAssociationRepository
+  ) {
     this.repository = repository
+    this.associationLookup = associationLookup
   }
 
   async getById(id: string): Promise<Player | null> {
@@ -241,6 +255,19 @@ export class PlayerService {
     const existingPlayers = await this.repository.listAll()
     const dedupIndex = buildDedupIndex(existingPlayers)
 
+    // Resolve association slugs (column "association") to association ids,
+    // one lookup per unique slug.
+    const associationIdBySlug = new Map<string, string | null>()
+    const resolveAssociation = async (slug: string): Promise<string | null> => {
+      if (associationIdBySlug.has(slug)) {
+        return associationIdBySlug.get(slug) ?? null
+      }
+      const association = await this.associationLookup.getBySlug(slug)
+      const id = association?.id ?? null
+      associationIdBySlug.set(slug, id)
+      return id
+    }
+
     const result: ImportResult = { added: 0, updated: 0, invalid: 0, errors: [] }
 
     for (let i = 0; i < rows.length; i++) {
@@ -257,6 +284,7 @@ export class PlayerService {
         residence: obj['residence'] ?? '',
         enLocation: obj['en.location'] ?? '',
         ruLocation: obj['ru.location'] ?? '',
+        association: obj['association'] ?? '',
       }
 
       const validationError = validateRow(csvRow, rowNum)
@@ -267,18 +295,39 @@ export class PlayerService {
       }
 
       try {
+        let primaryAssociationId: string | null = null
+        if (csvRow.association) {
+          primaryAssociationId = await resolveAssociation(csvRow.association)
+          if (!primaryAssociationId) {
+            result.invalid++
+            result.errors.push({
+              row: rowNum,
+              reason: `Строка ${rowNum}: ассоциация со slug "${csvRow.association}" не найдена`,
+            })
+            continue
+          }
+        }
+
         const existing = findExistingPlayer(csvRow, dedupIndex)
         const locales = buildLocales(csvRow)
         const rating = buildRating(csvRow)
 
         if (existing) {
           const mergedLocales = { ...existing.locales, ...locales }
+          // An empty slug means "no association": clear the primary one. When
+          // a slug resolves, drop the id from secondaryAssociations so the
+          // player does not end up affiliated twice with the same organization.
+          const secondaryAssociations = primaryAssociationId
+            ? existing.secondaryAssociations.filter((id) => id !== primaryAssociationId)
+            : existing.secondaryAssociations
           await this.repository.update(sanitizeDeep({
             ...existing,
             locales: mergedLocales as Player['locales'],
             nationality: csvRow.nationality,
             residence: csvRow.residence || undefined,
             currentRating: rating,
+            primaryAssociation: primaryAssociationId,
+            secondaryAssociations,
           }))
           result.updated++
         } else {
@@ -291,7 +340,7 @@ export class PlayerService {
             gender: null,
             currentRating: rating,
             birthDate: null,
-            primaryAssociation: null,
+            primaryAssociation: primaryAssociationId,
             secondaryAssociations: [],
           }
           await this.repository.create(sanitizeDeep(player))
