@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, Outlet } from 'react-router-dom'
+import { Link, Outlet, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { BsBoxArrowRight, BsGear } from 'react-icons/bs'
 import { LanguageSwitcher } from './LanguageSwitcher.tsx'
@@ -11,6 +11,9 @@ import { useAuth } from '../context/AuthContext.tsx'
 
 export interface LayoutOutletContext {
   setHasUnsavedChanges: (value: boolean) => void
+  closeAdminDrawer: () => void
+  isPairingToolsOpen: boolean
+  setPairingToolsOpen: (value: boolean) => void
 }
 
 export function Layout() {
@@ -19,6 +22,10 @@ export function Layout() {
 
   const [isAdminOpen, setIsAdminOpen] = useState(false)
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
+  // Open state of the tournament edit page's "Pairing assistant" drawer.
+  // The state lives here so both side drawers can close each other.
+  const [isPairingToolsOpen, setIsPairingToolsOpen] = useState(false)
+  const { pathname } = useLocation()
 
   // The admin drawer is only meaningful for an authenticated session.
   useEffect(() => {
@@ -27,9 +34,19 @@ export function Layout() {
     }
   }, [isAuthenticated])
 
+  // The pairing tools drawer is only meaningful on the tournament edit page's
+  // pairings tab; drop the open state on navigation.
+  useEffect(() => {
+    setIsPairingToolsOpen(false)
+  }, [pathname])
+
   const openAdmin = () => setIsAdminOpen(true)
   const closeAdmin = () => setIsAdminOpen(false)
-  const toggleAdmin = () => setIsAdminOpen((prev) => !prev)
+  const toggleAdmin = () => {
+    // The two side drawers are mutually exclusive (they overlap on mobile).
+    setIsPairingToolsOpen(false)
+    setIsAdminOpen((prev) => !prev)
+  }
   const version = import.meta.env.VITE_APP_VERSION
 
   return (
@@ -76,7 +93,7 @@ export function Layout() {
             isAdminOpen ? 'lg:ml-0' : '',
           ].join(' ')}
         >
-          <Outlet context={{ setHasUnsavedChanges }} />
+          <Outlet context={{ setHasUnsavedChanges, closeAdminDrawer: closeAdmin, isPairingToolsOpen, setPairingToolsOpen: setIsPairingToolsOpen }} />
         </main>
       </div>
 

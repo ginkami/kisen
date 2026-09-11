@@ -1,5 +1,6 @@
 import { useMemo, useCallback, useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
+import { BsDice5 } from 'react-icons/bs'
 import {
   DndContext,
   DragOverlay,
@@ -53,6 +54,7 @@ interface PairingsBoardProps {
   locale: string
   onGamesChange: (games: Game[]) => void
   updateStartingPoints?: (participantId: number, value: number) => void
+  onTogglePairingTools?: () => void
 }
 
 // ---------------------------------------------------------------------------
@@ -292,6 +294,7 @@ export function PairingsBoard({
   locale,
   onGamesChange,
   updateStartingPoints,
+  onTogglePairingTools,
 }: PairingsBoardProps) {
   const { t } = useTranslation()
   const [activeId, setActiveId] = useState<string | null>(null)
@@ -537,7 +540,18 @@ export function PairingsBoard({
         <div className="order-1 md:order-2 items-start mb-4">
           <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2">
             <h3 className="text-center text-lg">☗</h3>
-            <div className="w-10" />
+            <div className="w-10">
+              {onTogglePairingTools && (
+                <button
+                  type="button"
+                  onClick={onTogglePairingTools}
+                  className="btn btn-secondary btn-sm w-full"
+                  aria-label={t('tournament.edit.pairingTools.open')}
+                >
+                  <BsDice5 className="h-4 w-4" />
+                </button>
+              )}
+            </div>
             <h3 className="text-center text-lg">☖</h3>
 
             {(() => {

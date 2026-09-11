@@ -333,6 +333,11 @@
         "startingPoints": "Стартовые очки",
         "handicap": "Игра с форой"
       },
+      "pairingTools": {
+        "title": "Подобрать пары",
+        "open": "Открыть панель подбора пар",
+        "close": "Закрыть панель подбора пар"
+      },
       "crosstable": {
         "name": "Имя",
         "residence": "Город",

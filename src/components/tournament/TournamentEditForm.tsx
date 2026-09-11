@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useState } from 'react'
-import { Navigate } from 'react-router-dom'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Navigate, useOutletContext } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { ConfirmModal } from '../ConfirmModal.tsx'
 import { useTranslation } from 'react-i18next'
-import { BsSliders2Vertical, BsClock, BsJournalText, BsPlus, BsX, Bs123, BsGrid3X2, BsInfoCircleFill } from 'react-icons/bs'
+import { BsSliders2Vertical, BsClock, BsJournalText, BsPlus, BsX, Bs123, BsGrid3X2, BsInfoCircleFill, BsDice5 } from 'react-icons/bs'
 import { HiOutlineUserGroup } from "react-icons/hi2";
 import { useAuth } from '../../context/AuthContext.tsx'
 import { sanitizeTextInput } from '../../utils/sanitize.ts'
@@ -35,7 +35,9 @@ import { regulationService } from '../../services/regulationService.ts'
 import { LocaleTabs } from './LocaleTabs.tsx'
 import { ExpandableField } from './ExpandableField.tsx'
 import { TournamentLocationInput } from './TournamentLocationInput.tsx'
-import { PairingsSection } from './PairingsSection.tsx'
+import { PairingsSection, resolvePairingsActiveRound } from './PairingsSection.tsx'
+import { PairingToolsDrawer } from './PairingToolsDrawer.tsx'
+import type { LayoutOutletContext } from '../Layout.tsx'
 import { CrosstableSection } from './CrosstableSection.tsx'
 import { EventPickerModal } from './EventPickerModal.tsx'
 import { AssociationPickerModal } from './AssociationPickerModal.tsx'
@@ -1018,6 +1020,9 @@ export function TournamentEditForm({
   }
 
   const [activeTab, setActiveTab] = useState<TabId>('general')
+  // Active round of the pairings tab; null means "not picked yet" — the
+  // section falls back to the default round (publishedRounds + 1 when exists).
+  const [pairingsRound, setPairingsRound] = useState<number | null>(null)
   const [scheduleLocale, setScheduleLocale] = useState<SupportedLocale>(
     (i18n.language as SupportedLocale) ?? 'ru'
   )
@@ -1025,6 +1030,28 @@ export function TournamentEditForm({
     isOpen: boolean
     type: 'publish' | 'delete'
   }>({ isOpen: false, type: 'publish' })
+
+  const { closeAdminDrawer, isPairingToolsOpen, setPairingToolsOpen } =
+    useOutletContext<LayoutOutletContext>()
+
+  const togglePairingTools = useCallback(() => {
+    const next = !isPairingToolsOpen
+    if (next) closeAdminDrawer()
+    setPairingToolsOpen(next)
+  }, [isPairingToolsOpen, closeAdminDrawer, setPairingToolsOpen])
+
+  // The "Pairing assistant" drawer (and its toggle buttons) is only available
+  // on the pairings tab of an ongoing tournament while the round being
+  // prepared (publishedRounds + 1) is the active round sub-tab.
+  const pairingToolsAvailable =
+    tournament?.status === 'ongoing' &&
+    activeTab === 'pairings' &&
+    !!formState &&
+    resolvePairingsActiveRound(
+      pairingsRound,
+      formState.publishedRounds,
+      formState.scheduleRows.filter((r) => r.kind === 'round').length
+    ) === formState.publishedRounds + 1
 
   const tabs: {
     id: TabId
@@ -1376,6 +1403,10 @@ export function TournamentEditForm({
           publishDraw={publishDraw}
           unpublishDraw={unpublishDraw}
           updateStartingPoints={updateStartingPoints}
+          activeRound={pairingsRound}
+          onActiveRoundChange={setPairingsRound}
+          pairingToolsAvailable={pairingToolsAvailable}
+          onTogglePairingTools={togglePairingTools}
         />
       )}
 
@@ -1410,6 +1441,21 @@ export function TournamentEditForm({
         onConfirm={handleConfirmAction}
         onCancel={handleCancelAction}
       />
+
+      {/* Pairing assistant drawer + its right-side sticky tab */}
+      {pairingToolsAvailable && !isPairingToolsOpen && (
+        <button
+          type="button"
+          onClick={togglePairingTools}
+          className="fixed right-0 top-17 z-40 rounded-l-box bg-secondary p-3 text-secondary-content shadow-lg"
+          aria-label={t('tournament.edit.pairingTools.open')}
+        >
+          <BsDice5 className="h-6 w-6" />
+        </button>
+      )}
+      {pairingToolsAvailable && isPairingToolsOpen && (
+        <PairingToolsDrawer isOpen onClose={() => setPairingToolsOpen(false)} />
+      )}
     </div>
   )
 }

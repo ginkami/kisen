@@ -172,3 +172,45 @@ describe('PairingsBoard startingPoints input drag guard', () => {
     expect(document.querySelector('.shadow-2xl')).not.toBeNull()
   })
 })
+
+describe('PairingsBoard pairing tools toggle', () => {
+  it('renders the dice toggle in the header when the callback is provided', () => {
+    const onTogglePairingTools = vi.fn()
+
+    render(
+      <PairingsBoard
+        games={[]}
+        participants={participants}
+        round={1}
+        publishedRounds={0}
+        considerSente={false}
+        locale="ru"
+        onGamesChange={vi.fn()}
+        onTogglePairingTools={onTogglePairingTools}
+      />,
+    )
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'tournament.edit.pairingTools.open' })
+    )
+    expect(onTogglePairingTools).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not render the dice toggle without the callback', () => {
+    render(
+      <PairingsBoard
+        games={[]}
+        participants={participants}
+        round={1}
+        publishedRounds={0}
+        considerSente={false}
+        locale="ru"
+        onGamesChange={vi.fn()}
+      />,
+    )
+
+    expect(
+      screen.queryByRole('button', { name: 'tournament.edit.pairingTools.open' })
+    ).not.toBeInTheDocument()
+  })
+})

@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useMemo, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { PairingsBoard } from './PairingsBoard.tsx'
 import { isRoundComplete } from './pairings/pairingsModel.ts'
@@ -17,6 +17,30 @@ interface PairingsSectionProps {
   publishDraw: (round: number) => void
   unpublishDraw: () => void
   updateStartingPoints: (participantId: number, value: number) => void
+  activeRound: number | null
+  onActiveRoundChange: (round: number) => void
+  pairingToolsAvailable?: boolean
+  onTogglePairingTools?: () => void
+}
+
+// Resolve the effective active round: the user-selected round, or the default
+// (publishedRounds + 1 when it exists) while the user has not picked a tab.
+// Shared with TournamentEditForm, which derives the pairing-tools drawer
+// visibility from the same value.
+export function resolvePairingsActiveRound(
+  requested: number | null,
+  publishedRounds: number,
+  roundCount: number
+): number {
+  const safePublished = Number.isFinite(publishedRounds) ? publishedRounds : 0
+  const safeCount = Number.isFinite(roundCount) ? roundCount : 0
+  const defaultRound =
+    safePublished === 0
+      ? 1
+      : safePublished + 1 <= safeCount
+        ? safePublished + 1
+        : safePublished
+  return Math.max(1, Math.min(requested ?? defaultRound, Math.max(1, safeCount)))
 }
 
 export function PairingsSection({
@@ -29,6 +53,10 @@ export function PairingsSection({
   publishDraw,
   unpublishDraw,
   updateStartingPoints,
+  activeRound,
+  onActiveRoundChange,
+  pairingToolsAvailable,
+  onTogglePairingTools,
 }: PairingsSectionProps) {
   const { t, i18n } = useTranslation()
   const locale = (i18n.language as SupportedLocale) ?? 'ru'
@@ -55,17 +83,13 @@ export function PairingsSection({
     return participants as Participant[]
   }, [participants])
 
-  // Default active round: publishedRounds + 1 if possible, else publishedRounds, else 1
-  const defaultRound = useMemo(() => {
-    if (safePublishedRounds === 0) return 1
-    if (safePublishedRounds + 1 <= safeRoundCount) return safePublishedRounds + 1
-    return safePublishedRounds
-  }, [safePublishedRounds, safeRoundCount])
-
-  const [activeRound, setActiveRound] = useState(defaultRound)
-
-  // Keep activeRound in valid range
-  const safeActiveRound = Math.max(1, Math.min(activeRound || 1, Math.max(1, safeRoundCount)))
+  // Effective active round: user-selected tab, or the default (publishedRounds
+  // + 1 when it exists) while no round tab has been picked yet.
+  const safeActiveRound = resolvePairingsActiveRound(
+    activeRound,
+    safePublishedRounds,
+    safeRoundCount
+  )
 
   const roundComplete = useMemo(
     () => isRoundComplete(games, participantArray, safeActiveRound),
@@ -121,7 +145,7 @@ export function PairingsSection({
                     role="tab"
                     aria-selected={isActive}
                     disabled={isDisabled}
-                    onClick={() => setActiveRound(num)}
+                    onClick={() => onActiveRoundChange(num)}
                     className={`tab ${isActive ? 'tab-active' : ''} ${isDisabled ? 'tab-disabled' : ''}`}
                   >
                     {num}
@@ -165,6 +189,7 @@ export function PairingsSection({
           locale={locale}
           onGamesChange={handleGamesChange}
           updateStartingPoints={updateStartingPoints}
+          onTogglePairingTools={pairingToolsAvailable ? onTogglePairingTools : undefined}
         />
       </div>
     </div>

@@ -1,5 +1,6 @@
-import { render, screen } from '@testing-library/react'
-import { MemoryRouter, Routes, Route } from 'react-router-dom'
+import { useState } from 'react'
+import { fireEvent, render, screen } from '@testing-library/react'
+import { MemoryRouter, Outlet, Route, Routes } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { TournamentEditForm } from '../components/tournament/TournamentEditForm.tsx'
@@ -123,6 +124,11 @@ function makeFormState() {
       en: { givenName: '', familyName: '' },
     },
     regulations: [],
+    settings: { considerSente: false },
+    games: [],
+    participants: [],
+    publishedRounds: 0,
+    scheduleRows: [],
   }
 }
 
@@ -167,6 +173,31 @@ function makeFirebaseUser(uid: string) {
   return { uid }
 }
 
+// Test double of the Layout outlet context: the drawer open flag is real
+// state so the drawer open/close flow can be exercised.
+function TestLayout({ children }: { children: React.ReactNode }) {
+  const [isPairingToolsOpen, setPairingToolsOpen] = useState(false)
+  return (
+    <Routes>
+      <Route
+        element={
+          <Outlet
+            context={{
+              setHasUnsavedChanges: vi.fn(),
+              closeAdminDrawer: vi.fn(),
+              isPairingToolsOpen,
+              setPairingToolsOpen,
+            }}
+          />
+        }
+      >
+        <Route path="/tournaments/edit" element={children} />
+      </Route>
+      <Route path="/login" element={<div>login-page-marker</div>} />
+    </Routes>
+  )
+}
+
 function renderForm() {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
@@ -174,13 +205,9 @@ function renderForm() {
   return render(
     <QueryClientProvider client={queryClient}>
       <MemoryRouter initialEntries={['/tournaments/edit']}>
-        <Routes>
-          <Route
-            path="/tournaments/edit"
-            element={<TournamentEditForm tournamentId="00000000-0000-7000-8000-000000000001" />}
-          />
-          <Route path="/login" element={<div>login-page-marker</div>} />
-        </Routes>
+        <TestLayout>
+          <TournamentEditForm tournamentId="00000000-0000-7000-8000-000000000001" />
+        </TestLayout>
       </MemoryRouter>
     </QueryClientProvider>
   )
@@ -251,3 +278,32 @@ describe('TournamentEditForm access guard', () => {
     expect(screen.queryByText('tournament.edit.save')).toBeNull()
   })
 })
+
+describe('Pairing tools drawer visibility', () => {
+  it('shows the dice toggle on the pairings tab of an ongoing tournament and opens the drawer', () => {
+    authState.firebaseUser = makeFirebaseUser('creator-1')
+    tournamentFormState.tournament = makeTournament({ status: 'ongoing' })
+    renderForm()
+
+    fireEvent.click(screen.getByRole('tab', { name: 'tournament.edit.tabs.pairings' }))
+
+    const toggle = screen.getByRole('button', { name: 'tournament.edit.pairingTools.open' })
+    fireEvent.click(toggle)
+
+    expect(screen.getByText('tournament.edit.pairingTools.title')).toBeInTheDocument()
+  })
+
+  it('hides the pairing tools toggle for a non-ongoing tournament', () => {
+    authState.firebaseUser = makeFirebaseUser('creator-1')
+    tournamentFormState.tournament = makeTournament({ status: 'draft' })
+    renderForm()
+
+    fireEvent.click(screen.getByRole('tab', { name: 'tournament.edit.tabs.pairings' }))
+
+    expect(
+      screen.queryByRole('button', { name: 'tournament.edit.pairingTools.open' })
+    ).not.toBeInTheDocument()
+    expect(screen.queryByText('tournament.edit.pairingTools.title')).not.toBeInTheDocument()
+  })
+})
+

@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react'
-import { MemoryRouter } from 'react-router-dom'
+import { MemoryRouter, Outlet, Route, Routes } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { TournamentEditForm } from '../components/tournament/TournamentEditForm.tsx'
@@ -192,7 +192,25 @@ function renderForm() {
   return render(
     <QueryClientProvider client={queryClient}>
       <MemoryRouter>
-        <TournamentEditForm tournamentId="00000000-0000-7000-8000-000000000001" />
+        <Routes>
+          <Route
+            element={
+              <Outlet
+                context={{
+                  setHasUnsavedChanges: vi.fn(),
+                  closeAdminDrawer: vi.fn(),
+                  isPairingToolsOpen: false,
+                  setPairingToolsOpen: vi.fn(),
+                }}
+              />
+            }
+          >
+            <Route
+              path="*"
+              element={<TournamentEditForm tournamentId="00000000-0000-7000-8000-000000000001" />}
+            />
+          </Route>
+        </Routes>
       </MemoryRouter>
     </QueryClientProvider>
   )

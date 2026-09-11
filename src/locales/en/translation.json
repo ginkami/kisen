@@ -329,6 +329,11 @@
         "startingPoints": "Initial points",
         "handicap": "Game with handicap"
       },
+      "pairingTools": {
+        "title": "Pairing assistant",
+        "open": "Open pairing assistant",
+        "close": "Close pairing assistant"
+      },
       "crosstable": {
         "name": "Name",
         "residence": "Residence",
