@@ -224,25 +224,26 @@ The `PairingsSection` SHALL render one sub-tab per round (`1..schedule.rounds.le
 - **WHEN** the user clicks an enabled round sub-tab `2`
 - **THEN** the `PairingsBoard` for round `2` is rendered and round sub-tab `2` is marked active
 
-### Requirement: Publish draw button
+### Requirement: Publish pairings button
 
-The `PairingsSection` header SHALL contain a right-aligned "Опубликовать жеребьёвку" / "Publish draw" button. The button SHALL be disabled unless every tournament participant appears in a game for the active round (either as `player1` or `player2`, or as a single-participant `forfeit`/`bye` game). Clicking the enabled button SHALL set `currentRound` to the active round number via `useTournamentForm.publishDraw(round)`. After `currentRound` equals the active round, the button SHALL be disabled and labeled "Жеребьёвка опубликована" / "Draw published".
+The `PairingsSection` header SHALL contain a right-aligned "Опубликовать жеребьёвку" / "Publish pairings" button. The button SHALL be disabled unless every tournament participant appears in a game for the active round (either as `player1` or `player2`, or as a single-participant `forfeit`/`bye` game). Clicking the enabled button SHALL set `currentRound` to the active round number via `useTournamentForm.publishDraw(round)`. Clicking the enabled button SHALL additionally trigger an automatic save of the tournament through the same save pipeline as the form's Save button, so the freshly published state is persisted without a separate Save click. After the automatic save completes, the form SHALL be clean (no unsaved changes), so the Save button SHALL be disabled. After `currentRound` equals the active round, the button SHALL be disabled and labeled "Жеребьёвка опубликована" / "Pairings published".
 
 #### Scenario: Publish disabled when participants are unpaired
 
 - **WHEN** the active round has at least one participant not placed in any game slot
-- **THEN** the "Publish draw" button is disabled
+- **THEN** the "Publish pairings" button is disabled
 
 #### Scenario: Publish enabled when all participants are paired
 
 - **WHEN** every tournament participant is referenced by some game in the active round
-- **THEN** the "Publish draw" button is enabled
+- **THEN** the "Publish pairings" button is enabled
 
 #### Scenario: Publishing advances currentRound
 
-- **WHEN** the user clicks the enabled "Publish draw" button for round `1`
+- **WHEN** the user clicks the enabled "Publish pairings" button for round `1`
 - **THEN** `currentRound` is set to `1`
-- **AND** the button becomes disabled and labeled "Draw published"
+- **AND** the tournament is saved automatically with `currentRound = 1`
+- **AND** the button becomes disabled and labeled "Pairings published"
 
 #### Scenario: Already-published round shows locked button
 
@@ -488,23 +489,23 @@ When a participant has a forfeit game in the current round and the next round is
 - **WHEN** a participant with a forfeit in round 2 is dragged into `players1` in round 3
 - **THEN** the forfeit game for round 3 is removed (replaced by a normal pairing game)
 
-### Requirement: Unpublish draw button
+### Requirement: Unpublish pairings button
 
-The `PairingsSection` SHALL display an "Отменить жеребьёвку" / "Unpublish draw" button to the left of the publish/unpublish button. The button SHALL be visible only when `safeActiveRound === safeCurrentRound && safeCurrentRound > 0`. Clicking the enabled button SHALL delete any games for `currentRound + 1` and decrement `currentRound` by 1 (minimum 0) via `useTournamentForm.unpublishDraw()`.
+The `PairingsSection` SHALL display an "Отменить жеребьёвку" / "Unpublish pairings" button to the left of the publish/unpublish button. The button SHALL be visible only when `safeActiveRound === safeCurrentRound && safeCurrentRound > 0`. Clicking the enabled button SHALL delete any games for `currentRound + 1` and decrement `currentRound` by 1 (minimum 0) via `useTournamentForm.unpublishDraw()`. Clicking the enabled button SHALL additionally trigger an automatic save of the tournament through the same save pipeline as the form's Save button; after the automatic save completes the form SHALL be clean (Save disabled while there are no unsaved changes).
 
 #### Scenario: Unpublish button visible for current round
 
 - **WHEN** the active round equals `currentRound` and `currentRound > 0`
-- **THEN** the "Unpublish draw" button is visible and enabled
+- **THEN** the "Unpublish pairings" button is visible and enabled
 
 #### Scenario: Unpublish button hidden for future rounds
 
 - **WHEN** the active round is greater than `currentRound` (next round being prepared)
-- **THEN** the "Unpublish draw" button is not displayed
+- **THEN** the "Unpublish pairings" button is not displayed
 
 #### Scenario: Unpublish deletes next round games and decrements currentRound
 
-- **WHEN** the user clicks "Unpublish draw" while `currentRound = 2`
+- **WHEN** the user clicks "Unpublish pairings" while `currentRound = 2`
 - **THEN** any games for round `3` (`currentRound + 1`) are deleted
 - **AND** `currentRound` becomes `1`
 
@@ -571,7 +572,7 @@ The locale dictionaries `src/locales/{ru,en}/translation.json` SHALL add keys: `
 #### Scenario: English strings present
 
 - **WHEN** the `en` translation file is loaded
-- **THEN** `tournament.edit.pairings.unpublishDraw` exists and equals "Unpublish draw"
+- **THEN** `tournament.edit.pairings.unpublishDraw` exists and equals "Unpublish pairings"
 - **AND** `tournament.edit.pairings.startingPoints` exists
 
 #### Scenario: English strings present

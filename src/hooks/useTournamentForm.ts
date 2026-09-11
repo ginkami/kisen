@@ -1135,9 +1135,14 @@ export function useTournamentForm(tournamentId: string | undefined) {
   )
 
   const saveMutation = useMutation({
-    mutationFn: async () => {
-      if (!tournament || !formState) throw new Error('Tournament not loaded')
-      const input = await formStateToUpdateInput(tournament, formState)
+    // Accepts an explicit state override so auto-save flows (publish/unpublish
+    // round) can persist the freshly computed state without waiting for a
+    // React re-render; the plain Save button relies on the current formState.
+    mutationFn: async (stateOverride?: TournamentFormState) => {
+      if (!tournament) throw new Error('Tournament not loaded')
+      const state = stateOverride ?? formState
+      if (!state) throw new Error('Tournament not loaded')
+      const input = await formStateToUpdateInput(tournament, state)
 
       // IP fallback: if no coordinates, try to resolve by IP
       if (!input.location?.latitude || !input.location?.longitude) {
@@ -1274,7 +1279,7 @@ export function useTournamentForm(tournamentId: string | undefined) {
       return
     }
     saveMutation.reset()
-    saveMutation.mutate()
+    saveMutation.mutate(undefined)
   }, [saveMutation, slugTaken, t])
 
   const publish = useCallback(() => {
@@ -1320,32 +1325,48 @@ export function useTournamentForm(tournamentId: string | undefined) {
 
   const publishDraw = useCallback(
     (round: number) => {
-      updateForm((state) => {
-        const maxRound = state.scheduleRows.filter((r) => r.kind === 'round').length
-        const normalized = state.games.map((g) => normalizeGame(g, round))
-        return {
-          ...state,
-          publishedRounds: round,
-          games: withForfeitsCarriedOver(normalized, round, state.settings.considerSente, maxRound),
-        }
+      if (!formState) return
+      const maxRound = formState.scheduleRows.filter((r) => r.kind === 'round').length
+      const next = normalizeState({
+        ...formState,
+        publishedRounds: round,
+        games: withForfeitsCarriedOver(
+          formState.games.map((g) => normalizeGame(g, round)),
+          round,
+          formState.settings.considerSente,
+          maxRound
+        ),
       })
+      setFormState(next)
+      setValidationErrors({})
+      // Auto-save the tournament together with the freshly computed state.
+      if (tournament) {
+        saveMutation.reset()
+        saveMutation.mutate(next)
+      }
     },
-    [updateForm]
+    [formState, tournament, saveMutation]
   )
 
   const unpublishDraw = useCallback(() => {
-    updateForm((state) => {
-      const oldPublishedRounds = state.publishedRounds
-      const newPublishedRounds = Math.max(0, oldPublishedRounds - 1)
-      return {
-        ...state,
-        publishedRounds: newPublishedRounds,
-        games: state.games
-          .filter((g) => g.round !== oldPublishedRounds + 1)
-          .map((g) => normalizeGame(g, newPublishedRounds)),
-      }
+    if (!formState) return
+    const oldPublishedRounds = formState.publishedRounds
+    const newPublishedRounds = Math.max(0, oldPublishedRounds - 1)
+    const next = normalizeState({
+      ...formState,
+      publishedRounds: newPublishedRounds,
+      games: formState.games
+        .filter((g) => g.round !== oldPublishedRounds + 1)
+        .map((g) => normalizeGame(g, newPublishedRounds)),
     })
-  }, [updateForm])
+    setFormState(next)
+    setValidationErrors({})
+    // Auto-save the tournament together with the freshly computed state.
+    if (tournament) {
+      saveMutation.reset()
+      saveMutation.mutate(next)
+    }
+  }, [formState, tournament, saveMutation])
 
   const updateStartingPoints = useCallback(
     (participantId: number, value: number) => {
