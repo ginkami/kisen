@@ -844,7 +844,7 @@ The tournament edit page SHALL render the "Pairing assistant" drawer (`PairingTo
 
 ### Requirement: Pairing tools drawer toggle buttons
 
-The drawer SHALL be toggled from two places, both showing the `BsDice5` icon and rendered only when the drawer is available:
+The drawer SHALL be toggled from two places, both showing the `BsDice6` icon and rendered only when the drawer is available:
 
 1. a sticky tab on the right screen edge (mirroring the admin drawer's sticky tab), visible only while the drawer is closed;
 2. a button in the pairings rows header of `PairingsBoard` between the `☗` and `☖` headers, rendered only when the drawer is available, and toggling the drawer in both directions.
@@ -854,13 +854,13 @@ The two side drawers SHALL be mutually exclusive: opening the AdminDrawer closes
 #### Scenario: Sticky right tab opens the drawer
 
 - **WHEN** the drawer is available and closed
-- **THEN** the `BsDice5` sticky tab is shown on the right edge
+- **THEN** the `BsDice6` sticky tab is shown on the right edge
 - **AND** clicking it opens the drawer and closes the AdminDrawer if it was open
 
 #### Scenario: Header button toggles the drawer
 
 - **WHEN** the drawer is available
-- **THEN** the pairings rows header shows the `BsDice5` button between the `☗` and `☖` headers
+- **THEN** the pairings rows header shows the `BsDice6` button between the `☗` and `☖` headers
 - **AND** clicking it toggles the drawer open and closed
 
 #### Scenario: Opening the AdminDrawer closes the assistant
@@ -870,11 +870,11 @@ The two side drawers SHALL be mutually exclusive: opening the AdminDrawer closes
 
 ### Requirement: Pairing tools drawer panel
 
-The drawer SHALL be a right-side panel styled after the AdminDrawer (fixed, full height, `w-80`, `bg-base-200`, shadowed, slide-in transition) that overlays the page content without pushing it. The header SHALL show the `BsDice5` icon and the localized title "Подобрать пары" / "Pairing assistant", plus a close button; pressing Escape SHALL close the drawer. The panel content SHALL remain empty in this change (tools are specified separately).
+The drawer SHALL be a right-side panel styled after the AdminDrawer (fixed, full height, `w-80`, `bg-base-200`, shadowed, slide-in transition) that overlays the page content without pushing it. The header SHALL show the `BsDice6` icon and the localized title "Подобрать пары" / "Pairing assistant", plus a close button; pressing Escape SHALL close the drawer. The panel content SHALL remain empty in this change (tools are specified separately).
 
 #### Scenario: Drawer content and chrome
 
 - **WHEN** the drawer is open
-- **THEN** the header shows `BsDice5` and "Подобрать пары" (ru) / "Pairing assistant" (en)
+- **THEN** the header shows `BsDice6` and "Панель жеребьёвки" (ru) / "Pairing assistant" (en)
 - **AND** the close button and the Escape key both close the drawer
 - **AND** the panel body is empty

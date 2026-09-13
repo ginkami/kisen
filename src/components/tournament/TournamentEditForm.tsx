@@ -3,7 +3,7 @@ import { Navigate, useOutletContext } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { ConfirmModal } from '../ConfirmModal.tsx'
 import { useTranslation } from 'react-i18next'
-import { BsSliders2Vertical, BsClock, BsJournalText, BsPlus, BsX, Bs123, BsGrid3X2, BsInfoCircleFill, BsDice5 } from 'react-icons/bs'
+import { BsSliders2Vertical, BsClock, BsJournalText, BsPlus, BsX, Bs123, BsGrid3X2, BsInfoCircleFill, BsDice6 } from 'react-icons/bs'
 import { HiOutlineUserGroup } from "react-icons/hi2";
 import { useAuth } from '../../context/AuthContext.tsx'
 import { sanitizeTextInput } from '../../utils/sanitize.ts'
@@ -1450,7 +1450,7 @@ export function TournamentEditForm({
           className="fixed right-0 top-17 z-40 rounded-l-box bg-secondary p-3 text-secondary-content shadow-lg"
           aria-label={t('tournament.edit.pairingTools.open')}
         >
-          <BsDice5 className="h-6 w-6" />
+          <BsDice6 className="h-6 w-6" />
         </button>
       )}
       {pairingToolsAvailable && isPairingToolsOpen && (

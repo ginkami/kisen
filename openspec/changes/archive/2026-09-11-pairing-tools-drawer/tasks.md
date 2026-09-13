@@ -1,6 +1,6 @@
 ## 1. Component
 
-- [x] 1.1 Create `src/components/tournament/PairingToolsDrawer.tsx`: right-side fixed drawer (`w-80`, `bg-base-200`, `translate-x-full` when closed), sticky header with `BsDice5` + `tournament.edit.pairingTools.title`, `BsX` close button, Escape-to-close, empty content body
+- [x] 1.1 Create `src/components/tournament/PairingToolsDrawer.tsx`: right-side fixed drawer (`w-80`, `bg-base-200`, `translate-x-full` when closed), sticky header with `BsDice6` + `tournament.edit.pairingTools.title`, `BsX` close button, Escape-to-close, empty content body
 - [x] 1.2 Keep the panel as an overlay (no main-content push)
 
 ## 2. Layout integration
@@ -13,8 +13,8 @@
 
 - [x] 3.1 Lift `activeRound`: controlled `PairingsSection` (`activeRound` + `onActiveRoundChange`), export `resolvePairingsActiveRound(requested, publishedRounds, roundCount)`
 - [x] 3.2 `TournamentEditForm`: `pairingsRound` state, `pairingToolsAvailable` flag (ongoing + pairings tab + active round = publishedRounds + 1), `togglePairingTools` (closes AdminDrawer when opening)
-- [x] 3.3 `PairingsBoard`: optional `onTogglePairingTools`; render the `BsDice5` button in the rows header slot (`☗ [dice] ☖`) only when the callback is provided
-- [x] 3.4 `TournamentEditForm`: render the right-side sticky tab (`fixed right-0 top-17 rounded-l-box`, `BsDice5`) when available and the drawer is closed, and the drawer when open; pass `pairingToolsAvailable` / `onTogglePairingTools` to `PairingsSection`
+- [x] 3.3 `PairingsBoard`: optional `onTogglePairingTools`; render the `BsDice6` button in the rows header slot (`☗ [dice] ☖`) only when the callback is provided
+- [x] 3.4 `TournamentEditForm`: render the right-side sticky tab (`fixed right-0 top-17 rounded-l-box`, `BsDice6`) when available and the drawer is closed, and the drawer when open; pass `pairingToolsAvailable` / `onTogglePairingTools` to `PairingsSection`
 
 ## 4. i18n
 

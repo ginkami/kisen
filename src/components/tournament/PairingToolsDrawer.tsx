@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
-import { BsDice5, BsX } from 'react-icons/bs'
+import { BsDice6, BsX } from 'react-icons/bs'
 
 interface PairingToolsDrawerProps {
   isOpen: boolean
@@ -35,7 +35,7 @@ export function PairingToolsDrawer({ isOpen, onClose }: PairingToolsDrawerProps)
     >
       <div className="sticky top-0 z-10 flex items-center justify-between bg-base-200 px-4 py-3">
         <div className="flex items-center gap-2 text-lg font-semibold">
-          <BsDice5 className="h-5 w-5" />
+          <BsDice6 className="h-5 w-5" />
           {t('tournament.edit.pairingTools.title')}
         </div>
         <button
