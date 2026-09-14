@@ -69,7 +69,8 @@ Each button SHALL be disabled when no saved state exists for it to apply. A hist
 
 ### Requirement: Generate pairings action
 
-The pairing tools drawer SHALL show a "Сформировать пары" button with the `CgSwiss` icon below the undo/redo row. Clicking it SHALL run the automatic pairing engine for all participants of the round being prepared that do not yet have a game, and apply the resulting games via a single round update (one undo/redo action). Existing manual pairs, results, and carried-over forfeits in the round SHALL remain untouched. The button SHALL be disabled while any round from 1 to `publishedRounds` contains a paired game (two players) without a result, or a participant without a game in that round (no opponent, no bye, no forfeit). Lone games (bye/forfeit, `player2 == null`) do not await a result and SHALL NOT block the action. Undo/Redo buttons SHALL NOT be affected by this condition.
+The pairing tools drawer SHALL show a "Сформировать пары" button with the square Swiss flag icon (`CH` from `country-flag-icons/react/1x1`) below the undo/redo row.
+ Clicking it SHALL run the automatic pairing engine for all participants of the round being prepared that do not yet have a game, and apply the resulting games via a single round update (one undo/redo action). Existing manual pairs, results, and carried-over forfeits in the round SHALL remain untouched. The button SHALL be disabled while any round from 1 to `publishedRounds` contains a paired game (two players) without a result, or a participant without a game in that round (no opponent, no bye, no forfeit). Lone games (bye/forfeit, `player2 == null`) do not await a result and SHALL NOT block the action. Undo/Redo buttons SHALL NOT be affected by this condition.
 
 #### Scenario: Auto-pairing fills the board
 

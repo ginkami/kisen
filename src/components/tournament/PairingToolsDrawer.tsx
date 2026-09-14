@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { BsArrowClockwise, BsArrowCounterclockwise, BsDice6, BsX } from 'react-icons/bs'
-import { CgSwiss } from 'react-icons/cg'
+import { CH as SwissFlag } from 'country-flag-icons/react/1x1'
 import type { Game, Participant } from '../../domain/tournament.ts'
 import type { ParticipantRow } from '../../hooks/useTournamentForm.ts'
 import { generatePairings, PairingError } from './pairings/pairingEngine.ts'
@@ -155,12 +155,12 @@ export function PairingToolsDrawer({
           type="button"
           onClick={() => void handleGenerate()}
           disabled={generating || actionsDisabled}
-          className="btn btn-primary mt-2 w-full"
+          className="btn btn-secondary mt-2 w-full"
         >
           {generating ? (
             <span className="loading loading-spinner loading-sm" aria-hidden="true" />
           ) : (
-            <CgSwiss className="h-5 w-5" aria-hidden="true" />
+            <SwissFlag className="h-5 w-5" aria-hidden="true" />
           )}
           {generating
             ? t('tournament.edit.pairingTools.generating')
