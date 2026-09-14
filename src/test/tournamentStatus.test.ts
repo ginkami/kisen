@@ -71,6 +71,42 @@ describe('computeTournamentStatus', () => {
       const scheduleRounds = [{ number: 1, scheduledAt: new Date('2025-01-01') }, { number: 2, scheduledAt: new Date('2025-01-02') }]
       expect(computeTournamentStatus({ ...base, existingStatus: 'ongoing', publishedRounds: 2, games, scheduleRounds })).toBe('ongoing')
     })
+    it('carried forfeits in a not-yet-published last round → not finished', () => {
+      // Regression: publishing round 3 of 4 carries forfeit games into round 4
+      // (withForfeitsCarriedOver); they must not mark the tournament finished
+      // while round 4 is still unpublished.
+      const games = [
+        makeGame({ round: 1, player1: 1, player2: 2, result: 'player1_won', status: 'completed' }),
+        makeGame({ player1: 3, round: 1, result: 'player2_won', status: 'forfeit' }),
+        makeGame({ round: 2, player1: 1, player2: 2, result: 'player1_won', status: 'completed' }),
+        makeGame({ round: 3, player1: 1, player2: 2, result: 'player1_won', status: 'completed' }),
+        makeGame({ player1: 3, round: 4, result: 'player2_won', status: 'forfeit' }),
+        makeGame({ player1: 4, round: 4, result: 'player2_won', status: 'forfeit' }),
+      ]
+      const scheduleRounds = [
+        { number: 1, scheduledAt: new Date('2025-01-01') },
+        { number: 2, scheduledAt: new Date('2025-01-02') },
+        { number: 3, scheduledAt: new Date('2025-01-03') },
+        { number: 4, scheduledAt: new Date('2025-01-04') },
+      ]
+      expect(computeTournamentStatus({ ...base, existingStatus: 'ongoing', publishedRounds: 3, games, scheduleRounds })).toBe('ongoing')
+    })
+    it('all rounds published with only carried forfeits in the last round → finished', () => {
+      const games = [
+        makeGame({ round: 1, player1: 1, player2: 2, result: 'player1_won', status: 'completed' }),
+        makeGame({ round: 2, player1: 1, player2: 2, result: 'player1_won', status: 'completed' }),
+        makeGame({ round: 3, player1: 1, player2: 2, result: 'player1_won', status: 'completed' }),
+        makeGame({ player1: 3, round: 4, result: 'player2_won', status: 'forfeit' }),
+        makeGame({ player1: 4, round: 4, result: 'player2_won', status: 'forfeit' }),
+      ]
+      const scheduleRounds = [
+        { number: 1, scheduledAt: new Date('2025-01-01') },
+        { number: 2, scheduledAt: new Date('2025-01-02') },
+        { number: 3, scheduledAt: new Date('2025-01-03') },
+        { number: 4, scheduledAt: new Date('2025-01-04') },
+      ]
+      expect(computeTournamentStatus({ ...base, existingStatus: 'ongoing', publishedRounds: 4, games, scheduleRounds })).toBe('finished')
+    })
   })
   describe('symmetric rollback', () => {
     it('removing last result rolls finished → ongoing', () => {

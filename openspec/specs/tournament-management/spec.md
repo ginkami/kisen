@@ -737,7 +737,7 @@ The tournament status SHALL be derived from the tournament's data on every save 
 
 - **publish:** `publish()` requests `upcoming`; if round-1 pairings already exist in the stored tournament, the status SHALL become `ongoing` immediately.
 - **first draw:** when `currentRound >= 1` (a draw has been published) or any game exists for round 1, the status SHALL be `ongoing`.
-- **finished:** when the last round of the schedule has at least one game and every game of that round has a fixed outcome (`result != null` or status `bye`/`forfeit`), the status SHALL be `finished`.
+- **finished:** when the last round of the schedule is published (`publishedRounds` >= its number), has at least one game, and every game of that round has a fixed outcome (`result != null` or status `bye`/`forfeit`), the status SHALL be `finished`. Carried-over forfeit games in a not-yet-published last round SHALL NOT mark the tournament `finished`.
 - **time fallback:** when the first round's `scheduledAt` has passed and no draw has been published, `upcoming` SHALL become `ongoing`.
 - **symmetric rollback:** removing the last fixed outcome SHALL roll `finished` back to `ongoing`; unpublishing all draws (`currentRound = 0`, no round-1 pairings) with the first round's start time not yet reached SHALL roll `ongoing` back to `upcoming`.
 - **sticky manual statuses:** `draft` SHALL only leave via the publish action; `canceled` and `proposed_for_removing` SHALL change only through an explicit status input.
@@ -764,8 +764,13 @@ The tournament status SHALL be derived from the tournament's data on every save 
 
 #### Scenario: Bye and forfeit count as fixed outcomes
 
-- **WHEN** the last round's games all have status `bye` or `forfeit`
+- **WHEN** the last round of the schedule is published and its games all have status `bye` or `forfeit`
 - **THEN** the status is `finished`
+
+#### Scenario: Carried forfeits in an unpublished last round do not finish the tournament
+
+- **WHEN** publishing a round carries forfeit games into the last scheduled round while that round is still unpublished (`publishedRounds` < its number)
+- **THEN** the status is not `finished`
 
 #### Scenario: Empty last round is not finished
 

@@ -127,9 +127,11 @@ export function computeTournamentStatus({
 
   // --- Data-driven escalation from the merged state ---
 
-  // 1. Last round fixed → finished
+  // 1. Last round fixed → finished. The last scheduled round must also be
+  // published: carried-over forfeit games of a not-yet-published round do not
+  // mean the round was played.
   const lastRoundNum = scheduleRounds.reduce((max, r) => Math.max(max, r.number), 0)
-  if (lastRoundNum > 0) {
+  if (lastRoundNum > 0 && publishedRounds >= lastRoundNum) {
     const lastRoundGames = games.filter((g) => g.round === lastRoundNum)
     if (lastRoundGames.length > 0) {
       const allFixed = lastRoundGames.every(
