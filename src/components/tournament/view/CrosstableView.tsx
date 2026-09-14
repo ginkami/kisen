@@ -243,7 +243,7 @@ export function CrosstableView({
                 <StickyTableCell left={OFF_FLAG} width={COL_FLAG} className="!z-10 bg-base-100 p-0">
                    {Flag && <div className="tooltip tooltip-top" data-tip={getCountryName(nat, locale)}><Flag className="h-3 w-4 rounded-sm mt-1" /></div>}
                 </StickyTableCell>
-                <StickyTableCell left={OFF_RANK} width={COL_RANK} className="!z-10 bg-base-100 p-0">
+                <StickyTableCell left={OFF_RANK} width={COL_RANK} className="!z-11 bg-base-100 p-0">
                   {rank && (
                     <span className="badge badge-xs text-white flex items-center gap-0.5 w-fit" style={{ backgroundColor: rc ?? undefined }}>
                       {rank}

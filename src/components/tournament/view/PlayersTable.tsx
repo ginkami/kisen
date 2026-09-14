@@ -68,7 +68,7 @@ export function PlayersTable({ participants }: PlayersTableProps) {
                     </div>
                   }
                 </StickyTableCell>
-                <StickyTableCell left={OFF_RANK} width={COL_RANK} className="!z-10 bg-base-100 p-0">
+                <StickyTableCell left={OFF_RANK} width={COL_RANK} className="!z-11 bg-base-100 p-0">
                   {rank && (
                     <span className="badge badge-xs text-white flex items-center gap-0.5 w-fit" style={{ backgroundColor: rc ?? undefined }}>
                       {rank}
