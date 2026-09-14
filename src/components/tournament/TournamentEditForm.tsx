@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Navigate, useOutletContext } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { ConfirmModal } from '../ConfirmModal.tsx'
@@ -8,6 +8,9 @@ import { HiOutlineUserGroup } from "react-icons/hi2";
 import { useAuth } from '../../context/AuthContext.tsx'
 import { sanitizeTextInput } from '../../utils/sanitize.ts'
 import { useTournamentForm, validateTournamentPublishForm } from '../../hooks/useTournamentForm.ts'
+import { usePairingHistory } from '../../hooks/usePairingHistory.ts'
+import { clearPairingHistory } from '../../utils/pairingHistoryStorage.ts'
+import type { Game } from '../../domain/tournament.ts'
 import {
   dateToLocalDatetimeInputValue,
 } from '../../utils/dateTime.ts'
@@ -1040,6 +1043,54 @@ export function TournamentEditForm({
     setPairingToolsOpen(next)
   }, [isPairingToolsOpen, closeAdminDrawer, setPairingToolsOpen])
 
+  // --- Pairing assistant: local Undo/Redo history of the round being prepared ---
+  const preparedRound = (formState?.publishedRounds ?? 0) + 1
+  const pairingHistory = usePairingHistory(tournamentId ?? 'new', preparedRound)
+
+  // Every games change of the round being prepared is recorded as one history
+  // action (auto-pairing result, manual board edits, results, clear).
+  const trackedUpdateGames = useCallback(
+    (round: number, gamesForRound: Game[]) => {
+      updateGames(round, gamesForRound)
+      if (round === preparedRound) {
+        void pairingHistory.push(gamesForRound)
+      }
+    },
+    [updateGames, preparedRound, pairingHistory],
+  )
+
+  const handlePairingUndo = useCallback(() => {
+    void (async () => {
+      const restored = await pairingHistory.undo()
+      if (restored) {
+        updateGames(preparedRound, restored)
+      }
+    })()
+  }, [pairingHistory, preparedRound, updateGames])
+
+  const handlePairingRedo = useCallback(() => {
+    void (async () => {
+      const restored = await pairingHistory.redo()
+      if (restored) {
+        updateGames(preparedRound, restored)
+      }
+    })()
+  }, [pairingHistory, preparedRound, updateGames])
+
+  // The recorded states are cleared whenever the current round changes (a
+  // round is published or un-published). A ref keeps the initial mount from
+  // clearing the reloaded history.
+  const publishedRounds = formState?.publishedRounds
+  const prevPublishedRoundsRef = useRef<number | null>(null)
+  useEffect(() => {
+    if (publishedRounds === undefined) return
+    const prev = prevPublishedRoundsRef.current
+    prevPublishedRoundsRef.current = publishedRounds
+    if (prev !== null && prev !== publishedRounds) {
+      void clearPairingHistory(tournamentId ?? 'new')
+    }
+  }, [publishedRounds, tournamentId])
+
   // The "Pairing assistant" drawer (and its toggle buttons) is only available
   // on the pairings tab of an ongoing tournament while the round being
   // prepared (publishedRounds + 1) is the active round sub-tab.
@@ -1399,7 +1450,7 @@ export function TournamentEditForm({
             scheduledAt: r.scheduledAt ?? new Date(),
           }))}
           considerSente={formState.settings.considerSente}
-          updateGames={updateGames}
+          updateGames={trackedUpdateGames}
           publishDraw={publishDraw}
           unpublishDraw={unpublishDraw}
           updateStartingPoints={updateStartingPoints}
@@ -1453,8 +1504,21 @@ export function TournamentEditForm({
           <BsDice6 className="h-6 w-6" />
         </button>
       )}
-      {pairingToolsAvailable && isPairingToolsOpen && (
-        <PairingToolsDrawer isOpen onClose={() => setPairingToolsOpen(false)} />
+      {pairingToolsAvailable && isPairingToolsOpen && formState && (
+        <PairingToolsDrawer
+          isOpen
+          onClose={() => setPairingToolsOpen(false)}
+          round={formState.publishedRounds + 1}
+          participants={formState.participants}
+          games={formState.games}
+          publishedRounds={formState.publishedRounds}
+          considerSente={formState.settings.considerSente}
+          canUndo={pairingHistory.canUndo}
+          canRedo={pairingHistory.canRedo}
+          onUndo={handlePairingUndo}
+          onRedo={handlePairingRedo}
+          updateGames={trackedUpdateGames}
+        />
       )}
     </div>
   )

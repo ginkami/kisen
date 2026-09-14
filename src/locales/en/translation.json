@@ -332,7 +332,18 @@
       "pairingTools": {
         "title": "Pairing assistant",
         "open": "Open pairing assistant",
-        "close": "Close pairing assistant"
+        "close": "Close pairing assistant",
+        "undo": "Undo pairing action",
+        "redo": "Redo pairing action",
+        "generate": "Generate pairings",
+        "generating": "Generating pairings…",
+        "clear": "Clear pairings",
+        "clearConfirmTitle": "Clear pairings",
+        "clearConfirmMessage": "All pairings of round {{round}} will be dissolved",
+        "clearConfirmYes": "Clear",
+        "pairingFailedTitle": "Cannot generate pairings",
+        "pairingFailed": "Automatic pairing could not pair all participants. Place the pairings manually.",
+        "alertOk": "OK"
       },
       "crosstable": {
         "name": "Name",
