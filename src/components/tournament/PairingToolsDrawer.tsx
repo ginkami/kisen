@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { BsArrowClockwise, BsArrowCounterclockwise, BsDice6, BsX } from 'react-icons/bs'
+import { BsArrowClockwise, BsArrowCounterclockwise, BsDiagram2Fill, BsDice6, BsX } from 'react-icons/bs'
 import { CH as SwissFlag } from 'country-flag-icons/react/1x1'
 import type { Game, Participant } from '../../domain/tournament.ts'
 import { generatePairings, PairingError } from './pairings/pairingEngine.ts'
+import { generateKnockoutPairings, planKnockoutRound } from './pairings/knockoutEngine.ts'
 import { AlertModal } from '../AlertModal.tsx'
 import { ConfirmModal } from '../ConfirmModal.tsx'
 
@@ -101,6 +102,47 @@ export function PairingToolsDrawer({
     }
   }
 
+  // Knockout round for the same target round: n = pairs + byes of the formed
+  // round (bracket size / 2). The label is computed from the state WITHOUT the
+  // round's own games, so it stays unchanged once the round has been drawn.
+  const knockout = useMemo(() => {
+    try {
+      const plan = planKnockoutRound({
+        participants,
+        games: games.filter((g) => g.round !== round),
+        round,
+        publishedRounds,
+      })
+      return { n: plan.n }
+    } catch {
+      return null // manual games make the canonical knockout impossible
+    }
+  }, [participants, games, round, publishedRounds])
+
+  const handleGenerateKnockout = async () => {
+    if (generating) return
+    setGenerating(true)
+    try {
+      const newGames = generateKnockoutPairings({
+        participants,
+        games,
+        round,
+        publishedRounds,
+        considerSente,
+      })
+      const roundGames = games.filter((g) => g.round === round)
+      updateGames(round, [...roundGames, ...newGames])
+    } catch (e) {
+      if (e instanceof PairingError) {
+        setAlertOpen(true)
+      } else {
+        throw e
+      }
+    } finally {
+      setGenerating(false)
+    }
+  }
+
   return (
     <div
       ref={panelRef}
@@ -166,6 +208,24 @@ export function PairingToolsDrawer({
             ? t('tournament.edit.pairingTools.generating')
             : t('tournament.edit.pairingTools.generate', { round })}
         </button>
+
+        {/* Generate knockout pairings */}
+        {knockout !== null && (
+          <button
+            type="button"
+            onClick={() => void handleGenerateKnockout()}
+            disabled={generating || actionsDisabled || knockout.n === 0}
+            className="btn btn-secondary mt-2 w-full"
+          >
+            <BsDiagram2Fill className="h-5 w-5" aria-hidden="true" />
+            {t(
+              knockout.n === 1
+                ? 'tournament.edit.pairingTools.generateKnockoutFinal'
+                : 'tournament.edit.pairingTools.generateKnockout',
+              knockout.n === 1 ? undefined : { n: knockout.n },
+            )}
+          </button>
+        )}
 
         {/* Spacer */}
         <div className="grow" />

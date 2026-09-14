@@ -336,6 +336,8 @@
         "undo": "Undo tournament games state change",
         "redo": "Redo tournament games state change",
         "generate": "Generate pairings for round {{round}}",
+        "generateKnockout": "Generate pairings for the round of 1/{{n}}",
+        "generateKnockoutFinal": "Generate the final pairings",
         "generating": "Generating pairings…",
         "clear": "Clear pairings of round {{round}}",
         "clearConfirmTitle": "Clear pairings",
