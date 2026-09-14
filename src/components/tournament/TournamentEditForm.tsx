@@ -1501,7 +1501,7 @@ export function TournamentEditForm({
           isOpen
           onClose={() => setPairingToolsOpen(false)}
           round={formState.publishedRounds + 1}
-          participants={formState.participants}
+          participants={rowsToParticipants(formState.participants)}
           games={formState.games}
           publishedRounds={formState.publishedRounds}
           considerSente={formState.settings.considerSente}

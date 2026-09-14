@@ -283,5 +283,28 @@ describe('generatePairings', () => {
     expect(pairSet(games)).toEqual(['1-2'])
     expect(games[0]?.sente).toBe('player2') // participant 2 is higher rated
   })
+
+  it('emulates rating subgroups in the first round (UI fixture regression)', () => {
+    // Regression: the drawer must receive domain participants WITH
+    // capturedRating. When ParticipantRow[] (no capturedRating) leaked into
+    // the engine, all ratings collapsed to 0, positions fell back to id order
+    // and the draw became Танян–Лысенко / Иглицкий–Кондратов instead of the
+    // ideal upper↔lower alignment.
+    const participants = [
+      makeParticipant(1, 2472), // Танян (U1)
+      makeParticipant(2, 1999), // Иглицкий (L1)
+      makeParticipant(3, 2005), // Лысенко (U2)
+      makeParticipant(4, 1856), // Кондратов (L2)
+    ]
+    const games = generatePairings({
+      participants,
+      games: [],
+      round: 1,
+      publishedRounds: 0,
+      considerSente: false,
+    })
+    // Upper↔lower ideal: U1↔L1, U2↔L2.
+    expect(pairSet(games)).toEqual(['1-2', '3-4'])
+  })
 })
 

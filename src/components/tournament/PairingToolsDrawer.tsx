@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next'
 import { BsArrowClockwise, BsArrowCounterclockwise, BsDice6, BsX } from 'react-icons/bs'
 import { CH as SwissFlag } from 'country-flag-icons/react/1x1'
 import type { Game, Participant } from '../../domain/tournament.ts'
-import type { ParticipantRow } from '../../hooks/useTournamentForm.ts'
 import { generatePairings, PairingError } from './pairings/pairingEngine.ts'
 import { AlertModal } from '../AlertModal.tsx'
 import { ConfirmModal } from '../ConfirmModal.tsx'
@@ -13,7 +12,8 @@ interface PairingToolsDrawerProps {
   onClose: () => void
   /** The round being prepared (publishedRounds + 1). */
   round: number
-  participants: Participant[] | ParticipantRow[]
+  /** Domain participants (with capturedRating) — rows lack ratings. */
+  participants: Participant[]
   games: Game[]
   publishedRounds: number
   considerSente: boolean
@@ -82,7 +82,7 @@ export function PairingToolsDrawer({
     setGenerating(true)
     try {
       const newGames = generatePairings({
-        participants: participants as Participant[],
+        participants,
         games,
         round,
         publishedRounds,
