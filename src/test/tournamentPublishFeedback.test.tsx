@@ -111,6 +111,7 @@ vi.mock('../hooks/useTournamentForm.ts', () => ({
     updateGames: vi.fn(),
     publishDraw: vi.fn(),
     unpublishDraw: vi.fn(),
+    restorePairingSnapshot: vi.fn(),
     updateStartingPoints: vi.fn(),
     save: vi.fn(),
     publish: vi.fn(),
@@ -118,6 +119,7 @@ vi.mock('../hooks/useTournamentForm.ts', () => ({
     setValidationErrors: setValidationErrorsMock,
     slugTaken: false,
   }),
+  rowsToParticipants: (rows: unknown[]) => rows,
   validateTournamentPublishForm: validateTournamentPublishFormMock,
 }))
 

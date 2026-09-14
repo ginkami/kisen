@@ -47,7 +47,7 @@ function renderDrawer(overrides: Partial<Parameters<typeof PairingToolsDrawer>[0
       round={2}
       participants={participants}
       games={[]}
-      publishedRounds={1}
+      publishedRounds={0}
       considerSente={false}
       canUndo={false}
       canRedo={false}
@@ -59,6 +59,27 @@ function renderDrawer(overrides: Partial<Parameters<typeof PairingToolsDrawer>[0
   )
   return { updateGames, onUndo, onRedo, onClose }
 }
+
+/** Complete published round 1: two games with results. */
+const completeRoundGames: Game[] = [
+  { id: 'r1a', player1: 1, player2: 2, sente: 'unknown', handicap: null, result: 'player1_won', status: 'completed', round: 1 },
+  { id: 'r1b', player1: 3, player2: 4, sente: 'unknown', handicap: null, result: 'draw', status: 'completed', round: 1 },
+]
+
+/** Incomplete published round 1: one live game without a result and one participant without any game. */
+const incompleteRoundGames: Game[] = [
+  { id: 'r1a', player1: 1, player2: 2, sente: 'unknown', handicap: null, result: null, status: 'live', round: 1 },
+]
+
+/**
+ * Complete published round 1 despite a forfeit without a result: lone games
+ * (bye/forfeit) do not await a result and must not block the actions.
+ */
+const forfeitWithoutResultGames: Game[] = [
+  { id: 'r1a', player1: 1, player2: 2, sente: 'unknown', handicap: null, result: 'player1_won', status: 'completed', round: 1 },
+  { id: 'r1b', player1: 3, player2: 4, sente: 'unknown', handicap: null, result: 'player2_won', status: 'completed', round: 1 },
+  { id: 'r1c', player1: 5, player2: null, sente: 'unknown', handicap: null, result: null, status: 'forfeit', round: 1 },
+]
 
 describe('PairingToolsDrawer', () => {
   it('renders the localized title when open', () => {
@@ -99,13 +120,49 @@ describe('PairingToolsDrawer', () => {
   it('generates pairings via a single round update', async () => {
     const newGames = [makeGame(3)]
     vi.mocked(generatePairings).mockReturnValue(newGames)
-    const { updateGames } = renderDrawer({ games: [makeGame(1)] })
+    const { updateGames } = renderDrawer({
+      games: completeRoundGames,
+      publishedRounds: 1,
+    })
     fireEvent.click(screen.getByRole('button', { name: /tournament.edit.pairingTools.generate/ }))
     await waitFor(() => expect(updateGames).toHaveBeenCalledTimes(1))
-    expect(updateGames).toHaveBeenCalledWith(2, [makeGame(1), ...newGames])
+    expect(updateGames).toHaveBeenCalledWith(2, [...newGames])
     expect(generatePairings).toHaveBeenCalledWith(
       expect.objectContaining({ round: 2, publishedRounds: 1, considerSente: false }),
     )
+  })
+
+  it('disables generate/clear while an earlier round is incomplete, undo/redo stay enabled', () => {
+    renderDrawer({
+      games: incompleteRoundGames,
+      publishedRounds: 1,
+      canUndo: true,
+      canRedo: true,
+    })
+    expect(
+      screen.getByRole('button', { name: /tournament.edit.pairingTools.generate/ }),
+    ).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'tournament.edit.pairingTools.clear' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'tournament.edit.pairingTools.undo' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'tournament.edit.pairingTools.redo' })).toBeEnabled()
+  })
+
+  it('keeps generate/clear enabled when all published rounds are complete', () => {
+    renderDrawer({ games: completeRoundGames, publishedRounds: 1 })
+    expect(
+      screen.getByRole('button', { name: /tournament.edit.pairingTools.generate/ }),
+    ).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'tournament.edit.pairingTools.clear' })).toBeEnabled()
+  })
+
+  it('keeps generate/clear enabled when a lone game (forfeit) has no result', () => {
+    // Reproduction: a forfeit with result=null in a published round must not
+    // block the drawer actions — lone games do not await a result.
+    renderDrawer({ games: forfeitWithoutResultGames, publishedRounds: 1 })
+    expect(
+      screen.getByRole('button', { name: /tournament.edit.pairingTools.generate/ }),
+    ).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'tournament.edit.pairingTools.clear' })).toBeEnabled()
   })
 
   it('shows the failure alert when pairing is impossible', async () => {

@@ -92,12 +92,14 @@ vi.mock('../hooks/useTournamentForm.ts', () => ({
     updateGames: vi.fn(),
     publishDraw: vi.fn(),
     unpublishDraw: vi.fn(),
+    restorePairingSnapshot: vi.fn(),
     updateStartingPoints: vi.fn(),
     save: vi.fn(),
     publish: vi.fn(),
     deleteTournament: vi.fn(),
     slugTaken: false,
   }),
+  rowsToParticipants: (rows: unknown[]) => rows,
 }))
 
 function makeFormState() {
@@ -124,7 +126,11 @@ function makeFormState() {
       en: { givenName: '', familyName: '' },
     },
     regulations: [],
-    settings: { considerSente: false },
+    settings: {
+      considerSente: false,
+      tieBreaks: [],
+      timeControl: { type: 'absolute', mainTime: 60 },
+    },
     games: [],
     participants: [],
     publishedRounds: 0,
@@ -304,6 +310,32 @@ describe('Pairing tools drawer visibility', () => {
       screen.queryByRole('button', { name: 'tournament.edit.pairingTools.open' })
     ).not.toBeInTheDocument()
     expect(screen.queryByText('tournament.edit.pairingTools.title')).not.toBeInTheDocument()
+  })
+
+  it('shows the sticky dice tab on the crosstable tab and opens the drawer from it', () => {
+    authState.firebaseUser = makeFirebaseUser('creator-1')
+    tournamentFormState.tournament = makeTournament({ status: 'ongoing' })
+    renderForm()
+
+    fireEvent.click(screen.getByRole('tab', { name: 'tournament.edit.tabs.crosstable' }))
+
+    const stickyTab = screen.getByRole('button', { name: 'tournament.edit.pairingTools.open' })
+    expect(stickyTab).toHaveAttribute('data-tip', 'tournament.edit.pairingTools.open')
+    fireEvent.click(stickyTab)
+
+    expect(screen.getByText('tournament.edit.pairingTools.title')).toBeInTheDocument()
+  })
+
+  it('hides the pairing tools on tabs other than pairings/crosstable', () => {
+    authState.firebaseUser = makeFirebaseUser('creator-1')
+    tournamentFormState.tournament = makeTournament({ status: 'ongoing' })
+    renderForm()
+
+    fireEvent.click(screen.getByRole('tab', { name: 'tournament.edit.tabs.general' }))
+
+    expect(
+      screen.queryByRole('button', { name: 'tournament.edit.pairingTools.open' })
+    ).not.toBeInTheDocument()
   })
 })
 

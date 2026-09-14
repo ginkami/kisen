@@ -272,12 +272,10 @@ export function maxWeightMatching(
       }
       for (const nblist of nblists) {
         for (const e of nblist) {
-          let i = edges[e].u
+          // j must be the endpoint outside blossom b.
           let j = edges[e].v
           if (inblossom[j] === b) {
-            const tmp = i
-            i = j
-            j = tmp
+            j = edges[e].u
           }
           const bj = inblossom[j]
           const bestto = bestedgeto[bj]
@@ -529,7 +527,7 @@ export function maxWeightMatching(
   }
 
   // Main loop: continue until no further improvement is possible.
-  stageLoop: for (let stage = 0; stage < nvertex; stage++) {
+  for (let stage = 0; stage < nvertex; stage++) {
     // Each iteration of this loop is a "stage". A stage finds an augmenting
     // path and uses that to improve the matching.
 

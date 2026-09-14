@@ -825,21 +825,22 @@ When a draw is published (`publishDraw(round)`), for each participant whose game
 
 ### Requirement: Pairing tools drawer availability
 
-The tournament edit page SHALL render the "Pairing assistant" drawer (`PairingToolsDrawer`) and its toggle buttons only when all of the following hold: the tournament status is `ongoing`, the "Pairings" tab is active, and the active round sub-tab inside `PairingsSection` is the round being prepared (`publishedRounds + 1`). The drawer and its toggle buttons SHALL NOT be rendered in any other state. When the availability conditions stop holding while the drawer is open, the drawer SHALL disappear.
+The tournament edit page SHALL render the "Pairing assistant" drawer (`PairingToolsDrawer`) and its toggle buttons only when all of the following hold: the tournament status is `ongoing`, the "Pairings" tab OR the "Crosstable" tab is active, and the form state is loaded. On the "Pairings" tab the drawer and its toggle buttons SHALL be available for every active round sub-tab (not only the round being prepared); on the "Crosstable" tab only the side sticky `BsDice6` tab SHALL be shown. The drawer and its toggle buttons SHALL NOT be rendered in any other state. When the availability conditions stop holding while the drawer is open, the drawer SHALL disappear. The sticky `BsDice6` tab SHALL show the tooltip «Открыть панель жеребьёвки».
 
-#### Scenario: Drawer available while preparing the next round
+#### Scenario: Drawer available on any round sub-tab of the pairings tab
 
-- **WHEN** an `ongoing` tournament's edit page shows the "Pairings" tab with the round sub-tab `publishedRounds + 1` active
-- **THEN** the pairing tools drawer toggle button is displayed
+- **WHEN** an `ongoing` tournament's edit page shows the "Pairings" tab with any round sub-tab active
+- **THEN** the pairing tools drawer toggle buttons are displayed
 
-#### Scenario: Drawer unavailable on other rounds
+#### Scenario: Crosstable tab shows only the sticky tab
 
-- **WHEN** the active round sub-tab is not `publishedRounds + 1`
-- **THEN** neither the drawer nor its toggle buttons are displayed
+- **WHEN** an `ongoing` tournament's edit page shows the "Crosstable" tab and the drawer is closed
+- **THEN** only the side sticky `BsDice6` tab is displayed, with the tooltip «Открыть панель жеребьёвки»
+- **AND** no pairings-board header toggle is rendered
 
 #### Scenario: Drawer unavailable on other tabs or statuses
 
-- **WHEN** the active tab is not "Pairings", or the tournament status is not `ongoing`
+- **WHEN** the active tab is neither "Pairings" nor "Crosstable", or the tournament status is not `ongoing`
 - **THEN** neither the drawer nor its toggle buttons are displayed
 
 ### Requirement: Pairing tools drawer toggle buttons
@@ -883,46 +884,69 @@ The drawer SHALL be a right-side panel styled after the AdminDrawer (fixed, full
 
 ### Requirement: Pairing tools undo/redo
 
-The pairing tools drawer SHALL show, in one row at the top of the panel, two buttons implementing Undo/Redo of pairing actions for the round being prepared (`publishedRounds + 1`):
+The pairing tools drawer SHALL show, in one row at the top of the panel, two buttons implementing Undo/Redo of the tournament's games-state changes:
 
-1. an undo button with the `BsArrowCounterclockwise` icon and tooltip «Отменить действие по подбору пар»;
-2. a redo button with the `BsArrowClockwise` icon and tooltip «Вернуть действие по подбору пар».
+1. an undo button with the `BsArrowCounterclockwise` icon and tooltip «Отменить изменение состояния игр турнира»;
+2. a redo button with the `BsArrowClockwise` icon and tooltip «Вернуть изменение состояния игр турнира».
 
-Each button SHALL be disabled when no saved state exists for it to apply. The states (the round's games, including pairings and results) SHALL be persisted locally in IndexedDB keyed by tournament and round, so the history survives a page reload. Every change of the round's games (the auto-pairing result counts as one action; each manual board edit or result change counts as one action) SHALL push a history state; pushing a new state after undo SHALL discard the redo tail. The saved states SHALL be cleared whenever `publishedRounds` changes (a round is published or un-published).
+Each button SHALL be disabled when no saved state exists for it to apply. A history state is a pairing-relevant snapshot `{ games, publishedRounds, participants }` persisted locally in IndexedDB keyed by the tournament, so the history survives a page reload. Every games change in any round (pairs, results, forfeits, byes), every `publishedRounds` change (publish/un-publish), and every participant-composition, `player`-link, or starting-points change SHALL push a history state; pushing a new state after undo SHALL discard the redo tail. Internal participant attribute changes (rating, names, and similar) SHALL NOT create history states and SHALL NOT be reverted by undo/redo. The history SHALL be capped (50 entries) and SHALL NOT be cleared when `publishedRounds` changes. When an undo/redo restores a snapshot whose `publishedRounds` differs from the current value, the tournament SHALL be saved automatically.
 
-#### Scenario: Undo restores the previous round state
+#### Scenario: Undo restores the previous games state
 
-- **WHEN** the user runs auto-pairing and then clicks the undo button
-- **THEN** the round's games revert to the state before the auto-pairing
+- **WHEN** the user changes games (e.g. runs auto-pairing or fixes a result) and then clicks the undo button
+- **THEN** the tournament's games revert to the state before the change
 
-#### Scenario: Redo reapplies an undone action
+#### Scenario: Undo/Redo of a publishedRounds change auto-saves
 
-- **WHEN** the user undoes an action and then clicks the redo button
-- **THEN** the undone round state is restored
+- **WHEN** an undo or redo restores a snapshot whose `publishedRounds` differs from the current value
+- **THEN** the games and `publishedRounds` are restored
+- **AND** the tournament is saved automatically
+
+#### Scenario: Participant composition is part of history
+
+- **WHEN** the user adds or removes a participant, relinks a player, or changes starting points, and then clicks the undo button
+- **THEN** the participant composition, `player` links, and starting points revert to the previous state
+- **AND** internal participant attributes edited afterwards (rating, names) are not reverted
+
+#### Scenario: Internal participant edits are not recorded
+
+- **WHEN** the user edits only a participant's rating or name
+- **THEN** no history state is pushed and the undo/redo buttons stay unchanged
 
 #### Scenario: Buttons disabled without history
 
-- **WHEN** no action has been recorded yet for the round
-- **THEN** both undo and redo buttons are disabled
-
-#### Scenario: History cleared on round change
-
-- **WHEN** a round is published or un-published (`publishedRounds` changes)
-- **THEN** the locally stored pairing history for the tournament is cleared
+- **WHEN** no applicable saved state exists
+- **THEN** the undo and redo buttons are disabled
 
 #### Scenario: New action discards redo
 
-- **WHEN** the user undoes an action and then makes any new change to the round's games
+- **WHEN** the user undoes an action and then makes any new recorded change
 - **THEN** the redo tail is discarded and the redo button becomes disabled
+
+#### Scenario: History survives round publishing
+
+- **WHEN** a round is published or un-published
+- **THEN** the history is kept (the publish/un-publish change itself is recorded as a state)
 
 ### Requirement: Generate pairings action
 
-The pairing tools drawer SHALL show a "Сформировать пары" button with the `CgSwiss` icon below the undo/redo row. Clicking it SHALL run the automatic pairing engine for all participants of the round that do not yet have a game, and apply the resulting games via a single round update (one undo/redo action). Existing manual pairs, results, and carried-over forfeits in the round SHALL remain untouched.
+The pairing tools drawer SHALL show a "Сформировать пары" button with the `CgSwiss` icon below the undo/redo row. Clicking it SHALL run the automatic pairing engine for all participants of the round being prepared that do not yet have a game, and apply the resulting games via a single round update (one undo/redo action). Existing manual pairs, results, and carried-over forfeits in the round SHALL remain untouched. The button SHALL be disabled while any round from 1 to `publishedRounds` contains a paired game (two players) without a result, or a participant without a game in that round (no opponent, no bye, no forfeit). Lone games (bye/forfeit, `player2 == null`) do not await a result and SHALL NOT block the action. Undo/Redo buttons SHALL NOT be affected by this condition.
 
 #### Scenario: Auto-pairing fills the board
 
-- **WHEN** the user clicks "Сформировать пары" with unpaired participants in the round
+- **WHEN** the user clicks "Сформировать пары" with unpaired participants in the round being prepared
 - **THEN** new games appear for all previously unpaired participants (regular games, plus a bye when the count is odd)
+
+#### Scenario: Disabled while earlier rounds are incomplete
+
+- **WHEN** a round from 1 to `publishedRounds` has a paired game without a result or a participant without a game
+- **THEN** the "Сформировать пары" button is disabled
+- **AND** the undo/redo buttons stay enabled
+
+#### Scenario: Lone game without a result does not block
+
+- **WHEN** a round from 1 to `publishedRounds` contains only completed paired games and a bye/forfeit game without a result
+- **THEN** the "Сформировать пары" button stays enabled
 
 #### Scenario: Pairing failure alert
 
@@ -932,14 +956,19 @@ The pairing tools drawer SHALL show a "Сформировать пары" button
 
 ### Requirement: Clear round pairings action
 
-The pairing tools drawer SHALL show a "Отменить пары" button at the bottom of the panel. Clicking it SHALL open a confirm modal (variant `error`) with the message «Все пары {n}-го тура будут расформированы» (where {n} is the round number); confirming SHALL remove all games of the round via a single round update (one undo/redo action); cancelling SHALL leave the round unchanged.
+The pairing tools drawer SHALL show a "Отменить пары" button at the bottom of the panel. Clicking it SHALL open a confirm modal (variant `error`) with the message «Все пары {n}-го тура будут расформированы» (where {n} is the round number); confirming SHALL remove all games of the round via a single round update (one undo/redo action); cancelling SHALL leave the round unchanged. The button SHALL be disabled under the same condition as the "Сформировать пары" button (any round from 1 to `publishedRounds` with a paired game without a result or a participant without a game; lone games do not block); Undo/Redo buttons SHALL NOT be affected.
 
 #### Scenario: Confirm clears the round
 
 - **WHEN** the user confirms the clear action
-- **THEN** all games of the active round are removed
+- **THEN** all games of the round being prepared are removed
 
 #### Scenario: Cancel keeps the round
 
 - **WHEN** the user cancels the clear action
 - **THEN** the round's games are unchanged
+
+#### Scenario: Disabled while earlier rounds are incomplete
+
+- **WHEN** a round from 1 to `publishedRounds` has a paired game without a result or a participant without a game
+- **THEN** the "Отменить пары" button is disabled

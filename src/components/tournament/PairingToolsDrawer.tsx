@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { BsArrowClockwise, BsArrowCounterclockwise, BsDice6, BsX } from 'react-icons/bs'
 import { CgSwiss } from 'react-icons/cg'
@@ -48,6 +48,25 @@ export function PairingToolsDrawer({
   const [generating, setGenerating] = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [alertOpen, setAlertOpen] = useState(false)
+
+  // Drawing or clearing the round being prepared while an earlier round is
+  // incomplete (a paired game awaiting its result or a participant without
+  // any game) would produce an invalid Swiss state — such actions are blocked.
+  // Lone games (bye/forfeit) do not await a result and never block.
+  // Undo/Redo are never blocked: they are the way out of the incomplete state.
+  const actionsDisabled = useMemo(() => {
+    for (let r = 1; r <= publishedRounds; r++) {
+      const roundGames = games.filter((g) => g.round === r)
+      if (roundGames.some((g) => g.player2 != null && g.result == null)) return true
+      const covered = new Set<number>()
+      for (const g of roundGames) {
+        covered.add(g.player1)
+        if (g.player2 != null) covered.add(g.player2)
+      }
+      if (participants.some((p) => !covered.has(p.id))) return true
+    }
+    return false
+  }, [games, participants, publishedRounds])
 
   useEffect(() => {
     if (!isOpen) return
@@ -135,7 +154,7 @@ export function PairingToolsDrawer({
         <button
           type="button"
           onClick={() => void handleGenerate()}
-          disabled={generating}
+          disabled={generating || actionsDisabled}
           className="btn btn-primary mt-2 w-full"
         >
           {generating ? (
@@ -145,7 +164,7 @@ export function PairingToolsDrawer({
           )}
           {generating
             ? t('tournament.edit.pairingTools.generating')
-            : t('tournament.edit.pairingTools.generate')}
+            : t('tournament.edit.pairingTools.generate', { round })}
         </button>
 
         {/* Spacer */}
@@ -155,9 +174,10 @@ export function PairingToolsDrawer({
         <button
           type="button"
           onClick={() => setConfirmOpen(true)}
+          disabled={actionsDisabled}
           className="btn btn-outline btn-error mt-2 w-full"
         >
-          {t('tournament.edit.pairingTools.clear')}
+          {t('tournament.edit.pairingTools.clear', { round })}
         </button>
       </div>
 

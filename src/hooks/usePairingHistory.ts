@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
-import type { Game } from '../domain/tournament.ts'
+import type { PairingSnapshot } from '../utils/pairingHistoryStorage.ts'
 import {
-  clearPairingHistory,
   getPairingHistory,
   pushPairingState,
   redoPairingState,
@@ -9,49 +8,52 @@ import {
 } from '../utils/pairingHistoryStorage.ts'
 
 /**
- * Tracks the local (IndexedDB) Undo/Redo history of a round's pairing states.
- * `canUndo` / `canRedo` are mirrored in React state for synchronous button
- * disabling; `push` records a new state after the caller applied it via the
- * form updater.
+ * Tracks the local (IndexedDB) Undo/Redo history of the tournament's
+ * pairing-relevant snapshots. `canUndo` / `canRedo` are mirrored in React
+ * state for synchronous button disabling; `push` records a new snapshot
+ * after the caller applied it to the form state.
  */
-export function usePairingHistory(tournamentId: string, round: number) {
+export function usePairingHistory(tournamentId: string) {
   const [canUndo, setCanUndo] = useState(false)
   const [canRedo, setCanRedo] = useState(false)
 
   const refresh = useCallback(async () => {
-    const value = await getPairingHistory(tournamentId, round)
+    const value = await getPairingHistory(tournamentId)
     setCanUndo(value !== null && value.index > 0)
     setCanRedo(value !== null && value.index < value.entries.length - 1)
-  }, [tournamentId, round])
+  }, [tournamentId])
 
   useEffect(() => {
-    void refresh()
-  }, [refresh])
+    let cancelled = false
+    void getPairingHistory(tournamentId).then((value) => {
+      if (cancelled) return
+      setCanUndo(value !== null && value.index > 0)
+      setCanRedo(value !== null && value.index < value.entries.length - 1)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [tournamentId])
 
   const push = useCallback(
-    async (games: Game[]) => {
-      await pushPairingState(tournamentId, round, games)
+    async (snapshot: PairingSnapshot) => {
+      await pushPairingState(tournamentId, snapshot)
       await refresh()
     },
-    [tournamentId, round, refresh],
+    [tournamentId, refresh],
   )
 
-  const undo = useCallback(async (): Promise<Game[] | null> => {
-    const games = await undoPairingState(tournamentId, round)
+  const undo = useCallback(async (): Promise<PairingSnapshot | null> => {
+    const snapshot = await undoPairingState(tournamentId)
     await refresh()
-    return games
-  }, [tournamentId, round, refresh])
-
-  const redo = useCallback(async (): Promise<Game[] | null> => {
-    const games = await redoPairingState(tournamentId, round)
-    await refresh()
-    return games
-  }, [tournamentId, round, refresh])
-
-  const clear = useCallback(async () => {
-    await clearPairingHistory(tournamentId)
-    await refresh()
+    return snapshot
   }, [tournamentId, refresh])
 
-  return { canUndo, canRedo, push, undo, redo, clear }
+  const redo = useCallback(async (): Promise<PairingSnapshot | null> => {
+    const snapshot = await redoPairingState(tournamentId)
+    await refresh()
+    return snapshot
+  }, [tournamentId, refresh])
+
+  return { canUndo, canRedo, push, undo, redo }
 }

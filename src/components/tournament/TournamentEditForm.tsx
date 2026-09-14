@@ -7,10 +7,8 @@ import { BsSliders2Vertical, BsClock, BsJournalText, BsPlus, BsX, Bs123, BsGrid3
 import { HiOutlineUserGroup } from "react-icons/hi2";
 import { useAuth } from '../../context/AuthContext.tsx'
 import { sanitizeTextInput } from '../../utils/sanitize.ts'
-import { useTournamentForm, validateTournamentPublishForm } from '../../hooks/useTournamentForm.ts'
+import { useTournamentForm, validateTournamentPublishForm, rowsToParticipants } from '../../hooks/useTournamentForm.ts'
 import { usePairingHistory } from '../../hooks/usePairingHistory.ts'
-import { clearPairingHistory } from '../../utils/pairingHistoryStorage.ts'
-import type { Game } from '../../domain/tournament.ts'
 import {
   dateToLocalDatetimeInputValue,
 } from '../../utils/dateTime.ts'
@@ -38,7 +36,7 @@ import { regulationService } from '../../services/regulationService.ts'
 import { LocaleTabs } from './LocaleTabs.tsx'
 import { ExpandableField } from './ExpandableField.tsx'
 import { TournamentLocationInput } from './TournamentLocationInput.tsx'
-import { PairingsSection, resolvePairingsActiveRound } from './PairingsSection.tsx'
+import { PairingsSection } from './PairingsSection.tsx'
 import { PairingToolsDrawer } from './PairingToolsDrawer.tsx'
 import type { LayoutOutletContext } from '../Layout.tsx'
 import { CrosstableSection } from './CrosstableSection.tsx'
@@ -985,6 +983,7 @@ export function TournamentEditForm({
     updateGames,
     publishDraw,
     unpublishDraw,
+    restorePairingSnapshot,
     updateStartingPoints,
     save,
     publish,
@@ -1043,66 +1042,58 @@ export function TournamentEditForm({
     setPairingToolsOpen(next)
   }, [isPairingToolsOpen, closeAdminDrawer, setPairingToolsOpen])
 
-  // --- Pairing assistant: local Undo/Redo history of the round being prepared ---
-  const preparedRound = (formState?.publishedRounds ?? 0) + 1
-  const pairingHistory = usePairingHistory(tournamentId ?? 'new', preparedRound)
+  // --- Pairing assistant: local Undo/Redo history of the tournament's games state ---
+  const pairingHistory = usePairingHistory(tournamentId ?? 'new')
 
-  // Every games change of the round being prepared is recorded as one history
-  // action (auto-pairing result, manual board edits, results, clear).
-  const trackedUpdateGames = useCallback(
-    (round: number, gamesForRound: Game[]) => {
-      updateGames(round, gamesForRound)
-      if (round === preparedRound) {
-        void pairingHistory.push(gamesForRound)
-      }
-    },
-    [updateGames, preparedRound, pairingHistory],
+  // Every pairing-relevant change (games in any round, publishedRounds,
+  // participant composition / player links / starting points) is recorded as
+  // one history snapshot. Internal participant attributes (rating, names...)
+  // are not part of the signature and are never recorded or reverted.
+  const gamesJson = JSON.stringify(formState?.games ?? [])
+  const publishedRoundsValue = formState?.publishedRounds ?? 0
+  const participantsProjection = JSON.stringify(
+    (formState?.participants ?? [])
+      .map((p) => ({ id: p.id, player: p.player, startingPoints: p.startingPoints ?? 0 }))
+      .sort((a, b) => a.id - b.id),
   )
+  const recordedSnapshotRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (!formState) return
+    const signature = `${publishedRoundsValue}|${gamesJson}|${participantsProjection}`
+    if (recordedSnapshotRef.current === signature) return
+    recordedSnapshotRef.current = signature
+    void pairingHistory.push({
+      games: formState.games,
+      publishedRounds: formState.publishedRounds,
+      participants: rowsToParticipants(formState.participants),
+    })
+  }, [formState, gamesJson, publishedRoundsValue, participantsProjection, pairingHistory])
 
   const handlePairingUndo = useCallback(() => {
     void (async () => {
-      const restored = await pairingHistory.undo()
-      if (restored) {
-        updateGames(preparedRound, restored)
+      const snapshot = await pairingHistory.undo()
+      if (snapshot) {
+        restorePairingSnapshot(snapshot.games, snapshot.publishedRounds, snapshot.participants)
       }
     })()
-  }, [pairingHistory, preparedRound, updateGames])
+  }, [pairingHistory, restorePairingSnapshot])
 
   const handlePairingRedo = useCallback(() => {
     void (async () => {
-      const restored = await pairingHistory.redo()
-      if (restored) {
-        updateGames(preparedRound, restored)
+      const snapshot = await pairingHistory.redo()
+      if (snapshot) {
+        restorePairingSnapshot(snapshot.games, snapshot.publishedRounds, snapshot.participants)
       }
     })()
-  }, [pairingHistory, preparedRound, updateGames])
-
-  // The recorded states are cleared whenever the current round changes (a
-  // round is published or un-published). A ref keeps the initial mount from
-  // clearing the reloaded history.
-  const publishedRounds = formState?.publishedRounds
-  const prevPublishedRoundsRef = useRef<number | null>(null)
-  useEffect(() => {
-    if (publishedRounds === undefined) return
-    const prev = prevPublishedRoundsRef.current
-    prevPublishedRoundsRef.current = publishedRounds
-    if (prev !== null && prev !== publishedRounds) {
-      void clearPairingHistory(tournamentId ?? 'new')
-    }
-  }, [publishedRounds, tournamentId])
+  }, [pairingHistory, restorePairingSnapshot])
 
   // The "Pairing assistant" drawer (and its toggle buttons) is only available
-  // on the pairings tab of an ongoing tournament while the round being
-  // prepared (publishedRounds + 1) is the active round sub-tab.
+  // on the pairings tab (any active round sub-tab) or the crosstable tab of an
+  // ongoing tournament.
   const pairingToolsAvailable =
     tournament?.status === 'ongoing' &&
-    activeTab === 'pairings' &&
-    !!formState &&
-    resolvePairingsActiveRound(
-      pairingsRound,
-      formState.publishedRounds,
-      formState.scheduleRows.filter((r) => r.kind === 'round').length
-    ) === formState.publishedRounds + 1
+    (activeTab === 'pairings' || activeTab === 'crosstable') &&
+    !!formState
 
   const tabs: {
     id: TabId
@@ -1450,7 +1441,7 @@ export function TournamentEditForm({
             scheduledAt: r.scheduledAt ?? new Date(),
           }))}
           considerSente={formState.settings.considerSente}
-          updateGames={trackedUpdateGames}
+          updateGames={updateGames}
           publishDraw={publishDraw}
           unpublishDraw={unpublishDraw}
           updateStartingPoints={updateStartingPoints}
@@ -1498,7 +1489,8 @@ export function TournamentEditForm({
         <button
           type="button"
           onClick={togglePairingTools}
-          className="fixed right-0 top-17 z-40 rounded-l-box bg-secondary p-3 text-secondary-content shadow-lg"
+          className="tooltip fixed right-0 top-17 z-40 rounded-l-box bg-secondary p-3 text-secondary-content shadow-lg"
+          data-tip={t('tournament.edit.pairingTools.open')}
           aria-label={t('tournament.edit.pairingTools.open')}
         >
           <BsDice6 className="h-6 w-6" />
@@ -1517,7 +1509,7 @@ export function TournamentEditForm({
           canRedo={pairingHistory.canRedo}
           onUndo={handlePairingUndo}
           onRedo={handlePairingRedo}
-          updateGames={trackedUpdateGames}
+          updateGames={updateGames}
         />
       )}
     </div>

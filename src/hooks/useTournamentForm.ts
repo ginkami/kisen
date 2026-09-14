@@ -249,7 +249,7 @@ function participantsToRows(participants: Participant[]): ParticipantRow[] {
   }))
 }
 
-function rowsToParticipants(rows: ParticipantRow[]): Participant[] {
+export function rowsToParticipants(rows: ParticipantRow[]): Participant[] {
   // Filter out empty participants (no locale with both familyName and givenName)
   const nonEmpty = rows.filter((row) => !isEmptyParticipantRow(row))
 
@@ -1117,7 +1117,7 @@ export function useTournamentForm(tournamentId: string | undefined) {
       updateForm((state) => ({
         ...state,
         participants: [...state.participants].sort((a, b) => {
-          let cmp = 0
+          let cmp: number
           if (by === 'name') {
             const aName = a.locales[locale]?.familyName ?? ''
             const bName = b.locales[locale]?.familyName ?? ''
@@ -1368,6 +1368,42 @@ export function useTournamentForm(tournamentId: string | undefined) {
     }
   }, [formState, tournament, saveMutation])
 
+  const restorePairingSnapshot = useCallback(
+    (games: Game[], publishedRounds: number, participants: Participant[]) => {
+      if (!formState) return
+      const publishedRoundsChanged = formState.publishedRounds !== publishedRounds
+      // Reconcile participants with the snapshot: rows that still exist keep
+      // their current internal attributes (rating, names, ...) and only take
+      // `player` and `startingPoints` from the snapshot; participants missing
+      // from the current list are restored from the snapshot whole;
+      // participants added after the snapshot are dropped. Internal attribute
+      // edits are not part of history and must never be reverted.
+      const currentById = new Map(formState.participants.map((r) => [r.id, r]))
+      const snapshotRows = participantsToRows(participants)
+      const reconciled = participants.map((p) => {
+        const existing = currentById.get(p.id)
+        return existing
+          ? { ...existing, player: p.player, startingPoints: p.startingPoints ?? 0 }
+          : (snapshotRows.find((r) => r.id === p.id) as ParticipantRow)
+      })
+      const next = normalizeState({
+        ...formState,
+        publishedRounds,
+        participants: reconciled,
+        games: games.map((g) => normalizeGame(g, publishedRounds)),
+      })
+      setFormState(next)
+      setValidationErrors({})
+      // Undo/Redo of a publishedRounds change auto-saves the tournament with
+      // the freshly restored state (same flow as publish/un-publish round).
+      if (publishedRoundsChanged && tournament) {
+        saveMutation.reset()
+        saveMutation.mutate(next)
+      }
+    },
+    [formState, tournament, saveMutation],
+  )
+
   const updateStartingPoints = useCallback(
     (participantId: number, value: number) => {
       const clamped = Math.max(0, Math.floor(Number.isFinite(value) ? value : 0))
@@ -1429,6 +1465,7 @@ export function useTournamentForm(tournamentId: string | undefined) {
     updateGames,
     publishDraw,
     unpublishDraw,
+    restorePairingSnapshot,
     updateStartingPoints,
     slugTaken,
   }
