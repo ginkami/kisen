@@ -1,8 +1,5 @@
-## Purpose
+## MODIFIED Requirements
 
-Pure single-elimination (knockout) engine: for a bracket size and a knockout round chosen by the user it forms the canonical knockout round for the round being prepared (strict seeding by points then rating, abstract bottom padding to the bracket size with byes to top seeds, bracket-tree continuation without reseeding). Brackets may be embedded in rounds with arbitrary other games — only the bracket's own games are constrained by the canonical approach. The engine never creates forfeit games: eliminated players stay unpaired.
-
-## Requirements
 ### Requirement: Strict bracket search for a given bracket size and knockout round
 
 The knockout engine (`generateKnockoutRoundGames`) SHALL form the knockout round for the round being prepared (`publishedRounds + 1`) for a bracket size `B` (a power of two ≥ 4) and a knockout round `K` (`1 ≤ K ≤ publishedRounds + 1`) chosen by the user. For `K > 1` the engine SHALL search for a bracket deterministically: the bracket starts at round `s = publishedRounds + 2 − K`. The bracket MAY be embedded in rounds that also contain arbitrary other games (a Swiss round, consolation or forfeit games of players outside the bracket): only the bracket's own games are constrained. In round `s` a configuration of the round's bye games and paired games SHALL be found such that the covered players (`B − byeCount`) form the canonical knockout round 1 — strict seeding (1 vs last, 2 vs second-last, …) by points before round `s` (then rating), padded to `B` with bottom virtual seeds, byes to the top `byeCount` seeds; configurations using more of the round's games are preferred. In every later round `r` up to `publishedRounds` each bracket pair (winners of adjacent bracket slots of round `r−1`) SHALL have a game with a fixed, non-draw result. All games of a round that do not belong to the bracket — including games between already eliminated players — SHALL be ignored and SHALL NOT constrain the search. If no such bracket exists the engine SHALL fail with a pairing error.
@@ -73,3 +70,11 @@ The knockout generation result SHALL be applied via a single round update (one u
 
 - **WHEN** a knockout round is generated for a bracket with previously eliminated players
 - **THEN** the eliminated players receive no games (they stay unpaired)
+
+## REMOVED Requirements
+
+- ### Requirement: Final-round label computation
+
+**Reason:** the «1/{n} финала» label is replaced by the explicit bracket size and knockout round dropdowns of the «Игры плей-офф» card.
+
+**Migration:** the card's button label is static («Сформировать пары»); the round semantics are expressed by the «Раунд плей-офф» dropdown.

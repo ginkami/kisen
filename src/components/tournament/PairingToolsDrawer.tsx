@@ -4,13 +4,15 @@ import { BsArrowClockwise, BsArrowCounterclockwise, BsDiagram2Fill, BsDice6, BsX
 import { CH as SwissFlag } from 'country-flag-icons/react/1x1'
 import type { Game, Participant } from '../../domain/tournament.ts'
 import { generatePairings, PairingError } from './pairings/pairingEngine.ts'
-import { generateKnockoutPairings, planKnockoutRound } from './pairings/knockoutEngine.ts'
+import { generateKnockoutRoundGames } from './pairings/knockoutEngine.ts'
 import { AlertModal } from '../AlertModal.tsx'
 import { ConfirmModal } from '../ConfirmModal.tsx'
 
 interface PairingToolsDrawerProps {
   isOpen: boolean
   onClose: () => void
+  /** Tournament id for local UI preferences ('new' for unsaved tournaments). */
+  tournamentId: string
   /** The round being prepared (publishedRounds + 1). */
   round: number
   /** Domain participants (with capturedRating) — rows lack ratings. */
@@ -29,10 +31,18 @@ interface PairingToolsDrawerProps {
 // prepared (publishedRounds + 1). The drawer chrome mirrors AdminDrawer, but
 // it overlays the page content without pushing it (the pairings board is
 // wide). Tools, top to bottom: undo/redo row, "generate pairings" action,
-// spacer, "clear round pairings" action with a confirm modal.
+// «Игры плей-офф» knockout card, spacer, "clear round pairings" action with a
+// confirm modal.
+
+function nextPowerOfTwo(n: number): number {
+  let p = 1
+  while (p < n) p *= 2
+  return p
+}
 export function PairingToolsDrawer({
   isOpen,
   onClose,
+  tournamentId,
   round,
   participants,
   games,
@@ -102,33 +112,57 @@ export function PairingToolsDrawer({
     }
   }
 
-  // Knockout round for the same target round: n = pairs + byes of the formed
-  // round (bracket size / 2). The label is computed from the state WITHOUT the
-  // round's own games, so it stays unchanged once the round has been drawn.
-  const knockout = useMemo(() => {
-    try {
-      const plan = planKnockoutRound({
-        participants,
-        games: games.filter((g) => g.round !== round),
-        round,
-        publishedRounds,
-      })
-      return { n: plan.n }
-    } catch {
-      return null // manual games make the canonical knockout impossible
+  // «Игры плей-офф» card state: the bracket size is a local per-tournament
+  // preference (survives drawer close/reopen), the knockout round defaults to
+  // the round being prepared and resets when the drawer is (re)opened.
+  const bracketSizeOptions = useMemo(() => {
+    const options: number[] = []
+    for (let b = 4; b <= Math.max(4, nextPowerOfTwo(participants.length)); b *= 2) {
+      options.push(b)
     }
-  }, [participants, games, round, publishedRounds])
+    return options
+  }, [participants.length])
+  const defaultBracketSize = bracketSizeOptions[bracketSizeOptions.length - 1]
+  const bracketSizeStorageKey = `kisen.pairingTools.knockoutBracketSize.${tournamentId}`
+  const [bracketSize, setBracketSize] = useState(() => {
+    try {
+      const saved = Number(window.localStorage.getItem(bracketSizeStorageKey))
+      if (Number.isInteger(saved) && saved >= 4) return saved
+    } catch {
+      // localStorage unavailable — fall back to the default
+    }
+    return defaultBracketSize
+  })
+  // Re-validate the persisted choice when the options change (participants
+  // added/removed) and persist every confirmed choice.
+  useEffect(() => {
+    if (!bracketSizeOptions.includes(bracketSize)) setBracketSize(defaultBracketSize)
+  }, [bracketSizeOptions, bracketSize, defaultBracketSize])
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(bracketSizeStorageKey, String(bracketSize))
+    } catch {
+      // localStorage unavailable — the choice just won't persist
+    }
+  }, [bracketSizeStorageKey, bracketSize])
+
+  const [knockoutRound, setKnockoutRound] = useState(round)
+  useEffect(() => {
+    if (knockoutRound > round) setKnockoutRound(round)
+  }, [round, knockoutRound])
 
   const handleGenerateKnockout = async () => {
     if (generating) return
     setGenerating(true)
     try {
-      const newGames = generateKnockoutPairings({
+      const newGames = generateKnockoutRoundGames({
         participants,
         games,
         round,
         publishedRounds,
         considerSente,
+        bracketSize,
+        knockoutRound,
       })
       const roundGames = games.filter((g) => g.round === round)
       updateGames(round, [...roundGames, ...newGames])
@@ -209,23 +243,63 @@ export function PairingToolsDrawer({
             : t('tournament.edit.pairingTools.generate', { round })}
         </button>
 
-        {/* Generate knockout pairings */}
-        {knockout !== null && (
-          <button
-            type="button"
-            onClick={() => void handleGenerateKnockout()}
-            disabled={generating || actionsDisabled || knockout.n === 0}
-            className="btn btn-secondary mt-2 w-full"
-          >
-            <BsDiagram2Fill className="h-5 w-5" aria-hidden="true" />
-            {t(
-              knockout.n === 1
-                ? 'tournament.edit.pairingTools.generateKnockoutFinal'
-                : 'tournament.edit.pairingTools.generateKnockout',
-              knockout.n === 1 ? undefined : { n: knockout.n },
-            )}
-          </button>
-        )}
+        {/* «Игры плей-офф» card */}
+        <div className="card mt-2 w-full bg-base-100 shadow-sm">
+          <div className="card-body gap-2 p-3">
+            <h3 className="flex items-center gap-2 text-sm font-semibold">
+              {t('tournament.edit.pairingTools.knockoutTitle')}
+            </h3>
+            <label className="label" htmlFor="knockout-bracket-size">
+              <span className="label-text">{t('tournament.edit.pairingTools.knockoutBracketSize')}</span>
+            </label>
+            <select
+              id="knockout-bracket-size"
+              value={bracketSize}
+              onChange={(e) => setBracketSize(Number(e.target.value))}
+              disabled={actionsDisabled}
+              className="select select-bordered select-sm w-full"
+              data-testid="knockout-bracket-size"
+            >
+              {bracketSizeOptions.map((b) => (
+                <option key={b} value={b}>
+                  {b}
+                </option>
+              ))}
+            </select>
+            <label className="label" htmlFor="knockout-round">
+              <span className="label-text">{t('tournament.edit.pairingTools.knockoutRound')}</span>
+            </label>
+            <select
+              id="knockout-round"
+              value={knockoutRound}
+              onChange={(e) => setKnockoutRound(Number(e.target.value))}
+              disabled={actionsDisabled}
+              className="select select-bordered select-sm w-full"
+              data-testid="knockout-round"
+            >
+              {Array.from({ length: round }, (_, i) => i + 1).map((k) => (
+                <option key={k} value={k}>
+                  {k}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={() => void handleGenerateKnockout()}
+              disabled={generating || actionsDisabled}
+              className="btn btn-secondary mt-1 w-full"
+            >
+              {generating ? (
+                <span className="loading loading-spinner loading-sm" aria-hidden="true" />
+              ) : (
+                <BsDiagram2Fill className="h-5 w-5" aria-hidden="true" />
+              )}
+              {generating
+                ? t('tournament.edit.pairingTools.generating')
+                : t('tournament.edit.pairingTools.generateKnockoutPairs')}
+            </button>
+          </div>
+        </div>
 
         {/* Spacer */}
         <div className="grow" />

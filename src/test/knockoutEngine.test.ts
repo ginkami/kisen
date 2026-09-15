@@ -1,19 +1,15 @@
 import { describe, expect, it } from 'vitest'
 import type { Game, Participant } from '../domain/tournament.ts'
-import {
-  analyzeKnockoutBracket,
-  generateKnockoutPairings,
-  planKnockoutRound,
-} from '../components/tournament/pairings/knockoutEngine.ts'
+import { generateKnockoutRoundGames } from '../components/tournament/pairings/knockoutEngine.ts'
 import { PairingError } from '../components/tournament/pairings/pairingEngine.ts'
 
-function makeParticipants(ratings: number[]): Participant[] {
+function makeParticipants(ratings: number[], startingPoints: number[] = []): Participant[] {
   return ratings.map((rating, i) => ({
     id: i + 1,
     player: null,
     locales: { ru: { familyName: `F${i + 1}`, givenName: 'X' } },
     capturedRating: { value: rating, rank: null },
-    startingPoints: 0,
+    startingPoints: startingPoints[i] ?? 0,
   }))
 }
 
@@ -41,300 +37,348 @@ function byeIds(games: Game[]): number[] {
   return games.filter((g) => g.status === 'bye').map((g) => g.player1)
 }
 
-function forfeitIds(games: Game[]): number[] {
-  return games.filter((g) => g.status === 'forfeit').map((g) => g.player1)
-}
+const finished = { result: 'player1_won', status: 'completed' } as const
 
-describe('generateKnockoutPairings — canonical round 1', () => {
-  it('pairs 6 players with byes to the top two seeds (n = 4)', () => {
+describe('generateKnockoutRoundGames — knockout round 1', () => {
+  it('pairs 6 unpaired players into an 8-bracket with byes to the top two seeds', () => {
     const participants = makeParticipants([2400, 2300, 2200, 2100, 2000, 1900])
-    const games = generateKnockoutPairings({
+    const games = generateKnockoutRoundGames({
       participants,
       games: [],
       round: 1,
       publishedRounds: 0,
       considerSente: false,
+      bracketSize: 8,
+      knockoutRound: 1,
     })
     // Bracket 8: 1v8(virtual→bye), 2v7(virtual→bye), 3v6, 4v5.
     expect(pairSet(games)).toEqual(['3-6', '4-5'])
     expect(byeIds(games)).toEqual([1, 2])
   })
 
-  it('pairs 7 players with one bye to the top seed (n = 4)', () => {
-    const participants = makeParticipants([2400, 2300, 2200, 2100, 2000, 1900, 1800])
-    const games = generateKnockoutPairings({
+  it('pairs 4 unpaired players into a 4-bracket without byes', () => {
+    const participants = makeParticipants([2400, 2300, 2200, 2100])
+    const games = generateKnockoutRoundGames({
       participants,
       games: [],
       round: 1,
       publishedRounds: 0,
       considerSente: false,
+      bracketSize: 4,
+      knockoutRound: 1,
     })
-    // Bracket 8: 1v8(virtual→bye), 2v7, 3v6, 4v5.
-    expect(pairSet(games)).toEqual(['2-7', '3-6', '4-5'])
-    expect(byeIds(games)).toEqual([1])
-  })
-
-  it('pairs 8 players without byes (n = 4)', () => {
-    const participants = makeParticipants([2400, 2300, 2200, 2100, 2000, 1900, 1800, 1700])
-    const games = generateKnockoutPairings({
-      participants,
-      games: [],
-      round: 1,
-      publishedRounds: 0,
-      considerSente: false,
-    })
-    expect(pairSet(games)).toEqual(['1-8', '2-7', '3-6', '4-5'])
+    expect(pairSet(games)).toEqual(['1-4', '2-3'])
     expect(byeIds(games)).toEqual([])
   })
 
-  it('seeds by points first and rating second', () => {
-    // startingPoints make id 6 the top seed.
-    const participants = makeParticipants([2400, 2300, 2200, 2100, 2000, 1900]).map((p) => ({
-      ...p,
-      startingPoints: p.id === 6 ? 5 : 0,
-    }))
-    const games = generateKnockoutPairings({
+  it('seeds by points (startingPoints) before rating', () => {
+    const participants = makeParticipants([2400, 2300, 2200, 2100, 2000, 1900], [0, 5])
+    const games = generateKnockoutRoundGames({
       participants,
       games: [],
       round: 1,
       publishedRounds: 0,
       considerSente: false,
+      bracketSize: 8,
+      knockoutRound: 1,
     })
-    // Seeds by points desc then rating desc: 6, 1, 2, 3, 4, 5.
-    // Bracket 8: 6v(virtual→bye), 1v(virtual→bye), 2v5, 3v4.
-    expect(pairSet(games)).toEqual(['2-5', '3-4'])
-    expect(byeIds(games)).toEqual([6, 1])
+    // Player 2 leads by points: seeds [2, 1, 3, 4, 5, 6] → byes 2 and 1.
+    expect(byeIds(games)).toEqual([2, 1])
+    expect(pairSet(games)).toEqual(['3-6', '4-5'])
   })
-})
 
-describe('analyzeKnockoutBracket', () => {
-  it('recognizes a canonical bracket after round 1 with results', () => {
+  it('keeps manual games and seeds the unpaired players', () => {
     const participants = makeParticipants([2400, 2300, 2200, 2100, 2000, 1900])
-    const games: Game[] = [
-      // Round 1: 3v6 (3 won), 4v5 (5 won), byes 1, 2.
-      makeGame({ player1: 3, player2: 6, round: 1, result: 'player1_won', status: 'completed' }),
-      makeGame({ player1: 4, player2: 5, round: 1, result: 'player2_won', status: 'completed' }),
-      makeGame({ player1: 1, round: 1, result: 'player1_won', status: 'bye' }),
-      makeGame({ player1: 2, round: 1, result: 'player1_won', status: 'bye' }),
-      // Round 2: bracket continuation 1v2 (1 won), 3v5 (5 won); forfeits 4, 6.
-      makeGame({ player1: 1, player2: 2, round: 2, result: 'player1_won', status: 'completed' }),
-      makeGame({ player1: 3, player2: 5, round: 2, result: 'player2_won', status: 'completed' }),
-      makeGame({ player1: 4, round: 2, result: 'player2_won', status: 'forfeit' }),
-      makeGame({ player1: 6, round: 2, result: 'player2_won', status: 'forfeit' }),
-    ]
-    const bracket = analyzeKnockoutBracket(participants, games, 2)
-    expect(bracket).not.toBeNull()
-    expect(bracket?.startRound).toBe(1)
-    expect(bracket?.rounds).toHaveLength(2)
-  })
-
-  it('rejects a Swiss history (all participants paired every round)', () => {
-    const participants = makeParticipants([2400, 2300, 2200, 2100])
-    const games: Game[] = [
-      makeGame({ player1: 1, player2: 4, round: 1, result: 'player1_won', status: 'completed' }),
-      makeGame({ player1: 2, player2: 3, round: 1, result: 'draw', status: 'completed' }),
-      makeGame({ player1: 1, player2: 2, round: 2, result: 'player1_won', status: 'completed' }),
-      makeGame({ player1: 3, player2: 4, round: 2, result: 'draw', status: 'completed' }),
-    ]
-    expect(analyzeKnockoutBracket(participants, games, 2)).toBeNull()
-  })
-
-  it('rejects a bracket with a missing forfeit game for an eliminated player', () => {
-    const participants = makeParticipants([2400, 2300, 2200, 2100])
-    const games: Game[] = [
-      makeGame({ player1: 1, player2: 4, round: 1, result: 'player1_won', status: 'completed' }),
-      makeGame({ player1: 2, player2: 3, round: 1, result: 'player1_won', status: 'completed' }),
-      // Round 2: 1v2 played, but 3 (loser of 2v3) has no forfeit game.
-      makeGame({ player1: 1, player2: 2, round: 2, result: 'player1_won', status: 'completed' }),
-    ]
-    expect(analyzeKnockoutBracket(participants, games, 2)).toBeNull()
-  })
-})
-
-
-function makeBracketHistory(): {
-  participants: ReturnType<typeof makeParticipants>
-  games: Game[]
-} {
-  const participants = makeParticipants([2400, 2300, 2200, 2100, 2000, 1900])
-  const games: Game[] = [
-    // Round 1: 3v6 (3 won), 4v5 (5 won), byes 1, 2.
-    makeGame({ player1: 3, player2: 6, round: 1, result: 'player1_won', status: 'completed' }),
-    makeGame({ player1: 4, player2: 5, round: 1, result: 'player2_won', status: 'completed' }),
-    makeGame({ player1: 1, round: 1, result: 'player1_won', status: 'bye' }),
-    makeGame({ player1: 2, round: 1, result: 'player1_won', status: 'bye' }),
-    // Round 2 published: 1v2 (1 won), 3v5 (3 won); forfeits 4, 6.
-    makeGame({ player1: 1, player2: 2, round: 2, result: 'player1_won', status: 'completed' }),
-    makeGame({ player1: 3, player2: 5, round: 2, result: 'player1_won', status: 'completed' }),
-    makeGame({ player1: 4, round: 2, result: 'player2_won', status: 'forfeit' }),
-    makeGame({ player1: 6, round: 2, result: 'player2_won', status: 'forfeit' }),
-  ]
-  return { participants, games }
-}
-
-describe('generateKnockoutPairings — bracket continuation and manual games', () => {
-  it('continues the bracket: final 1v3, forfeits for eliminated (n = 1)', () => {
-    const { participants, games } = makeBracketHistory()
-    const plan = planKnockoutRound({ participants, games, round: 3, publishedRounds: 2 })
-    expect(plan.continuation).toBe(true)
-    expect(plan.n).toBe(1) // 2 active players → 1 pair (the final)
-
-    const generated = generateKnockoutPairings({
+    const manual = makeGame({ player1: 5, player2: 6, round: 2 })
+    const games = generateKnockoutRoundGames({
       participants,
-      games,
-      round: 3,
-      publishedRounds: 2,
+      games: [manual],
+      round: 2,
+      publishedRounds: 1,
       considerSente: false,
+      bracketSize: 4,
+      knockoutRound: 1,
     })
-    expect(pairSet(generated)).toEqual(['1-3'])
-    expect(forfeitIds(generated)).toEqual([2, 4, 5, 6])
+    // Unpaired 1..4 in a 4-bracket; the manual pair is not duplicated.
+    expect(pairSet(games)).toEqual(['1-4', '2-3'])
+    expect(games.some((g) => g.id === manual.id)).toBe(false)
   })
 
-  it('keeps manual pairs and counts them into n (approximation)', () => {
-    const { participants, games: history } = makeBracketHistory()
-    // Manual pair 1v3 already placed for round 3.
-    const games = [...history, makeGame({ player1: 1, player2: 3, round: 3 })]
-    const plan = planKnockoutRound({ participants, games, round: 3, publishedRounds: 2 })
-    expect(plan.continuation).toBe(true)
-    expect(plan.n).toBe(1) // 1 kept manual pair, no byes
-
-    const generated = generateKnockoutPairings({
-      participants,
-      games,
-      round: 3,
-      publishedRounds: 2,
-      considerSente: false,
-    })
-    // The manual pair is kept (not duplicated); forfeits for 2, 4, 5, 6.
-    expect(pairSet(generated)).toEqual([])
-    expect(forfeitIds(generated)).toEqual([2, 4, 5, 6])
-  })
-
-  it('manual forfeit eliminates an active player and shifts n', () => {
-    const { participants, games: history } = makeBracketHistory()
-    // Manual forfeit for 1 (active) in round 3 → bracket continuation
-    // impossible → knockout round 1 re-seed for {2, 3, 5} (4, 6 already
-    // eliminated). Points: 3 → 2, 2 → 1, 5 → 0. Pad 4: bye to seed 1 (3),
-    // pair 2v5.
+  it('throws when fewer than half the bracket slots are filled', () => {
+    const participants = makeParticipants([2400, 2300, 2200, 2100, 2000, 1900])
     const games = [
-      ...history,
-      makeGame({ player1: 1, round: 3, result: 'player2_won', status: 'forfeit' }),
-    ]
-    const plan = planKnockoutRound({ participants, games, round: 3, publishedRounds: 2 })
-    expect(plan.continuation).toBe(false)
-    expect(plan.n).toBe(2)
-
-    const generated = generateKnockoutPairings({
-      participants,
-      games,
-      round: 3,
-      publishedRounds: 2,
-      considerSente: false,
-    })
-    expect(pairSet(generated)).toEqual(['2-5'])
-    expect(byeIds(generated)).toEqual([3])
-  })
-
-  it('throws PairingError when a participant is placed twice', () => {
-    const { participants, games: history } = makeBracketHistory()
-    const games = [
-      ...history,
-      makeGame({ player1: 1, round: 3, result: 'player1_won', status: 'bye' }),
-      makeGame({ player1: 1, player2: 3, round: 3 }),
+      makeGame({ player1: 5, player2: 6, round: 1 }),
+      makeGame({ player1: 4, round: 1, result: 'player1_won', status: 'bye' }),
     ]
     expect(() =>
-      planKnockoutRound({ participants, games, round: 3, publishedRounds: 2 }),
-    ).toThrow(PairingError)
+      generateKnockoutRoundGames({
+        participants,
+        games,
+        round: 1,
+        publishedRounds: 0,
+        considerSente: false,
+        bracketSize: 8,
+        knockoutRound: 1,
+      }),
+    ).toThrow(PairingError) // 3 unpaired < 8/2
+  })
+
+  it('throws when more unpaired players than bracket slots', () => {
+    const participants = makeParticipants([2400, 2300, 2200, 2100, 2000, 1900])
+    expect(() =>
+      generateKnockoutRoundGames({
+        participants,
+        games: [],
+        round: 1,
+        publishedRounds: 0,
+        considerSente: false,
+        bracketSize: 4,
+        knockoutRound: 1,
+      }),
+    ).toThrow(PairingError) // 6 unpaired > 4
+  })
+
+  it('throws on an invalid bracket size or knockout round', () => {
+    const participants = makeParticipants([2400, 2300, 2200, 2100])
+    const call = (bracketSize: number, knockoutRound: number) => () =>
+      generateKnockoutRoundGames({
+        participants,
+        games: [],
+        round: 1,
+        publishedRounds: 0,
+        considerSente: false,
+        bracketSize,
+        knockoutRound,
+      })
+    expect(call(6, 1)).toThrow(PairingError)
+    expect(call(4, 0)).toThrow(PairingError)
+    expect(call(4, 2)).toThrow(PairingError)
   })
 })
 
-describe('bracket starting after manual eliminations', () => {
-  // tournament2 scenario: 6 players, two Swiss rounds, then the knockout
-  // button forms round 3 (1/2 финала) from the 4 active players — the two
-  // manually eliminated players (3, 4) sit out via lone forfeit games.
-  function makeEliminationHistory(): { participants: Participant[]; games: Game[] } {
-    const participants = makeParticipants([2472, 1865, 2007, 1999, 1618, 2258])
+describe('generateKnockoutRoundGames — bracket continuation', () => {
+  // 6 players, knockout round 1 (round 1 of the tournament) formed in an
+  // 8-bracket: byes 1, 2; pairs 3v6, 4v5. Losers (5, 6) have no forfeit games
+  // — they simply sit out.
+  function makeBracketHistory(): { participants: Participant[]; games: Game[] } {
+    const participants = makeParticipants([2400, 2300, 2200, 2100, 2000, 1900])
     const games: Game[] = [
-      // Round 1 (Swiss): 1 beat 3, 5 beat 6, 2 beat 4.
-      makeGame({ player1: 1, player2: 3, round: 1, result: 'player1_won', status: 'completed' }),
-      makeGame({ player1: 5, player2: 6, round: 1, result: 'player1_won', status: 'completed' }),
-      makeGame({ player1: 4, player2: 2, round: 1, result: 'player2_won', status: 'completed' }),
-      // Round 2 (Swiss): byes for the top seeds 1 and 2; 5 beat 4, 6 beat 3.
-      makeGame({ player1: 1, round: 2, result: 'player1_won', status: 'bye' }),
-      makeGame({ player1: 2, round: 2, result: 'player1_won', status: 'bye' }),
-      makeGame({ player1: 5, player2: 4, round: 2, result: 'player1_won', status: 'completed' }),
-      makeGame({ player1: 6, player2: 3, round: 2, result: 'player1_won', status: 'completed' }),
-      // Round 3: knockout round 1 for the active 4 (1, 2, 5, 6) + forfeits
-      // for the eliminated 4 and 3.
-      makeGame({ player1: 1, player2: 6, round: 3, result: 'player1_won', status: 'completed' }),
-      makeGame({ player1: 2, player2: 5, round: 3, result: 'player2_won', status: 'completed' }),
-      makeGame({ player1: 4, round: 3, result: 'player2_won', status: 'forfeit' }),
-      makeGame({ player1: 3, round: 3, result: 'player2_won', status: 'forfeit' }),
+      makeGame({ player1: 1, round: 1, result: 'player1_won', status: 'bye' }),
+      makeGame({ player1: 2, round: 1, result: 'player1_won', status: 'bye' }),
+      makeGame({ player1: 3, player2: 6, round: 1, ...finished }),
+      makeGame({ player1: 4, player2: 5, round: 1, ...finished }),
     ]
     return { participants, games }
   }
 
-  it('recognizes the bracket starting at the knockout round 1 (round 3)', () => {
-    const { participants, games } = makeEliminationHistory()
-    const bracket = analyzeKnockoutBracket(participants, games, 3)
-    expect(bracket).not.toBeNull()
-    expect(bracket!.startRound).toBe(3)
-    expect(bracket!.rounds[0]).toEqual([
-      { a: 1, b: 6, winner: 1 },
-      { a: 2, b: 5, winner: 5 },
-    ])
-  })
-
-  it('plans the final (n = 1) for the next round, keeping the carried forfeits', () => {
-    const { participants, games } = makeEliminationHistory()
-    const gamesWithCarried = [
-      ...games,
-      makeGame({ player1: 4, round: 4, result: 'player2_won', status: 'forfeit' }),
-      makeGame({ player1: 3, round: 4, result: 'player2_won', status: 'forfeit' }),
-    ]
-    const plan = planKnockoutRound({
+  it('continues the bracket without requiring forfeit games for eliminated players', () => {
+    const { participants, games } = makeBracketHistory()
+    const formed = generateKnockoutRoundGames({
       participants,
-      games: gamesWithCarried,
-      round: 4,
-      publishedRounds: 3,
+      games,
+      round: 2,
+      publishedRounds: 1,
+      considerSente: false,
+      bracketSize: 8,
+      knockoutRound: 2,
     })
-    expect(plan.continuation).toBe(true)
-    expect(plan.n).toBe(1)
-    expect(plan.ordered.map((p) => p.id)).toEqual([1, 5])
-    expect(plan.keptGames.map((g) => g.player1)).toEqual(expect.arrayContaining([3, 4]))
+    // Winners of adjacent bracket slots: (1, 2) and (3, 4); losers 5, 6 get
+    // no games.
+    expect(pairSet(formed)).toEqual(['1-2', '3-4'])
+    expect(byeIds(formed)).toEqual([])
+    expect(formed.every((g) => g.status !== 'forfeit')).toBe(true)
   })
 
-  it('generates exactly one final pair without duplicating the forfeits', () => {
-    const { participants, games } = makeEliminationHistory()
-    const gamesWithCarried = [
-      ...games,
-      makeGame({ player1: 4, round: 4, result: 'player2_won', status: 'forfeit' }),
-      makeGame({ player1: 3, round: 4, result: 'player2_won', status: 'forfeit' }),
-    ]
-    const formed = generateKnockoutPairings({
+  it('keeps manual lone games (e.g. a recorded forfeit) of the round', () => {
+    const { participants, games } = makeBracketHistory()
+    const manualForfeit = makeGame({ player1: 6, round: 2, result: 'player2_won', status: 'forfeit' })
+    const formed = generateKnockoutRoundGames({
       participants,
-      games: gamesWithCarried,
+      games: [...games, manualForfeit],
+      round: 2,
+      publishedRounds: 1,
+      considerSente: false,
+      bracketSize: 8,
+      knockoutRound: 2,
+    })
+    expect(pairSet(formed)).toEqual(['1-2', '3-4'])
+    expect(formed.some((g) => g.id === manualForfeit.id)).toBe(false)
+  })
+
+  it('keeps a manual paired game that already forms a planned pair', () => {
+    const { participants, games } = makeBracketHistory()
+    const manualPair = makeGame({ player1: 1, player2: 2, round: 2 })
+    const formed = generateKnockoutRoundGames({
+      participants,
+      games: [...games, manualPair],
+      round: 2,
+      publishedRounds: 1,
+      considerSente: false,
+      bracketSize: 8,
+      knockoutRound: 2,
+    })
+    expect(pairSet(formed)).toEqual(['3-4'])
+  })
+
+  it('throws when a manual game conflicts with the bracket', () => {
+    const { participants, games } = makeBracketHistory()
+    const conflicting = makeGame({ player1: 1, player2: 3, round: 2 })
+    expect(() =>
+      generateKnockoutRoundGames({
+        participants,
+        games: [...games, conflicting],
+        round: 2,
+        publishedRounds: 1,
+        considerSente: false,
+        bracketSize: 8,
+        knockoutRound: 2,
+      }),
+    ).toThrow(PairingError)
+  })
+
+  it('throws when the start round is not a canonical seeding round of the size', () => {
+    const participants = makeParticipants([2400, 2300, 2200, 2100, 2000, 1900])
+    // Swiss-style round 1: three pairs, no byes — not an 8-bracket round 1.
+    const games = [
+      makeGame({ player1: 1, player2: 2, round: 1, ...finished }),
+      makeGame({ player1: 3, player2: 4, round: 1, ...finished }),
+      makeGame({ player1: 5, player2: 6, round: 1, ...finished }),
+    ]
+    expect(() =>
+      generateKnockoutRoundGames({
+        participants,
+        games,
+        round: 2,
+        publishedRounds: 1,
+        considerSente: false,
+        bracketSize: 8,
+        knockoutRound: 2,
+      }),
+    ).toThrow(PairingError)
+  })
+
+  it('throws when a knockout round result is missing', () => {
+    const { participants, games } = makeBracketHistory()
+    const unfinished = games.map((g) =>
+      g.player2 != null ? { ...g, result: null, status: 'not_started' as const } : g,
+    )
+    expect(() =>
+      generateKnockoutRoundGames({
+        participants,
+        games: unfinished,
+        round: 2,
+        publishedRounds: 1,
+        considerSente: false,
+        bracketSize: 8,
+        knockoutRound: 2,
+      }),
+    ).toThrow(PairingError)
+  })
+
+  it('throws when a later round does not follow the bracket adjacency', () => {
+    const { participants, games } = makeBracketHistory()
+    // Round 2 was played off-bracket: 1 meets 3 instead of 2.
+    const broken = [
+      ...games,
+      makeGame({ player1: 1, player2: 3, round: 2, ...finished }),
+      makeGame({ player1: 2, player2: 4, round: 2, ...finished }),
+    ]
+    expect(() =>
+      generateKnockoutRoundGames({
+        participants,
+        games: broken,
+        round: 3,
+        publishedRounds: 2,
+        considerSente: false,
+        bracketSize: 8,
+        knockoutRound: 3,
+      }),
+    ).toThrow(PairingError)
+  })
+
+  it('finds the start round from the knockout round and forms the final', () => {
+    // 6 players; round 1 is a Swiss-style round, round 2 is the 4-bracket
+    // knockout round 1 over {1, 2, 3, 5} (4 and 6 are out of the bracket).
+    const participants = makeParticipants([2400, 2300, 2200, 2100, 2000, 1900])
+    const games = [
+      makeGame({ player1: 1, player2: 2, round: 1, ...finished }),
+      makeGame({ player1: 3, player2: 4, round: 1, ...finished }),
+      makeGame({ player1: 5, player2: 6, round: 1, ...finished }),
+      // Round 2, bracket 4 over covered {1, 3, 5, 2}: seeds [1, 3, 5, 2]
+      // (points 1, 1, 1, 0) → pairs (1, 2) and (3, 5).
+      makeGame({ player1: 1, player2: 2, round: 2, ...finished }),
+      makeGame({ player1: 3, player2: 5, round: 2, ...finished }),
+    ]
+    const formed = generateKnockoutRoundGames({
+      participants,
+      games,
+      round: 3,
+      publishedRounds: 2,
+      considerSente: false,
+      bracketSize: 4,
+      knockoutRound: 2,
+    })
+    // Winners: 1 (from 1v2) and 3 (from 3v5) → the final.
+    expect(pairSet(formed)).toEqual(['1-3'])
+  })
+
+  it('forms the final ignoring consolation games between eliminated players', () => {
+    // tournament1 repro: round 1 Swiss, round 2 is the canonical round 1 of
+    // an 8-bracket (byes 3, 2; pairs (4,5), (1,6)), round 3 is the bracket's
+    // semifinals (4,1), (3,2) PLUS a consolation game (6,5) between the two
+    // players eliminated in the semifinal round... (5, 6 lost in round 2).
+    const participants = makeParticipants([2472, 1999, 2005, 1856, 2167, 2266])
+    const games: Game[] = [
+      // Round 1 (Swiss): 3 beat 1, 2 beat 5, 6... no — 4 beat 6.
+      makeGame({ player1: 1, player2: 3, round: 1, result: 'player2_won', status: 'completed' }),
+      makeGame({ player1: 2, player2: 5, round: 1, ...finished }),
+      makeGame({ player1: 4, player2: 6, round: 1, ...finished }),
+      // Round 2 = knockout round 1 of the 8-bracket: byes to the top seeds
+      // 3 and 2; pairs 4v5 and 1v6 (seeds [3, 2, 4, 1, 6, 5]).
+      makeGame({ player1: 3, round: 2, result: 'player1_won', status: 'bye' }),
+      makeGame({ player1: 2, round: 2, result: 'player1_won', status: 'bye' }),
+      makeGame({ player1: 4, player2: 5, round: 2, ...finished }),
+      makeGame({ player1: 1, player2: 6, round: 2, ...finished }),
+      // Round 3 = knockout round 2 (semifinals) + consolation (6,5).
+      makeGame({ player1: 4, player2: 1, round: 3, ...finished }),
+      makeGame({ player1: 3, player2: 2, round: 3, ...finished }),
+      makeGame({ player1: 6, player2: 5, round: 3, ...finished }),
+    ]
+    const formed = generateKnockoutRoundGames({
+      participants,
+      games,
       round: 4,
       publishedRounds: 3,
       considerSente: false,
+      bracketSize: 8,
+      knockoutRound: 3,
     })
-    expect(pairSet(formed)).toEqual(['1-5'])
-    expect(byeIds(formed)).toEqual([])
-    // Semifinal losers (2, 6) have no round-4 game yet → they get their
-    // elimination forfeit games; the pre-bracket forfeits (3, 4) are kept.
-    expect(forfeitIds(formed)).toEqual([2, 6])
+    // Semifinal winners: 3 (from 3v2) and 4 (from 4v1) → the final.
+    expect(pairSet(formed)).toEqual(['3-4'])
   })
 
-  it('rejects the bracket when a pre-bracket eliminated player plays later', () => {
-    const { participants, games } = makeEliminationHistory()
-    const gamesWithExtra = [
-      ...games,
-      // Round 4 published: player 3 (eliminated before the bracket) appears
-      // in a real pair instead of a forfeit game.
-      makeGame({ player1: 1, player2: 5, round: 4, result: 'player1_won', status: 'completed' }),
-      makeGame({ player1: 3, player2: 4, round: 4, result: 'player1_won', status: 'completed' }),
+  it('recognizes a bracket embedded in a round with unrelated games', () => {
+    // Round 1: canonical 4-bracket over {1, 2, 3, 4} (pairs 1v4, 2v3) plus an
+    // unrelated bye (5) and an unrelated pair (5, 6) of non-participants.
+    const participants = makeParticipants([2400, 2300, 2200, 2100, 2000, 1900])
+    const games: Game[] = [
+      makeGame({ player1: 1, player2: 4, round: 1, ...finished }),
+      makeGame({ player1: 2, player2: 3, round: 1, ...finished }),
+      makeGame({ player1: 5, round: 1, result: 'player1_won', status: 'bye' }),
+      makeGame({ player1: 5, player2: 6, round: 1, ...finished }),
     ]
-    expect(analyzeKnockoutBracket(participants, gamesWithExtra, 4)).toBeNull()
+    const formed = generateKnockoutRoundGames({
+      participants,
+      games,
+      round: 2,
+      publishedRounds: 1,
+      considerSente: false,
+      bracketSize: 4,
+      knockoutRound: 2,
+    })
+    // Winners 1 and 2 meet in the knockout round 2; the unrelated games of
+    // players 5 and 6 do not break the bracket.
+    expect(pairSet(formed)).toEqual(['1-2'])
   })
 })
 

@@ -1,7 +1,8 @@
-﻿import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+﻿import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import type { Participant } from '../domain/tournament.ts'
 import { PairingError, generatePairings } from '../components/tournament/pairings/pairingEngine.ts'
+import { generateKnockoutRoundGames } from '../components/tournament/pairings/knockoutEngine.ts'
 import type { Game } from '../domain/tournament.ts'
 import { PairingToolsDrawer } from '../components/tournament/PairingToolsDrawer.tsx'
 
@@ -31,6 +32,10 @@ vi.mock('../components/tournament/pairings/pairingEngine.ts', () => {
     })),
   }
 })
+
+vi.mock('../components/tournament/pairings/knockoutEngine.ts', () => ({
+  generateKnockoutRoundGames: vi.fn(),
+}))
 
 const participants: Participant[] = [1, 2, 3, 4].map((id) => ({
   id,
@@ -62,6 +67,7 @@ function renderDrawer(overrides: Partial<Parameters<typeof PairingToolsDrawer>[0
     <PairingToolsDrawer
       isOpen
       onClose={onClose}
+      tournamentId="t1"
       round={2}
       participants={participants}
       games={[]}
@@ -86,17 +92,6 @@ function participantsOf(count: number): Participant[] {
     capturedRating: { value: 2000 - i * 50, rank: null },
     startingPoints: 0,
   }))
-}
-
-function pairSet(games: Game[]): string[] {
-  return games
-    .filter((g) => g.player2 != null)
-    .map((g) => [g.player1, g.player2 as number].sort((a, b) => a - b).join('-'))
-    .sort()
-}
-
-function byeIds(games: Game[]): number[] {
-  return games.filter((g) => g.status === 'bye').map((g) => g.player1)
 }
 
 /** Complete published round 1: two games with results. */
@@ -230,62 +225,21 @@ describe('PairingToolsDrawer', () => {
     expect(updateGames).toHaveBeenCalledWith(2, [])
   })
 
-  it('shows the knockout button with the computed n and applies one round update', async () => {
-    // 6 participants, no games в†’ knockout round 1: 2 pairs + 2 byes в†’ n = 4.
+  it('falls back to the default bracket size when the persisted value is not offered', async () => {
+    window.localStorage.setItem('kisen.pairingTools.knockoutBracketSize.t1', '16')
+    vi.mocked(generateKnockoutRoundGames).mockReturnValue([])
     const { updateGames } = renderDrawer({ participants: participantsOf(6) })
-    const button = screen.getByRole('button', {
-      name: 'tournament.edit.pairingTools.generateKnockout {"n":4}',
-    })
-    expect(button).toBeEnabled()
-    fireEvent.click(button)
+    fireEvent.click(
+      screen.getByRole('button', { name: 'tournament.edit.pairingTools.generateKnockoutPairs' }),
+    )
     await waitFor(() => expect(updateGames).toHaveBeenCalledTimes(1))
-    const applied = updateGames.mock.calls[0][1] as Game[]
-    expect(pairSet(applied)).toEqual(['3-6', '4-5'])
-    expect(byeIds(applied)).toEqual([1, 2])
+    expect(generateKnockoutRoundGames).toHaveBeenCalledWith(
+      expect.objectContaining({ bracketSize: 8 }),
+    )
+    window.localStorage.removeItem('kisen.pairingTools.knockoutBracketSize.t1')
   })
 
-  it('keeps the knockout label unchanged once the round has been drawn', () => {
-    // 6 participants; round 2 already fully drawn (2 pairs + 2 byes): the plan
-    // for the label ignores the round's own games, so n stays 4.
-    const drawn: Game[] = [
-      { id: 'k1', player1: 3, player2: 6, sente: 'unknown', handicap: null, result: 'player1_won', status: 'completed', round: 2 },
-      { id: 'k2', player1: 4, player2: 5, sente: 'unknown', handicap: null, result: 'player2_won', status: 'completed', round: 2 },
-      { id: 'k3', player1: 1, player2: null, sente: 'unknown', handicap: null, result: 'player1_won', status: 'bye', round: 2 },
-      { id: 'k4', player1: 2, player2: null, sente: 'unknown', handicap: null, result: 'player1_won', status: 'bye', round: 2 },
-    ]
-    const { unmount: unmountEmpty } = renderDrawer({
-      participants: participantsOf(6),
-      games: [],
-      round: 2,
-      publishedRounds: 0,
-    })
-    const nameBefore = screen.getByRole('button', {
-      name: 'tournament.edit.pairingTools.generateKnockout {"n":4}',
-    }).getAttribute('name')
-    unmountEmpty()
-
-    renderDrawer({
-      participants: participantsOf(6),
-      games: drawn,
-      round: 2,
-      publishedRounds: 0,
-    })
-    const nameAfter = screen.getByRole('button', {
-      name: 'tournament.edit.pairingTools.generateKnockout {"n":4}',
-    }).getAttribute('name')
-    expect(nameAfter).toBe(nameBefore)
-  })
-
-  it('uses the final label when n = 1', () => {
-    renderDrawer({ participants: participantsOf(2) })
-    expect(
-      screen.getByRole('button', {
-        name: 'tournament.edit.pairingTools.generateKnockoutFinal',
-      }),
-    ).toBeInTheDocument()
-  })
-
-  it('blocks the knockout button together with the Swiss buttons while an earlier round is incomplete', () => {
+  it('blocks the knockout card controls together with the Swiss actions while an earlier round is incomplete', () => {
     renderDrawer({
       participants: participantsOf(6),
       games: incompleteRoundGames,
@@ -293,17 +247,116 @@ describe('PairingToolsDrawer', () => {
       canUndo: true,
       canRedo: true,
     })
+    expect(screen.getByTestId('knockout-bracket-size')).toBeDisabled()
+    expect(screen.getByTestId('knockout-round')).toBeDisabled()
+    expect(
+      screen.getByRole('button', { name: 'tournament.edit.pairingTools.generateKnockoutPairs' }),
+    ).toBeDisabled()
     expect(
       screen.getByRole('button', { name: 'tournament.edit.pairingTools.generate {"round":2}' }),
-    ).toBeDisabled()
-    expect(
-      screen.getByRole('button', { name: 'tournament.edit.pairingTools.clear {"round":2}' }),
-    ).toBeDisabled()
-    expect(
-      screen.getByRole('button', { name: 'tournament.edit.pairingTools.generateKnockout {"n":4}' }),
     ).toBeDisabled()
     expect(screen.getByRole('button', { name: 'tournament.edit.pairingTools.undo' })).toBeEnabled()
     expect(screen.getByRole('button', { name: 'tournament.edit.pairingTools.redo' })).toBeEnabled()
   })
+
+  it('shows the failure alert when the knockout generation is impossible', async () => {
+    vi.mocked(generateKnockoutRoundGames).mockImplementation(() => {
+      throw new PairingError('No knockout bracket of the chosen size starts at the chosen round')
+    })
+    renderDrawer({ participants: participantsOf(6) })
+    fireEvent.click(
+      screen.getByRole('button', { name: 'tournament.edit.pairingTools.generateKnockoutPairs' }),
+    )
+    await waitFor(() =>
+      expect(
+        screen.getByText('tournament.edit.pairingTools.pairingFailedTitle'),
+      ).toBeInTheDocument(),
+    )
+  })
 })
 
+  it('shows the knockout card and generates via a single round update', async () => {
+    // 6 participants -> bracket size options 4..8 (default 8); knockout round
+    // options 1..round(2) (default 2).
+    const newGames = [makeGame(3)]
+    vi.mocked(generateKnockoutRoundGames).mockReturnValue(newGames)
+    const { updateGames } = renderDrawer({ participants: participantsOf(6) })
+    const sizeSelect = screen.getByTestId('knockout-bracket-size')
+    expect(sizeSelect).toBeEnabled()
+    expect(within(sizeSelect).getByRole('option', { name: '4' })).toBeInTheDocument()
+    expect(within(sizeSelect).getByRole('option', { name: '8' })).toBeInTheDocument()
+    const roundSelect = screen.getByTestId('knockout-round')
+    expect(within(roundSelect).getByRole('option', { name: '1' })).toBeInTheDocument()
+    expect(within(roundSelect).getByRole('option', { name: '2' })).toBeInTheDocument()
+    const button = screen.getByRole('button', {
+      name: 'tournament.edit.pairingTools.generateKnockoutPairs',
+    })
+    expect(button).toBeEnabled()
+    fireEvent.click(button)
+    await waitFor(() => expect(updateGames).toHaveBeenCalledTimes(1))
+    expect(updateGames).toHaveBeenCalledWith(2, [...newGames])
+    expect(generateKnockoutRoundGames).toHaveBeenCalledWith(
+      expect.objectContaining({
+        round: 2,
+        publishedRounds: 0,
+        bracketSize: 8,
+        knockoutRound: 2,
+        considerSente: false,
+      }),
+    )
+  })
+
+  it('passes the chosen bracket size and knockout round to the engine', async () => {
+    vi.mocked(generateKnockoutRoundGames).mockReturnValue([])
+    const { updateGames } = renderDrawer({ participants: participantsOf(6) })
+    fireEvent.change(screen.getByTestId('knockout-bracket-size'), { target: { value: '4' } })
+    fireEvent.change(screen.getByTestId('knockout-round'), { target: { value: '1' } })
+    fireEvent.click(
+      screen.getByRole('button', { name: 'tournament.edit.pairingTools.generateKnockoutPairs' }),
+    )
+    await waitFor(() => expect(updateGames).toHaveBeenCalledTimes(1))
+    expect(generateKnockoutRoundGames).toHaveBeenCalledWith(
+      expect.objectContaining({ bracketSize: 4, knockoutRound: 1 }),
+    )
+  })
+
+  it('persists the bracket size locally per tournament', async () => {
+    const key = 'kisen.pairingTools.knockoutBracketSize.t1'
+    window.localStorage.removeItem(key)
+    vi.mocked(generateKnockoutRoundGames).mockReturnValue([])
+    const first = renderDrawer({ participants: participantsOf(6) })
+    fireEvent.change(screen.getByTestId('knockout-bracket-size'), { target: { value: '4' } })
+    fireEvent.click(
+      screen.getByRole('button', { name: 'tournament.edit.pairingTools.generateKnockoutPairs' }),
+    )
+    await waitFor(() =>
+      expect(generateKnockoutRoundGames).toHaveBeenLastCalledWith(
+        expect.objectContaining({ bracketSize: 4 }),
+      ),
+    )
+    first.unmount()
+    // Reopen: the choice survives.
+    const second = renderDrawer({ participants: participantsOf(6) })
+    fireEvent.click(
+      screen.getByRole('button', { name: 'tournament.edit.pairingTools.generateKnockoutPairs' }),
+    )
+    await waitFor(() =>
+      expect(generateKnockoutRoundGames).toHaveBeenLastCalledWith(
+        expect.objectContaining({ bracketSize: 4 }),
+      ),
+    )
+    second.unmount()
+    // A different tournament keeps its own (default) value.
+    const third = renderDrawer({ participants: participantsOf(6), tournamentId: 't2' })
+    fireEvent.click(
+      screen.getByRole('button', { name: 'tournament.edit.pairingTools.generateKnockoutPairs' }),
+    )
+    await waitFor(() =>
+      expect(generateKnockoutRoundGames).toHaveBeenLastCalledWith(
+        expect.objectContaining({ bracketSize: 8 }),
+      ),
+    )
+    third.unmount()
+    window.localStorage.removeItem(key)
+    window.localStorage.removeItem('kisen.pairingTools.knockoutBracketSize.t2')
+  })

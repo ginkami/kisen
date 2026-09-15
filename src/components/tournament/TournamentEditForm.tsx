@@ -1500,6 +1500,7 @@ export function TournamentEditForm({
         <PairingToolsDrawer
           isOpen
           onClose={() => setPairingToolsOpen(false)}
+          tournamentId={tournamentId ?? 'new'}
           round={formState.publishedRounds + 1}
           participants={rowsToParticipants(formState.participants)}
           games={formState.games}
