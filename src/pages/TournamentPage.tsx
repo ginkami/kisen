@@ -2,8 +2,9 @@ import { useState, useEffect, useMemo } from 'react'
 import { useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
-import { BsJournalText, BsClock, Bs123, BsGrid3X2 } from 'react-icons/bs'
-import { HiOutlineUserGroup } from 'react-icons/hi2'
+import { BsJournalText, Bs123, BsGrid3X2 } from 'react-icons/bs'
+import { RiCalendarScheduleFill } from "react-icons/ri";
+import { FaUsers } from "react-icons/fa6";
 import { tournamentService } from '../services/tournamentService.ts'
 import { eventService } from '../services/eventService.ts'
 import { type SupportedLocale } from '../domain/locale.ts'
@@ -105,8 +106,8 @@ export function TournamentPage({ tournamentId }: TournamentPageProps = {}) {
 
   const tabs: { id: TabId; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
     { id: 'description', label: t('tournament.view.tabs.description'), icon: BsJournalText },
-    { id: 'schedule', label: t('tournament.view.tabs.schedule'), icon: BsClock },
-    { id: 'players', label: t('tournament.view.tabs.players'), icon: HiOutlineUserGroup },
+    { id: 'schedule', label: t('tournament.view.tabs.schedule'), icon: RiCalendarScheduleFill },
+    { id: 'players', label: t('tournament.view.tabs.players'), icon: FaUsers },
     { id: 'results', label: t('tournament.view.tabs.results'), icon: Bs123 },
     { id: 'crosstable', label: t('tournament.view.tabs.crosstable'), icon: BsGrid3X2 },
   ]

@@ -7,7 +7,7 @@ import {
   BsPencilSquare,
   BsPlayFill,
 } from 'react-icons/bs'
-import { HiOutlineUserGroup } from 'react-icons/hi2'
+import { FaUsers } from "react-icons/fa6";
 import { getCountryName } from '../../utils/countries.ts'
 import {
   formatDayRanges,
@@ -106,7 +106,7 @@ export function TournamentCard({
             {tcStr}
           </span>
           <span className="flex items-center gap-1">
-            <HiOutlineUserGroup className="h-4 w-4 shrink-0 opacity-60" />
+            <FaUsers className="h-4 w-4 shrink-0 opacity-60" />
             {t('tournament.view.playersCount', {
               count: tournament.participants.length,
             })}

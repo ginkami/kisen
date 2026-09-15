@@ -57,7 +57,7 @@ When the tournament has a `parentEvent`, the page SHALL render the event's local
 
 ### Requirement: Tournament meta lines
 
-The page SHALL render, directly under the tournament title, one line per characteristic, each with a leading icon: (1) `BsCalendar3` + the tournament dates in compact range format; (2) country flag + full country name in the current locale + localized settlement; (3) `BsGeoAlt` + localized venue — rendered only when the venue is non-empty; (4) `HiOutlineUserGroup` + number of participants; (5) `BsHourglassSplit` + short time control; (6) `BsPlayFill` + round count; (7) `PiGavelLight` + arbiter name as «familyName, givenName». The dates SHALL be computed from the unique calendar days of `schedule.rounds[].scheduledAt` and `schedule.events[].scheduledAt` (fallback: the day of `updatedAt`) and formatted as: single day «10 августа 2026»; consecutive days joined by an en dash «10–11 августа 2026»; days with gaps listed comma-separated «10, 12, 25 августа 2026», with a month name repeated whenever the month changes «10, 12 августа, 3 сентября 2026», including cross-month ranges «25 августа – 5 сентября 2026»; the year SHALL appear once at the end.
+The page SHALL render, directly under the tournament title, one line per characteristic, each with a leading icon: (1) `BsCalendar3` + the tournament dates in compact range format; (2) country flag + full country name in the current locale + localized settlement; (3) `BsGeoAlt` + localized venue — rendered only when the venue is non-empty; (4) `FaUsers` + number of participants; (5) `BsHourglassSplit` + short time control; (6) `BsPlayFill` + round count; (7) `PiGavelLight` + arbiter name as «familyName, givenName». The dates SHALL be computed from the unique calendar days of `schedule.rounds[].scheduledAt` and `schedule.events[].scheduledAt` (fallback: the day of `updatedAt`) and formatted as: single day «10 августа 2026»; consecutive days joined by an en dash «10–11 августа 2026»; days with gaps listed comma-separated «10, 12, 25 августа 2026», with a month name repeated whenever the month changes «10, 12 августа, 3 сентября 2026», including cross-month ranges «25 августа – 5 сентября 2026»; the year SHALL appear once at the end.
 
 #### Scenario: Single-day tournament
 
@@ -101,7 +101,7 @@ The page SHALL render, directly under the tournament title, one line per charact
 
 ### Requirement: Content tab navigation
 
-The page SHALL render a `tabs-box` tablist with five tabs in this order: «Описание» (`BsJournalText`), «Расписание» (`BsClock`), «Игроки» (`HiOutlineUserGroup`), «Результаты» (`Bs123`), «Таблица» (`BsGrid3X2`). Clicking a tab SHALL switch the visible content section. Only one tab's content SHALL be visible at a time. Tab labels SHALL be localized.
+The page SHALL render a `tabs-box` tablist with five tabs in this order: «Описание» (`BsJournalText`), «Расписание» (`RiCalendarScheduleFill`), «Игроки» (`FaUsers`), «Результаты» (`Bs123`), «Таблица» (`BsGrid3X2`). Clicking a tab SHALL switch the visible content section. Only one tab's content SHALL be visible at a time. Tab labels SHALL be localized.
 
 #### Scenario: Switching tabs
 

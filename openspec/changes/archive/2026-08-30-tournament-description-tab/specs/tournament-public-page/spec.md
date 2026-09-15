@@ -2,7 +2,7 @@
 
 ### Requirement: Content tab navigation
 
-The page SHALL render a `tabs-box` tablist with five tabs in this order: «Описание» (`BsJournalText`), «Расписание» (`BsClock`), «Игроки» (`HiOutlineUserGroup`), «Результаты» (`Bs123`), «Таблица» (`BsGrid3X2`). Clicking a tab SHALL switch the visible content section. Only one tab's content SHALL be visible at a time. Tab labels SHALL be localized.
+The page SHALL render a `tabs-box` tablist with five tabs in this order: «Описание» (`BsJournalText`), «Расписание» (`RiCalendarScheduleFill`), «Игроки» (`FaUsers`), «Результаты» (`Bs123`), «Таблица» (`BsGrid3X2`). Clicking a tab SHALL switch the visible content section. Only one tab's content SHALL be visible at a time. Tab labels SHALL be localized.
 
 #### Scenario: Switching tabs
 

@@ -3,9 +3,10 @@ import { Navigate, useOutletContext } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { ConfirmModal } from '../ConfirmModal.tsx'
 import { useTranslation } from 'react-i18next'
-import { BsSliders2Vertical, BsClock, BsJournalText, BsPlus, BsX, Bs123, BsGrid3X2, BsInfoCircleFill } from 'react-icons/bs'
+import { BsSliders2Vertical, BsJournalText, BsPlus, BsX, Bs123, BsGrid3X2, BsInfoCircleFill } from 'react-icons/bs'
 import { FaPeopleArrows } from "react-icons/fa";
-import { HiOutlineUserGroup } from "react-icons/hi2";
+import { FaUsers } from "react-icons/fa6";
+import { RiCalendarScheduleFill } from "react-icons/ri";
 import { useAuth } from '../../context/AuthContext.tsx'
 import { sanitizeTextInput } from '../../utils/sanitize.ts'
 import { useTournamentForm, validateTournamentPublishForm, rowsToParticipants } from '../../hooks/useTournamentForm.ts'
@@ -1114,12 +1115,12 @@ export function TournamentEditForm({
     {
       id: 'schedule',
       label: t('tournament.edit.tabs.schedule'),
-      icon: BsClock,
+      icon: RiCalendarScheduleFill,
     },
     {
       id: 'participants',
       label: t('tournament.edit.tabs.players'),
-      icon: HiOutlineUserGroup,
+      icon: FaUsers,
     },
     {
       id: 'pairings',

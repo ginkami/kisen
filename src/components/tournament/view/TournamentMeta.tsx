@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import * as Flags from 'country-flag-icons/react/3x2'
 import { BsCalendar3, BsGeoAlt, BsHourglassSplit, BsPlayFill } from 'react-icons/bs'
-import { HiOutlineUserGroup } from 'react-icons/hi2'
+import { FaUsers } from "react-icons/fa6";
 import { PiGavelLight } from 'react-icons/pi'
 import { getCountryName } from '../../../utils/countries.ts'
 import {
@@ -81,7 +81,7 @@ export function TournamentMeta({ tournament }: TournamentMetaProps) {
       <div className="flex items-center gap-1 sm:gap-2">
         <BsHourglassSplit className="h-4 w-4 opacity-60 shrink-0" />
         <span>{tcStr}</span>
-        <HiOutlineUserGroup className="h-4 w-4 opacity-60 shrink-0" />
+        <FaUsers className="h-4 w-4 opacity-60 shrink-0" />
         <span>{t('tournament.view.playersCount', { count: participantCount })}</span>
         <BsPlayFill className="h-4 w-4 opacity-60 shrink-0" />
         <span>{t('tournament.view.roundsCount', { count: roundCount })}</span>
