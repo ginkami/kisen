@@ -248,3 +248,93 @@ describe('generateKnockoutPairings — bracket continuation and manual games', (
   })
 })
 
+describe('bracket starting after manual eliminations', () => {
+  // tournament2 scenario: 6 players, two Swiss rounds, then the knockout
+  // button forms round 3 (1/2 финала) from the 4 active players — the two
+  // manually eliminated players (3, 4) sit out via lone forfeit games.
+  function makeEliminationHistory(): { participants: Participant[]; games: Game[] } {
+    const participants = makeParticipants([2472, 1865, 2007, 1999, 1618, 2258])
+    const games: Game[] = [
+      // Round 1 (Swiss): 1 beat 3, 5 beat 6, 2 beat 4.
+      makeGame({ player1: 1, player2: 3, round: 1, result: 'player1_won', status: 'completed' }),
+      makeGame({ player1: 5, player2: 6, round: 1, result: 'player1_won', status: 'completed' }),
+      makeGame({ player1: 4, player2: 2, round: 1, result: 'player2_won', status: 'completed' }),
+      // Round 2 (Swiss): byes for the top seeds 1 and 2; 5 beat 4, 6 beat 3.
+      makeGame({ player1: 1, round: 2, result: 'player1_won', status: 'bye' }),
+      makeGame({ player1: 2, round: 2, result: 'player1_won', status: 'bye' }),
+      makeGame({ player1: 5, player2: 4, round: 2, result: 'player1_won', status: 'completed' }),
+      makeGame({ player1: 6, player2: 3, round: 2, result: 'player1_won', status: 'completed' }),
+      // Round 3: knockout round 1 for the active 4 (1, 2, 5, 6) + forfeits
+      // for the eliminated 4 and 3.
+      makeGame({ player1: 1, player2: 6, round: 3, result: 'player1_won', status: 'completed' }),
+      makeGame({ player1: 2, player2: 5, round: 3, result: 'player2_won', status: 'completed' }),
+      makeGame({ player1: 4, round: 3, result: 'player2_won', status: 'forfeit' }),
+      makeGame({ player1: 3, round: 3, result: 'player2_won', status: 'forfeit' }),
+    ]
+    return { participants, games }
+  }
+
+  it('recognizes the bracket starting at the knockout round 1 (round 3)', () => {
+    const { participants, games } = makeEliminationHistory()
+    const bracket = analyzeKnockoutBracket(participants, games, 3)
+    expect(bracket).not.toBeNull()
+    expect(bracket!.startRound).toBe(3)
+    expect(bracket!.rounds[0]).toEqual([
+      { a: 1, b: 6, winner: 1 },
+      { a: 2, b: 5, winner: 5 },
+    ])
+  })
+
+  it('plans the final (n = 1) for the next round, keeping the carried forfeits', () => {
+    const { participants, games } = makeEliminationHistory()
+    const gamesWithCarried = [
+      ...games,
+      makeGame({ player1: 4, round: 4, result: 'player2_won', status: 'forfeit' }),
+      makeGame({ player1: 3, round: 4, result: 'player2_won', status: 'forfeit' }),
+    ]
+    const plan = planKnockoutRound({
+      participants,
+      games: gamesWithCarried,
+      round: 4,
+      publishedRounds: 3,
+    })
+    expect(plan.continuation).toBe(true)
+    expect(plan.n).toBe(1)
+    expect(plan.ordered.map((p) => p.id)).toEqual([1, 5])
+    expect(plan.keptGames.map((g) => g.player1)).toEqual(expect.arrayContaining([3, 4]))
+  })
+
+  it('generates exactly one final pair without duplicating the forfeits', () => {
+    const { participants, games } = makeEliminationHistory()
+    const gamesWithCarried = [
+      ...games,
+      makeGame({ player1: 4, round: 4, result: 'player2_won', status: 'forfeit' }),
+      makeGame({ player1: 3, round: 4, result: 'player2_won', status: 'forfeit' }),
+    ]
+    const formed = generateKnockoutPairings({
+      participants,
+      games: gamesWithCarried,
+      round: 4,
+      publishedRounds: 3,
+      considerSente: false,
+    })
+    expect(pairSet(formed)).toEqual(['1-5'])
+    expect(byeIds(formed)).toEqual([])
+    // Semifinal losers (2, 6) have no round-4 game yet → they get their
+    // elimination forfeit games; the pre-bracket forfeits (3, 4) are kept.
+    expect(forfeitIds(formed)).toEqual([2, 6])
+  })
+
+  it('rejects the bracket when a pre-bracket eliminated player plays later', () => {
+    const { participants, games } = makeEliminationHistory()
+    const gamesWithExtra = [
+      ...games,
+      // Round 4 published: player 3 (eliminated before the bracket) appears
+      // in a real pair instead of a forfeit game.
+      makeGame({ player1: 1, player2: 5, round: 4, result: 'player1_won', status: 'completed' }),
+      makeGame({ player1: 3, player2: 4, round: 4, result: 'player1_won', status: 'completed' }),
+    ]
+    expect(analyzeKnockoutBracket(participants, gamesWithExtra, 4)).toBeNull()
+  })
+})
+

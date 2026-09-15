@@ -64,30 +64,56 @@ function sortSeeded(players: SeededPlayer[]): SeededPlayer[] {
 
 /**
  * Verifies that the seeded list forms the canonical knockout round `s` in
- * `games` (strict seeding, byes to top seeds, nothing else) and returns the
- * depth-0 bracket matches, or null when the round does not match.
+ * `games` (strict seeding, byes to top seeds) and returns the depth-0 bracket
+ * matches, or null when the round does not match. Lone forfeit games of the
+ * round mark players excluded from the bracket before it started (manual
+ * eliminations or carried forfeits): they are removed from the seeding, which
+ * then covers the remaining participants canonically.
  */
+interface StartRoundMatch {
+  matches: BracketMatch[]
+  /** Players excluded from the bracket via lone forfeit games in round `s`. */
+  forfeited: number[]
+}
+
 function matchStartRound(
   participants: Participant[],
   games: Game[],
   s: number,
   startingPointsById: Map<number, number>,
   ratingById: Map<number, number>,
-): BracketMatch[] | null {
+): StartRoundMatch | null {
   const roundGames = games.filter((g) => g.round === s)
-  if (roundGames.some((g) => g.status === 'forfeit')) return null // byes only, no forfeits in the start round
 
-  const n = participants.length
-  const pad = nextPowerOfTwo(n)
-  if (pad < 2) return null
+  // Split off lone forfeit games of players eliminated before the bracket.
+  const forfeited = new Set<number>()
+  const pairingGames: Game[] = []
+  for (const g of roundGames) {
+    if (g.status === 'forfeit') {
+      if (g.player2 != null || g.result !== 'player2_won') return null
+      if (forfeited.has(g.player1)) return null // duplicate forfeit
+      forfeited.add(g.player1)
+    } else {
+      if (forfeited.has(g.player1) || (g.player2 != null && forfeited.has(g.player2))) {
+        return null // excluded player in a pairing or bye game
+      }
+      pairingGames.push(g)
+    }
+  }
 
   const seeded = sortSeeded(
-    participants.map((p) => ({
-      participant: p,
-      points: calculateParticipantPoints(games, p.id, s - 1, startingPointsById.get(p.id) ?? 0),
-      rating: ratingById.get(p.id) ?? 0,
-    })),
+    participants
+      .filter((p) => !forfeited.has(p.id))
+      .map((p) => ({
+        participant: p,
+        points: calculateParticipantPoints(games, p.id, s - 1, startingPointsById.get(p.id) ?? 0),
+        rating: ratingById.get(p.id) ?? 0,
+      })),
   )
+
+  const n = seeded.length
+  const pad = nextPowerOfTwo(n)
+  if (pad < 2) return null
 
   // Expected: (pad − n) byes for the top seeds, then the real pairs
   // (sorted[i] vs sorted[pad − 1 − i]).
@@ -110,7 +136,7 @@ function matchStartRound(
   // Verify paired games and byes of the round.
   const actualPairs = new Map<string, Game>()
   const actualByes = new Set<number>()
-  for (const g of roundGames) {
+  for (const g of pairingGames) {
     if (g.player2 != null) {
       const key = g.player1 < g.player2 ? `${g.player1}-${g.player2}` : `${g.player2}-${g.player1}`
       if (actualPairs.has(key)) return null // duplicate pair
@@ -142,7 +168,7 @@ function matchStartRound(
       matches.push({ a: a.id, b: b.id, winner: g.result === 'player1_won' ? a.id : b.id })
     }
   }
-  return matches
+  return { matches, forfeited: [...forfeited] }
 }
 
 
@@ -164,9 +190,11 @@ export function analyzeKnockoutBracket(
     const first = matchStartRound(participants, games, start, startingPointsById, ratingById)
     if (!first) continue
 
-    const rounds: BracketMatch[][] = [first]
+    const rounds: BracketMatch[][] = [first.matches]
     let valid = true
-    const eliminatedAll = new Set<number>()
+    // Players eliminated before the bracket (lone forfeit games in the start
+    // round) must keep sitting out — one forfeit game per later round.
+    const eliminatedAll = new Set<number>(first.forfeited)
     for (let r = start + 1; r <= publishedRounds; r++) {
       const prev = rounds[rounds.length - 1]
       if (prev.length % 2 !== 0) {

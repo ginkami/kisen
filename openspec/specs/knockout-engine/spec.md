@@ -6,7 +6,7 @@ Pure single-elimination (knockout) engine: detects a strict knockout bracket in 
 
 ### Requirement: Strict bracket analysis
 
-The knockout engine (`analyzeKnockoutBracket`) SHALL determine whether the published rounds form a strict single-elimination bracket covering ALL participants: there exists a start round `s` such that (1) round `s` covers every participant with paired games and byes only, (2) byes occur only in round `s`, (3) the paired games of round `s` match the canonical strict seeding (1 vs last, 2 vs second-last, …) of all participants sorted by points before round `s` (then rating), padded to the next power of two with bottom virtual seeds, and (4) every later round `r` pairs exactly the winners of round `r−1` per bracket adjacency (winners of adjacent bracket slots) and gives every eliminated player exactly one lone forfeit game. On success the engine SHALL return the bracket for continuation; otherwise it SHALL report that no bracket exists.
+The knockout engine (`analyzeKnockoutBracket`) SHALL determine whether the published rounds form a strict single-elimination bracket covering all participants that are not excluded before the bracket: there exists a start round `s` such that (1) round `s` covers every participant with paired games, byes, and lone forfeit games only, where a lone forfeit game (`status: 'forfeit'`, `result: 'player2_won'`) marks a participant excluded from the bracket before it started (manual elimination or carried forfeit), (2) byes occur only in round `s`, (3) the paired games of round `s` match the canonical strict seeding (1 vs last, 2 vs second-last, …) of the participants not excluded in round `s`, sorted by points before round `s` (then rating), padded to the next power of two with bottom virtual seeds, excluded participants SHALL NOT appear in any other game of round `s`, and (4) every later round `r` pairs exactly the winners of round `r−1` per bracket adjacency (winners of adjacent bracket slots) and gives every eliminated player — losers of the bracket rounds and the participants excluded in round `s` — exactly one lone forfeit game. On success the engine SHALL return the bracket for continuation; otherwise it SHALL report that no bracket exists.
 
 #### Scenario: Canonical knockout history is recognized
 
@@ -22,6 +22,11 @@ The knockout engine (`analyzeKnockoutBracket`) SHALL determine whether the publi
 
 - **WHEN** a later round pairs a winner against a non-adjacent bracket opponent, or an eliminated player misses their forfeit game
 - **THEN** no bracket is reported
+
+#### Scenario: Knockout starting after manual eliminations is recognized
+
+- **WHEN** the knockout round 1 (start round `s`) pairs only the active participants canonically while participants eliminated before the bracket have lone forfeit games in round `s` and keep sitting out with a forfeit game in every later round
+- **THEN** `analyzeKnockoutBracket` returns the bracket with start round `s`, and the round after the semifinals is planned as the final (n = 1, «Сформировать пары финала»)
 
 ### Requirement: Canonical knockout round 1 seeding
 
