@@ -2,7 +2,7 @@
 
 ### Requirement: Pairing tools drawer availability
 
-The tournament edit page SHALL render the "Pairing assistant" drawer (`PairingToolsDrawer`) and its toggle buttons only when all of the following hold: the tournament status is `ongoing`, the "Pairings" tab OR the "Crosstable" tab is active, and the form state is loaded. On the "Pairings" tab the drawer and its toggle buttons SHALL be available for every active round sub-tab (not only the round being prepared); on the "Crosstable" tab only the side sticky `BsDice6` tab SHALL be shown. The drawer and its toggle buttons SHALL NOT be rendered in any other state. When the availability conditions stop holding while the drawer is open, the drawer SHALL disappear. The sticky `BsDice6` tab SHALL show the tooltip «Открыть панель жеребьёвки».
+The tournament edit page SHALL render the "Pairing assistant" drawer (`PairingToolsDrawer`) and its toggle buttons only when all of the following hold: the tournament status is `ongoing`, the "Pairings" tab OR the "Crosstable" tab is active, and the form state is loaded. On the "Pairings" tab the drawer and its toggle buttons SHALL be available for every active round sub-tab (not only the round being prepared); on the "Crosstable" tab only the side sticky `FaPeopleArrows` tab SHALL be shown. The drawer and its toggle buttons SHALL NOT be rendered in any other state. When the availability conditions stop holding while the drawer is open, the drawer SHALL disappear. The sticky `FaPeopleArrows` tab SHALL show the tooltip «Открыть панель жеребьёвки».
 
 #### Scenario: Drawer available on any round sub-tab of the pairings tab
 
@@ -12,7 +12,7 @@ The tournament edit page SHALL render the "Pairing assistant" drawer (`PairingTo
 #### Scenario: Crosstable tab shows only the sticky tab
 
 - **WHEN** an `ongoing` tournament's edit page shows the "Crosstable" tab and the drawer is closed
-- **THEN** only the side sticky `BsDice6` tab is displayed, with the tooltip «Открыть панель жеребьёвки»
+- **THEN** only the side sticky `FaPeopleArrows` tab is displayed, with the tooltip «Открыть панель жеребьёвки»
 - **AND** no pairings-board header toggle is rendered
 
 #### Scenario: Drawer unavailable on other tabs or statuses

@@ -8,7 +8,7 @@ The pairing assistant's Undo/Redo history is currently scoped to a single round 
 - Snapshots are recorded for every games change (any round: pairs, results, forfeits, byes), `publishedRounds` changes (publish/un-publish), and participant-composition / starting-points changes.
 - Undo/Redo restores the snapshot via a new `restorePairingSnapshot` form updater; when the snapshot changes `publishedRounds`, the tournament is auto-saved (same auto-save flow as round publish/un-publish).
 - Undo/Redo button tooltips updated to reflect the tournament-wide games-state semantics.
-- Drawer availability widens: status `ongoing` plus the "Pairings" tab (any active round sub-tab) or the "Crosstable" tab. On "Crosstable" only the side sticky `BsDice6` tab is shown; the sticky tab gains the tooltip «Открыть панель жеребьёвки».
+- Drawer availability widens: status `ongoing` plus the "Pairings" tab (any active round sub-tab) or the "Crosstable" tab. On "Crosstable" only the side sticky `FaPeopleArrows` tab is shown; the sticky tab gains the tooltip «Открыть панель жеребьёвки».
 - "Сформировать пары" and "Отменить пары" (all actions except Undo/Redo) are disabled while any round `1..publishedRounds` contains a game without a result or a participant without a game (no opponent, no bye, no forfeit).
 
 ## Capabilities

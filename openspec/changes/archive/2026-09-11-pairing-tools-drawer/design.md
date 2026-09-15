@@ -25,7 +25,7 @@ The tournament edit page (`TournamentEditForm`) renders `PairingsSection`, which
 
 ### Decision 3: Availability flag computed in `TournamentEditForm`
 **Choice:** `pairingToolsAvailable = tournament?.status === 'ongoing' && activeTab === 'pairings' && resolvePairingsActiveRound(...) === publishedRounds + 1`.
-**Rationale:** All three conditions are form-level; the flag is passed down (`PairingsSection` → `PairingsBoard`) so the header dice button renders only when available. When `publishedRounds === roundCount` the round `publishedRounds + 1` does not exist as a sub-tab, so the flag is correctly false.
+**Rationale:** All three conditions are form-level; the flag is passed down (`PairingsSection` → `PairingsBoard`) so the header dice button (FaPeopleArrows) renders only when available. When `publishedRounds === roundCount` the round `publishedRounds + 1` does not exist as a sub-tab, so the flag is correctly false.
 
 ### Decision 4: Board header toggle via optional prop
 **Choice:** `PairingsBoard` gains `onTogglePairingTools?: () => void`; the button replaces the empty `<div className="w-10" />` slot and renders only when the callback is provided. `PairingsSection` forwards it only when `pairingToolsAvailable`.

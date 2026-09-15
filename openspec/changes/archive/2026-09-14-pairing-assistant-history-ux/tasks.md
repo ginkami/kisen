@@ -8,7 +8,7 @@
 
 - [x] 2.1 Add `restorePairingSnapshot(games, publishedRounds, participants)` to `src/hooks/useTournamentForm.ts`: normalized state update + participant reconciliation (keep current internal attributes for existing participants; apply `player`/`startingPoints` from snapshot; restore missing participants from snapshot; drop extras) + auto-save via `saveMutation.mutate(next)` only when `publishedRounds` changes
 - [x] 2.2 `TournamentEditForm.tsx`: replace `trackedUpdateGames` + history-clearing effect with a snapshot-recording effect (signature over `games`, `publishedRounds`, participants projection `{ id, player, startingPoints }`); keep `PairingsSection`/`CrosstableSection` on the raw `updateGames`
-- [x] 2.3 `TournamentEditForm.tsx`: undo/redo handlers apply snapshots via `restorePairingSnapshot`; availability condition widens to `pairings`/`crosstable` tabs of an `ongoing` tournament; sticky `BsDice6` tab gains the tooltip (`pairingTools.open`)
+- [x] 2.3 `TournamentEditForm.tsx`: undo/redo handlers apply snapshots via `restorePairingSnapshot`; availability condition widens to `pairings`/`crosstable` tabs of an `ongoing` tournament; sticky `FaPeopleArrows` tab gains the tooltip (`pairingTools.open`)
 
 ## 3. Drawer
 

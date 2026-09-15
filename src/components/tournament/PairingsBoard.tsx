@@ -1,6 +1,6 @@
 import { useMemo, useCallback, useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
-import { BsDice6 } from 'react-icons/bs'
+import { FaPeopleArrows } from "react-icons/fa";
 import {
   DndContext,
   DragOverlay,
@@ -545,10 +545,10 @@ export function PairingsBoard({
                 <button
                   type="button"
                   onClick={onTogglePairingTools}
-                  className="btn btn-secondary btn-sm w-full"
+                  className="btn btn-secondary btn-sm"
                   aria-label={t('tournament.edit.pairingTools.open')}
                 >
-                  <BsDice6 className="h-4 w-4" />
+                  <FaPeopleArrows className="h-5 w-5" />
                 </button>
               )}
             </div>

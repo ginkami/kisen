@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { BsArrowClockwise, BsArrowCounterclockwise, BsDiagram2Fill, BsDice6, BsX, BsPlus, BsDash } from 'react-icons/bs'
+import { BsArrowClockwise, BsArrowCounterclockwise, BsDiagram2Fill, BsX, BsPlus, BsDash } from 'react-icons/bs'
 import { AiOutlineUsergroupAdd, AiOutlineUsergroupDelete } from "react-icons/ai";
+import { FaPeopleArrows } from "react-icons/fa";
 import { CH as SwissFlag } from 'country-flag-icons/react/1x1'
 import type { Game, Participant } from '../../domain/tournament.ts'
 import { createByeGame, createForfeitGame, generatePairings, PairingError } from './pairings/pairingEngine.ts'
@@ -207,7 +208,7 @@ export function PairingToolsDrawer({
     >
       <div className="sticky top-0 z-10 flex items-center justify-between bg-base-200 px-4 py-3">
         <div className="flex items-center gap-2 text-lg font-semibold">
-          <BsDice6 className="h-5 w-5" />
+          <FaPeopleArrows className="h-5 w-5" />
           {t('tournament.edit.pairingTools.title')}
         </div>
         <button
