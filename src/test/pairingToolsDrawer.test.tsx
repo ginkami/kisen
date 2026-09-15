@@ -30,6 +30,16 @@ vi.mock('../components/tournament/pairings/pairingEngine.ts', () => {
       status: 'bye',
       round,
     })),
+    createForfeitGame: vi.fn((participantId: number, round: number) => ({
+      id: `forfeit-${participantId}-${round}`,
+      player1: participantId,
+      player2: null,
+      sente: 'unknown',
+      handicap: null,
+      result: 'player2_won',
+      status: 'forfeit',
+      round,
+    })),
   }
 })
 
@@ -224,6 +234,52 @@ describe('PairingToolsDrawer', () => {
     expect(updateGames).toHaveBeenCalledTimes(1)
     expect(updateGames).toHaveBeenCalledWith(2, [])
   })
+  it('gives a bye to every unpaired player via a single round update', () => {
+    // Round 2 has a manual pair (1, 2) → players 3 and 4 are unpaired.
+    const manualPair = makeGame(1)
+    const { updateGames } = renderDrawer({ games: [manualPair] })
+    fireEvent.click(
+      screen.getByRole('button', { name: 'tournament.edit.pairingTools.unpairedBye' }),
+    )
+    expect(updateGames).toHaveBeenCalledTimes(1)
+    const applied = updateGames.mock.calls[0][1] as Game[]
+    expect(applied).toHaveLength(3)
+    expect(applied[0]).toBe(manualPair)
+    const byes = applied.slice(1)
+    expect(byes.map((g) => g.player1)).toEqual([3, 4])
+    expect(
+      byes.every((g) => g.player2 === null && g.status === 'bye' && g.result === 'player1_won'),
+    ).toBe(true)
+  })
+
+  it('gives a forfeit to every unpaired player via a single round update', () => {
+    const manualPair = makeGame(1)
+    const { updateGames } = renderDrawer({ games: [manualPair] })
+    fireEvent.click(
+      screen.getByRole('button', { name: 'tournament.edit.pairingTools.unpairedForfeit' }),
+    )
+    expect(updateGames).toHaveBeenCalledTimes(1)
+    const applied = updateGames.mock.calls[0][1] as Game[]
+    const forfeits = applied.slice(1)
+    expect(forfeits.map((g) => g.player1)).toEqual([3, 4])
+    expect(
+      forfeits.every(
+        (g) => g.player2 === null && g.status === 'forfeit' && g.result === 'player2_won',
+      ),
+    ).toBe(true)
+  })
+
+  it('modifies nothing when every participant already has a game', () => {
+    const { updateGames } = renderDrawer({
+      games: [makeGame(1), makeGame(3)],
+    })
+    fireEvent.click(
+      screen.getByRole('button', { name: 'tournament.edit.pairingTools.unpairedBye' }),
+    )
+    expect(updateGames).not.toHaveBeenCalled()
+  })
+
+
 
   it('falls back to the default bracket size when the persisted value is not offered', async () => {
     window.localStorage.setItem('kisen.pairingTools.knockoutBracketSize.t1', '16')
@@ -249,6 +305,12 @@ describe('PairingToolsDrawer', () => {
     })
     expect(screen.getByTestId('knockout-bracket-size')).toBeDisabled()
     expect(screen.getByTestId('knockout-round')).toBeDisabled()
+    expect(
+      screen.getByRole('button', { name: 'tournament.edit.pairingTools.unpairedBye' }),
+    ).toBeDisabled()
+    expect(
+      screen.getByRole('button', { name: 'tournament.edit.pairingTools.unpairedForfeit' }),
+    ).toBeDisabled()
     expect(
       screen.getByRole('button', { name: 'tournament.edit.pairingTools.generateKnockoutPairs' }),
     ).toBeDisabled()

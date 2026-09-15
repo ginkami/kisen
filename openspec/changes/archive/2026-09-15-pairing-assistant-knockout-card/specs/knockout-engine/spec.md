@@ -75,6 +75,6 @@ The knockout generation result SHALL be applied via a single round update (one u
 
 - ### Requirement: Final-round label computation
 
-**Reason:** the «1/{n} финала» label is replaced by the explicit bracket size and knockout round dropdowns of the «Игры плей-офф» card.
+**Reason:** the «1/{n} финала» label is replaced by the explicit bracket size and knockout round dropdowns of the «Knockout games» collapse card.
 
 **Migration:** the card's button label is static («Сформировать пары»); the round semantics are expressed by the «Раунд плей-офф» dropdown.

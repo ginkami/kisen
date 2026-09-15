@@ -336,6 +336,8 @@
         "undo": "Undo tournament games state change",
         "redo": "Redo tournament games state change",
         "generate": "Generate pairings for round {{round}}",
+        "unpairedBye": "All unpaired players: bye",
+        "unpairedForfeit": "All unpaired players: forfeit",
         "knockoutTitle": "Knockout pairings",
         "knockoutBracketSize": "Bracket size",
         "knockoutRound": "Knockout round",

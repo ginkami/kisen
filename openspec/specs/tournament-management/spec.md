@@ -1009,3 +1009,28 @@ Clicking the button SHALL form the knockout round for the round being prepared v
 
 - **WHEN** the chosen knockout round does not match a bracket of the chosen size
 - **THEN** the alert modal «Невозможно составить пары» is shown and no game is modified
+
+### Requirement: Bulk bye or forfeit for unpaired players
+
+The pairing tools drawer SHALL show two buttons above the «Knockout games» collapse card: «Всем игрокам без пары +» (en: «All unpaired players: bye +», `MdGroupAdd` icon) and «Всем игрокам без пары −» (en: «All unpaired players: forfeit −`, `MdGroupRemove` icon). Clicking one of them SHALL give every participant without any game in the round being prepared — no opponent, no bye, no forfeit — a lone bye game (`status: 'bye'`, `result: 'player1_won'`) or a lone forfeit game (`status: 'forfeit'`, `result: 'player2_won'`) respectively, applied via a single round update (one undo/redo action). Participants already placed in a game of the round SHALL NOT be touched. When no participant is unpaired, clicking SHALL not modify any game. Both buttons SHALL be disabled under the same Swiss completeness condition as the other drawer actions (any round from 1 to `publishedRounds` with a paired game without a result or a participant without any game); Undo/Redo SHALL stay available.
+
+#### Scenario: Bye for every unpaired player
+
+- **WHEN** the round being prepared contains a manual paired game and the user clicks «Всем игрокам без пары +»
+- **THEN** every participant without a game receives a lone bye game via one round update, and the manual game is kept
+
+#### Scenario: Forfeit for every unpaired player
+
+- **WHEN** the round being prepared contains a manual paired game and the user clicks «Всем игрокам без пары −»
+- **THEN** every participant without a game receives a lone forfeit game via one round update, and the manual game is kept
+
+#### Scenario: Blocked with the other actions
+
+- **WHEN** an earlier round has a paired game without a result or a participant without any game
+- **THEN** both buttons are disabled while Undo/Redo stay available
+
+#### Scenario: Nothing to do
+
+- **WHEN** every participant already has a game in the round being prepared and one of the buttons is clicked
+- **THEN** no game is modified
+

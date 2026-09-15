@@ -6,7 +6,7 @@
 
 ## 2. UI
 
-- [x] 2.1 `PairingToolsDrawer.tsx`: replace the knockout button with the «Игры плей-офф» card (title, bracket size select persisted to localStorage per tournamentId, knockout round select 1..publishedRounds+1, generate button); block the card via `actionsDisabled`
+- [x] 2.1 `PairingToolsDrawer.tsx`: replace the knockout button with the «Knockout games» collapse card (title, bracket size select persisted to localStorage per tournamentId, knockout round select 1..publishedRounds+1, generate button); block the card via `actionsDisabled`
 - [x] 2.2 `TournamentEditForm.tsx`: pass `tournamentId` to the drawer
 - [x] 2.3 i18n: add `knockoutTitle`, `knockoutBracketSize`, `knockoutRound`, `generateKnockoutPairs`; remove `generateKnockout`, `generateKnockoutFinal` (en + ru)
 

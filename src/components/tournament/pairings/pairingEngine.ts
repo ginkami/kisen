@@ -218,6 +218,23 @@ export function createByeGame(participantId: number, round: number, considerSent
 }
 
 /**
+ * Creates a lone forfeit game (status 'forfeit', result 'player2_won') following the
+ * lone-game invariant.
+ */
+export function createForfeitGame(participantId: number, round: number, considerSente: boolean): Game {
+  return {
+    id: uuidv7(),
+    player1: participantId,
+    player2: null,
+    sente: considerSente ? 'player1' : 'unknown',
+    handicap: null,
+    result: 'player2_won',
+    status: 'forfeit',
+    round,
+  }
+}
+
+/**
  * Generates pairings for the round being prepared. Participants who already
  * have a game in `round` (manual pairs, byes, carried-over forfeits) are
  * locked and never touched. Returns only the newly created games.

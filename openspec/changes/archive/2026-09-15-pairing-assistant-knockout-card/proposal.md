@@ -19,7 +19,7 @@ The current knockout button on the pairing assistant drawer hides the decision-m
 
 ### Modified Capabilities
 - `knockout-engine`: bracket search parameterized by bracket size and knockout round (no forfeit requirements), knockout round 1 from unpaired players with explicit size bounds, no forfeit assignment; the `1/{n} финала` label requirement is removed.
-- `tournament-management`: the drawer's knockout action becomes the «Игры плей-офф» card (bracket size dropdown persisted per tournament, knockout round dropdown, generate button) blocked by the Swiss completeness condition.
+- `tournament-management`: the drawer's knockout action becomes the «Knockout games» collapse card (bracket size dropdown persisted per tournament, knockout round dropdown, generate button) blocked by the Swiss completeness condition.
 
 ## Impact
 

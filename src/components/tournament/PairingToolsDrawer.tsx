@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { BsArrowClockwise, BsArrowCounterclockwise, BsDiagram2Fill, BsDice6, BsX } from 'react-icons/bs'
+import { BsArrowClockwise, BsArrowCounterclockwise, BsDiagram2Fill, BsDice6, BsX, BsPlus, BsDash } from 'react-icons/bs'
+import { AiOutlineUsergroupAdd, AiOutlineUsergroupDelete } from "react-icons/ai";
 import { CH as SwissFlag } from 'country-flag-icons/react/1x1'
 import type { Game, Participant } from '../../domain/tournament.ts'
-import { generatePairings, PairingError } from './pairings/pairingEngine.ts'
+import { createByeGame, createForfeitGame, generatePairings, PairingError } from './pairings/pairingEngine.ts'
 import { generateKnockoutRoundGames } from './pairings/knockoutEngine.ts'
 import { AlertModal } from '../AlertModal.tsx'
 import { ConfirmModal } from '../ConfirmModal.tsx'
@@ -31,8 +32,8 @@ interface PairingToolsDrawerProps {
 // prepared (publishedRounds + 1). The drawer chrome mirrors AdminDrawer, but
 // it overlays the page content without pushing it (the pairings board is
 // wide). Tools, top to bottom: undo/redo row, "generate pairings" action,
-// «Игры плей-офф» knockout card, spacer, "clear round pairings" action with a
-// confirm modal.
+// bulk bye/forfeit for unpaired players, «Игры плей-офф» knockout card,
+// spacer, "clear round pairings" action with a confirm modal.
 
 function nextPowerOfTwo(n: number): number {
   let p = 1
@@ -79,6 +80,24 @@ export function PairingToolsDrawer({
     return false
   }, [games, participants, publishedRounds])
 
+  // Participants without any game in the round being prepared (no opponent,
+  // no bye, no forfeit).
+  const unpairedIds = useMemo(() => {
+    const placed = new Set<number>()
+    for (const g of games) {
+      if (g.round !== round) continue
+      placed.add(g.player1)
+      if (g.player2 != null) placed.add(g.player2)
+    }
+    return participants.filter((p) => !placed.has(p.id)).map((p) => p.id)
+  }, [games, participants, round])
+
+  const applyLoneGamesToUnpaired = (create: (participantId: number) => Game) => {
+    if (unpairedIds.length === 0) return
+    const roundGames = games.filter((g) => g.round === round)
+    updateGames(round, [...roundGames, ...unpairedIds.map(create)])
+  }
+
   useEffect(() => {
     if (!isOpen) return
     const handleEscape = (event: KeyboardEvent) => {
@@ -112,7 +131,7 @@ export function PairingToolsDrawer({
     }
   }
 
-  // «Игры плей-офф» card state: the bracket size is a local per-tournament
+  // «Knockout games» collapse card state: the bracket size is a local per-tournament
   // preference (survives drawer close/reopen), the knockout round defaults to
   // the round being prepared and resets when the drawer is (re)opened.
   const bracketSizeOptions = useMemo(() => {
@@ -243,12 +262,34 @@ export function PairingToolsDrawer({
             : t('tournament.edit.pairingTools.generate', { round })}
         </button>
 
-        {/* «Игры плей-офф» card */}
-        <div className="card mt-2 w-full bg-base-100 shadow-sm">
-          <div className="card-body gap-2 p-3">
-            <h3 className="flex items-center gap-2 text-sm font-semibold">
-              {t('tournament.edit.pairingTools.knockoutTitle')}
-            </h3>
+        {/* Bulk bye / forfeit for unpaired players */}
+        <button
+          type="button"
+          onClick={() => applyLoneGamesToUnpaired((id) => createByeGame(id, round, considerSente))}
+          disabled={actionsDisabled}
+          className="btn btn-secondary mt-2 w-full"
+        >
+          <AiOutlineUsergroupAdd className="h-6 w-6" aria-hidden="true" />
+          {t('tournament.edit.pairingTools.unpairedBye')}
+          <BsPlus className="h-5 w-5" aria-hidden="true" />
+        </button>
+        <button
+          type="button"
+          onClick={() => applyLoneGamesToUnpaired((id) => createForfeitGame(id, round, considerSente))}
+          disabled={actionsDisabled}
+          className="btn btn-secondary mt-2 w-full"
+        >
+          <AiOutlineUsergroupDelete className="h-6 w-6" aria-hidden="true" />
+          {t('tournament.edit.pairingTools.unpairedForfeit')}
+          <BsDash className="h-5 w-5" aria-hidden="true" />
+        </button>
+
+        {/* «Knockout games» collapse card */}
+        <details className="collapse bg-base-100 shadow-sm mt-2">
+          <summary className="collapse-title">
+            <h3>{t('tournament.edit.pairingTools.knockoutTitle')}</h3>
+          </summary>
+          <div className="collapse-content text-sm">
             <label className="label" htmlFor="knockout-bracket-size">
               <span className="label-text">{t('tournament.edit.pairingTools.knockoutBracketSize')}</span>
             </label>
@@ -299,7 +340,7 @@ export function PairingToolsDrawer({
                 : t('tournament.edit.pairingTools.generateKnockoutPairs')}
             </button>
           </div>
-        </div>
+        </details>
 
         {/* Spacer */}
         <div className="grow" />
