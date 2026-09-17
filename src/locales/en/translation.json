@@ -1,5 +1,6 @@
 {
   "auth": {
+    "pageTitle": "Sign in | shogi·world",
     "title": "Tournament Hub",
     "email": "Email",
     "displayName": "How should we address you",
@@ -118,7 +119,7 @@
     "new": "New player",
     "edit": {
       "managementPanel": "Player editing",
-      "pageTitle": "{{name}} — Editing | shogi·world",
+      "pageTitle": "{{name}} — Player editing | shogi·world",
       "info": "Player information",
       "familyName": "Family name",
       "givenName": "Given name",
@@ -534,6 +535,7 @@
       "admin": "Admin"
     },
     "edit": {
+      "pageTitle": "{{name}} — Profile editing | shogi·world",
       "title": "Edit user",
       "back": "Back",
       "profileSection": "Profile data",
@@ -562,6 +564,7 @@
     }
   },
   "appAdmin": {
+    "pageTitle": "{{title}} | shogi·world",
     "title": "Application management",
     "tabs": {
       "settings": "Settings"
@@ -574,6 +577,7 @@
     }
   },
   "home": {
+    "pageTitle": "ShogiWorld — Shogi Tournament Management Platform",
     "title": "Tournaments",
     "tabs": {
       "finished": "Finished",

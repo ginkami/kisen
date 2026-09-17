@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useNavigate, useOutletContext } from 'react-router-dom'
+import { useOutletContext } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import type { FirebaseError } from 'firebase/app'
 import { sendPasswordResetEmail } from 'firebase/auth'
@@ -46,7 +46,6 @@ interface AccessMessage {
 
 export function UserEditForm({ userId }: { userId: string }) {
   const { t, i18n } = useTranslation()
-  const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { setHasUnsavedChanges } = useOutletContext<LayoutOutletContext>()
   const { user: currentUser, isAuthenticated, isLoading: isAuthLoading } = useAuth()
@@ -64,6 +63,15 @@ export function UserEditForm({ userId }: { userId: string }) {
     enabled: isAdmin,
   })
   const user = data ?? null
+
+  // Document title: the target user's display name (unconditional hook).
+  useEffect(() => {
+    if (user) {
+      document.title = t('user.edit.pageTitle', {
+        name: getUserDisplayName(user, i18n.language as 'ru' | 'en'),
+      })
+    }
+  }, [user, i18n.language, t])
   const targetIsAdmin = user?.role === 'admin'
   const accessLocked = isSelf || targetIsAdmin
 
@@ -183,9 +191,6 @@ export function UserEditForm({ userId }: { userId: string }) {
   return (
     <div className="mx-auto max-w-2xl px-4 py-6">
       <div className="mb-4 flex items-center gap-2">
-        <button type="button" onClick={() => navigate(-1)} className="btn btn-ghost btn-sm">
-          {t('user.edit.back')}
-        </button>
         <h1 className="text-xl font-semibold">{t('user.edit.title')}</h1>
       </div>
 
