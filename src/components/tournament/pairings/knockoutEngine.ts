@@ -36,6 +36,25 @@ function isBracketSize(n: number): boolean {
   return Number.isInteger(n) && n >= 4 && (n & (n - 1)) === 0
 }
 
+/**
+ * Classic bracket display order of slot indices (0-based seeding positions):
+ * recursive seed placement `[0,1] → [0,3,1,2] → [0,7,3,4,1,6,2,5] …` so that
+ * adjacent display pairs feed the same next-round slot and the top seeds sit
+ * in opposite halves of the bracket.
+ */
+function bracketSlotOrder(size: number): number[] {
+  let order = [0, 1]
+  while (order.length < size) {
+    const doubled = order.length * 2
+    const next: number[] = []
+    for (const slot of order) {
+      next.push(slot, doubled - 1 - slot)
+    }
+    order = next
+  }
+  return order
+}
+
 /** Stable sort by points desc, then rating desc, then id asc. */
 function sortSeeded(players: SeededPlayer[]): SeededPlayer[] {
   return [...players].sort((a, b) => {
@@ -190,10 +209,13 @@ function checkStartConfiguration(
       g.player2 == null ? [] : [[pairKey(g.player1, g.player2), g] as const],
     ),
   )
+  // Matches are returned in the classic bracket display order so that
+  // adjacent matches feed the same next-round slot.
+  const order = bracketSlotOrder(bracketSize)
   const matches: BracketMatch[] = []
-  for (let i = 0; i < bracketSize / 2; i++) {
-    const a = seeded[i].participant
-    const partnerIndex = bracketSize - 1 - i
+  for (let j = 0; j < bracketSize / 2; j++) {
+    const a = seeded[order[2 * j]].participant
+    const partnerIndex = order[2 * j + 1]
     if (partnerIndex >= covered.size) {
       matches.push({ a: a.id, b: null, winner: a.id })
     } else {
@@ -201,12 +223,17 @@ function checkStartConfiguration(
       const g = pairByKey.get(pairKey(a.id, b.id))
       if (!g) return null
       // The pair's presence is enough for the structure; the winner is
-      // taken from the result when it is already fixed.
+      // taken from the game's own player order (the stored game may be
+      // reversed relative to the canonical seeding).
       matches.push({
         a: a.id,
         b: b.id,
         winner:
-          g.result === 'player1_won' ? a.id : g.result === 'player2_won' ? b.id : null,
+          g.result === 'player1_won'
+            ? g.player1
+            : g.result === 'player2_won'
+              ? (g.player2 ?? b.id)
+              : null,
       })
     }
   }
@@ -252,11 +279,17 @@ function followBracket(
         rounds.push(nextMatches)
         return rounds
       }
+      // The winner comes from the game's own player order (the stored game
+      // may be reversed relative to the bracket adjacency).
       nextMatches.push({
         a: w1,
         b: w2,
         winner:
-          g.result === 'player1_won' ? w1 : g.result === 'player2_won' ? w2 : null,
+          g.result === 'player1_won'
+            ? g.player1
+            : g.result === 'player2_won'
+              ? (g.player2 ?? w2)
+              : null,
       })
     }
     rounds.push(nextMatches)
@@ -327,9 +360,12 @@ export function generateKnockoutRoundGames(input: {
       })),
     )
     const formed: Game[] = []
-    for (let i = 0; i < bracketSize / 2; i++) {
-      const a = seeded[i].participant
-      const partnerIndex = bracketSize - 1 - i
+    // Matches are created in the classic bracket display order so that
+    // adjacent matches feed the same next-round slot.
+    const order = bracketSlotOrder(bracketSize)
+    for (let j = 0; j < bracketSize / 2; j++) {
+      const a = seeded[order[2 * j]].participant
+      const partnerIndex = order[2 * j + 1]
       if (partnerIndex >= u) {
         formed.push(createByeGame(a.id, round, considerSente))
       } else {

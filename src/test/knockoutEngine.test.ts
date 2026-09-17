@@ -188,7 +188,7 @@ describe('generateKnockoutRoundGames — bracket continuation', () => {
     })
     // Winners of adjacent bracket slots: (1, 2) and (3, 4); losers 5, 6 get
     // no games.
-    expect(pairSet(formed)).toEqual(['1-2', '3-4'])
+    expect(pairSet(formed)).toEqual(['1-4', '2-3'])
     expect(byeIds(formed)).toEqual([])
     expect(formed.every((g) => g.status !== 'forfeit')).toBe(true)
   })
@@ -205,13 +205,13 @@ describe('generateKnockoutRoundGames — bracket continuation', () => {
       bracketSize: 8,
       knockoutRound: 2,
     })
-    expect(pairSet(formed)).toEqual(['1-2', '3-4'])
+    expect(pairSet(formed)).toEqual(['1-4', '2-3'])
     expect(formed.some((g) => g.id === manualForfeit.id)).toBe(false)
   })
 
   it('keeps a manual paired game that already forms a planned pair', () => {
     const { participants, games } = makeBracketHistory()
-    const manualPair = makeGame({ player1: 1, player2: 2, round: 2 })
+    const manualPair = makeGame({ player1: 1, player2: 4, round: 2 })
     const formed = generateKnockoutRoundGames({
       participants,
       games: [...games, manualPair],
@@ -221,7 +221,7 @@ describe('generateKnockoutRoundGames — bracket continuation', () => {
       bracketSize: 8,
       knockoutRound: 2,
     })
-    expect(pairSet(formed)).toEqual(['3-4'])
+    expect(pairSet(formed)).toEqual(['2-3'])
   })
 
   it('throws when a manual game conflicts with the bracket', () => {
@@ -329,7 +329,7 @@ describe('generateKnockoutRoundGames — bracket continuation', () => {
   it('forms the final ignoring consolation games between eliminated players', () => {
     // tournament1 repro: round 1 Swiss, round 2 is the canonical round 1 of
     // an 8-bracket (byes 3, 2; pairs (4,5), (1,6)), round 3 is the bracket's
-    // semifinals (4,1), (3,2) PLUS a consolation game (6,5) between the two
+    // semifinals (3,1), (2,4) PLUS a consolation game (6,5) between the two
     // players eliminated in the semifinal round... (5, 6 lost in round 2).
     const participants = makeParticipants([2472, 1999, 2005, 1856, 2167, 2266])
     const games: Game[] = [
@@ -343,9 +343,10 @@ describe('generateKnockoutRoundGames — bracket continuation', () => {
       makeGame({ player1: 2, round: 2, result: 'player1_won', status: 'bye' }),
       makeGame({ player1: 4, player2: 5, round: 2, ...finished }),
       makeGame({ player1: 1, player2: 6, round: 2, ...finished }),
-      // Round 3 = knockout round 2 (semifinals) + consolation (6,5).
-      makeGame({ player1: 4, player2: 1, round: 3, ...finished }),
-      makeGame({ player1: 3, player2: 2, round: 3, ...finished }),
+      // Round 3 = knockout round 2 (semifinals): (3,1) and (2,4); the
+      // games are stored with reversed player order + consolation (6,5).
+      makeGame({ player1: 1, player2: 3, round: 3, ...finished }),
+      makeGame({ player1: 4, player2: 2, round: 3, ...finished }),
       makeGame({ player1: 6, player2: 5, round: 3, ...finished }),
     ]
     const formed = generateKnockoutRoundGames({
@@ -357,8 +358,8 @@ describe('generateKnockoutRoundGames — bracket continuation', () => {
       bracketSize: 8,
       knockoutRound: 3,
     })
-    // Semifinal winners: 3 (from 3v2) and 4 (from 4v1) → the final.
-    expect(pairSet(formed)).toEqual(['3-4'])
+    // Semifinal winners: 1 (from 1v3) and 4 (from 4v2) → the final.
+    expect(pairSet(formed)).toEqual(['1-4'])
   })
 
   it('recognizes a bracket embedded in a round with unrelated games', () => {
@@ -402,8 +403,8 @@ describe('buildBracketView', () => {  it('builds a bracket view with winners and
     expect(view!.rounds[0].matches[0]).toEqual({ a: 1, b: null, winner: 1, bye: true })
     expect(view!.rounds[1].round).toBe(2)
     expect(view!.rounds[1].matches).toEqual([
-      { a: 1, b: 2, winner: null, bye: false },
-      { a: 3, b: 4, winner: null, bye: false },
+      { a: 1, b: 4, winner: null, bye: false },
+      { a: 2, b: 3, winner: null, bye: false },
     ])
     expect(view!.rounds[2].matches).toEqual([{ a: null, b: null, winner: null, bye: false }])
     expect(view!.complete).toBe(false)
@@ -413,9 +414,9 @@ describe('buildBracketView', () => {  it('builds a bracket view with winners and
     const { participants, games } = makeBracketHistory()
     const fullHistory = [
       ...games,
-      makeGame({ player1: 1, player2: 2, round: 2, ...finished }),
-      makeGame({ player1: 3, player2: 4, round: 2, ...finished }),
-      makeGame({ player1: 1, player2: 3, round: 3, ...finished }),
+      makeGame({ player1: 1, player2: 4, round: 2, ...finished }),
+      makeGame({ player1: 2, player2: 3, round: 2, ...finished }),
+      makeGame({ player1: 1, player2: 2, round: 3, ...finished }),
     ]
     const view = buildBracketView({
       participants,
@@ -441,8 +442,8 @@ describe('buildBracketView', () => {  it('builds a bracket view with winners and
       makeGame({ player1: 2, round: 2, result: 'player1_won', status: 'bye' }),
       makeGame({ player1: 4, player2: 5, round: 2, ...finished }),
       makeGame({ player1: 1, player2: 6, round: 2, ...finished }),
-      makeGame({ player1: 4, player2: 1, round: 3, ...finished }),
-      makeGame({ player1: 3, player2: 2, round: 3, ...finished }),
+      makeGame({ player1: 1, player2: 3, round: 3, ...finished }),
+      makeGame({ player1: 4, player2: 2, round: 3, ...finished }),
       makeGame({ player1: 6, player2: 5, round: 3, ...finished }),
     ]
     const view = buildBracketView({
@@ -456,10 +457,10 @@ describe('buildBracketView', () => {  it('builds a bracket view with winners and
     expect(view!.rounds[0].knockoutRound).toBe(1)
     expect(view!.rounds[0].round).toBe(2)
     expect(view!.rounds[1].matches.map((m) => [m.a, m.b, m.winner])).toEqual([
-      [3, 2, 3],
-      [4, 1, 4],
+      [3, 1, 1],
+      [2, 4, 4],
     ])
-    expect(view!.rounds[2].matches).toEqual([{ a: 3, b: 4, winner: null, bye: false }])
+    expect(view!.rounds[2].matches).toEqual([{ a: 1, b: 4, winner: null, bye: false }])
     expect(view!.complete).toBe(false)
   })
 
@@ -509,8 +510,8 @@ describe('buildBracketView with formed but unfinished rounds', () => {
       expect(view!.rounds[1].matches).toEqual([
         // Bye winners (1, 2) already sit in the next round; the undecided
         // pairs project as empty slots.
-        { a: 1, b: 2, winner: null, bye: false },
-        { a: null, b: null, winner: null, bye: false },
+        { a: 1, b: null, winner: null, bye: false },
+        { a: 2, b: null, winner: null, bye: false },
       ])
       expect(view!.rounds[2].matches).toEqual([{ a: null, b: null, winner: null, bye: false }])
       expect(view!.complete).toBe(false)
