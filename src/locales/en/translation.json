@@ -171,7 +171,16 @@
         "schedule": "Schedule",
         "players": "Players",
         "results": "Results",
-        "crosstable": "Crosstable"
+        "crosstable": "Crosstable",
+        "bracket": "Knockout bracket"
+      },
+      "bracket": {
+        "unavailable": "The bracket cannot be built from the played games.",
+        "final": "Final",
+        "roundOf": "1/{{x}} Finals (Last {{y}})",
+        "roundN": "Round {{round}}",
+        "champion": "Champion",
+        "tbd": "To be decided"
       },
       "roundsCount_one": "{{count}} round",
       "roundsCount_other": "{{count}} rounds",
@@ -308,7 +317,14 @@
       },
       "advanced": {
         "title": "Advanced",
-        "considerSente": "Consider piece color in game results"
+        "considerSente": "Consider piece color in game results",
+        "knockoutBracket": {
+          "showIfAny": "Show knockout bracket, if any",
+          "size": "Bracket size",
+          "startRound": "Starts at round",
+          "none": "—",
+          "startRoundHint": "Set the tournament round where the bracket starts."
+        }
       },
       "rounds": {
         "number": "Round",

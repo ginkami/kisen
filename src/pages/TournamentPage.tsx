@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
-import { BsJournalText, Bs123, BsGrid3X2 } from 'react-icons/bs'
+import { BsJournalText, Bs123, BsDiagram2Fill, BsGrid3X2 } from 'react-icons/bs'
 import { RiCalendarScheduleFill } from "react-icons/ri";
 import { FaUsers } from "react-icons/fa6";
 import { tournamentService } from '../services/tournamentService.ts'
@@ -13,11 +13,12 @@ import { TournamentMeta } from '../components/tournament/view/TournamentMeta.tsx
 import { TournamentScheduleList } from '../components/tournament/view/TournamentScheduleList.tsx'
 import { PlayersTable } from '../components/tournament/view/PlayersTable.tsx'
 import { CrosstableView } from '../components/tournament/view/CrosstableView.tsx'
+import { KnockoutBracketSection } from '../components/tournament/view/KnockoutBracketSection.tsx'
 import { TournamentResultsSection } from '../components/tournament/view/TournamentResultsSection.tsx'
 import { TournamentDescriptionSection } from '../components/tournament/view/TournamentDescriptionSection.tsx'
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-type TabId = 'description' | 'schedule' | 'players' | 'results' | 'crosstable'
+type TabId = 'description' | 'schedule' | 'players' | 'results' | 'crosstable' | 'bracket'
 
 interface TournamentPageProps {
   /** When set, the page loads the tournament by id instead of sniffing the URL param (used by the event page). */
@@ -111,6 +112,13 @@ export function TournamentPage({ tournamentId }: TournamentPageProps = {}) {
     { id: 'results', label: t('tournament.view.tabs.results'), icon: Bs123 },
     { id: 'crosstable', label: t('tournament.view.tabs.crosstable'), icon: BsGrid3X2 },
   ]
+  if ((tournament.settings.hasKnockoutBracket?.size ?? 0) > 0) {
+    tabs.splice(tabs.length - 1, 0, {
+      id: 'bracket',
+      label: t('tournament.view.tabs.bracket'),
+      icon: BsDiagram2Fill,
+    })
+  }
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
@@ -155,6 +163,15 @@ export function TournamentPage({ tournamentId }: TournamentPageProps = {}) {
         <CrosstableView games={tournament.games} participants={tournament.participants}
           publishedRounds={tournament.publishedRounds}
           considerSente={tournament.settings.considerSente} tieBreaks={tournament.settings.tieBreaks} />
+      )}
+      {activeTab === 'bracket' && (
+        <KnockoutBracketSection
+          participants={tournament.participants}
+          games={tournament.games}
+          publishedRounds={tournament.publishedRounds}
+          bracketSize={tournament.settings.hasKnockoutBracket?.size ?? 0}
+          startRound={tournament.settings.hasKnockoutBracket?.startRound ?? 0}
+        />
       )}
     </div>
   )

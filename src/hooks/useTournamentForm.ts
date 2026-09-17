@@ -10,6 +10,7 @@ import type {
   TournamentLocale,
   TournamentSchedule,
   TournamentSettings,
+  KnockoutBracketSettings,
   Participant,
   Game,
   ScheduledAtLocal,
@@ -946,6 +947,16 @@ export function useTournamentForm(tournamentId: string | undefined) {
     [updateForm]
   )
 
+  const updateHasKnockoutBracket = useCallback(
+    (value: KnockoutBracketSettings) => {
+      updateForm((state) => ({
+        ...state,
+        settings: { ...state.settings, hasKnockoutBracket: value },
+      }))
+    },
+    [updateForm]
+  )
+
   const addScheduleRow = useCallback(
     (afterId?: string) => {
       updateForm((state) => {
@@ -1441,6 +1452,7 @@ export function useTournamentForm(tournamentId: string | undefined) {
     updateLocation,
     updateLocationLocale,
     updateArbiter,
+    updateHasKnockoutBracket,
     updateTimeControlType,
     updateTimeControlField,
     setTieBreaks,

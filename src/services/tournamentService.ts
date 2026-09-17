@@ -89,6 +89,7 @@ function defaultSettings(): Tournament['settings'] {
       { type: 'sonneborn_berger' },
     ],
     considerSente: false,
+    hasKnockoutBracket: { size: 0, startRound: 0 },
   }
 }
 

@@ -45,6 +45,31 @@ function withDefaultArbiter(data: Record<string, unknown>): Record<string, unkno
 }
 
 /**
+ * Inject the default `hasKnockoutBracket` for documents stored before the
+ * knockout bracket settings existed. The repository does not run the zod
+ * schema, so legacy documents would otherwise reach the UI with the field
+ * missing (the domain schema default only applies on parse).
+ */
+export function withDefaultKnockoutBracket(
+  data: Record<string, unknown>
+): Record<string, unknown> {
+  const settings = data.settings
+  if (
+    settings &&
+    typeof settings === 'object' &&
+    (settings as { hasKnockoutBracket?: unknown }).hasKnockoutBracket !== undefined
+  ) {
+    return data
+  }
+  const base =
+    settings && typeof settings === 'object' ? (settings as Record<string, unknown>) : {}
+  return {
+    ...data,
+    settings: { ...base, hasKnockoutBracket: { size: 0, startRound: 0 } },
+  }
+}
+
+/**
  * Remap legacy tournament documents that have top-level `country` and
  * `locales.<lang>.location` / `locales.<lang>.venue` into the new
  * `location` object shape. Coordinates are left undefined (will be
@@ -208,8 +233,8 @@ function entryInstant(value: unknown): Date | null {
 }
 
 async function fromFirestore(data: Record<string, unknown>): Promise<Tournament> {
-  const remapped = withDefaultArbiter(
-    remapLegacyLocation(remapLegacyRounds(data))
+  const remapped = withDefaultKnockoutBracket(
+    withDefaultArbiter(remapLegacyLocation(remapLegacyRounds(data)))
   )
   const backfilled = await backfillScheduleLocalTime(remapped)
   return timestampsToDates(backfilled) as Tournament

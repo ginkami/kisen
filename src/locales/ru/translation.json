@@ -171,7 +171,16 @@
         "schedule": "Расписание",
         "players": "Игроки",
         "results": "Результаты",
-        "crosstable": "Таблица"
+        "crosstable": "Таблица",
+        "bracket": "Сетка плей-офф"
+      },
+      "bracket": {
+        "unavailable": "Не удалось построить сетку по сыгранным партиям.",
+        "final": "Финал",
+        "roundOf": "1/{{x}} финала",
+        "roundN": "Тур {{round}}",
+        "champion": "Победитель",
+        "tbd": "Определяется"
       },
       "roundsCount_one": "{{count}} тур",
       "roundsCount_few": "{{count}} тура",
@@ -312,7 +321,14 @@
       },
       "advanced": {
         "title": "Дополнительно",
-        "considerSente": "Учитывать цвет в результатах партий"
+        "considerSente": "Учитывать цвет в результатах партий",
+        "knockoutBracket": {
+          "showIfAny": "Показывать сетку плей-офф, если есть",
+          "size": "Размер сетки",
+          "startRound": "Стартует с тура",
+          "none": "—",
+          "startRoundHint": "Укажите тур, с которого стартует сетка."
+        }
       },
       "rounds": {
         "number": "Тур",

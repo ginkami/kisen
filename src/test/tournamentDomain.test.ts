@@ -3,6 +3,7 @@ import {
   scheduleEventSchema,
   scheduleRoundSchema,
   tournamentLocationSchema,
+  tournamentSettingsSchema,
 } from '../domain/tournament.ts'
 
 describe('schedule schema with scheduledAtLocal', () => {
@@ -76,5 +77,26 @@ describe('tournament location schema with timeZone', () => {
     expect(() =>
       tournamentLocationSchema.parse({ timeZone: '', locales: { ru: {} } })
     ).toThrow()
+  })
+})
+
+describe('tournament settings knockout bracket defaults', () => {
+  it('parses legacy settings without hasKnockoutBracket', () => {
+    const settings = tournamentSettingsSchema.parse({
+      timeControl: { type: 'absolute', mainTime: 600 },
+      tieBreaks: [{ type: 'points' }, { type: 'buchholz' }],
+      considerSente: false,
+    })
+    expect(settings.hasKnockoutBracket).toEqual({ size: 0, startRound: 0 })
+  })
+
+  it('keeps the configured bracket geometry', () => {
+    const settings = tournamentSettingsSchema.parse({
+      timeControl: { type: 'absolute', mainTime: 600 },
+      tieBreaks: [{ type: 'points' }, { type: 'buchholz' }],
+      considerSente: false,
+      hasKnockoutBracket: { size: 8, startRound: 3 },
+    })
+    expect(settings.hasKnockoutBracket).toEqual({ size: 8, startRound: 3 })
   })
 })

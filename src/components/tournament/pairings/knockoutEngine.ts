@@ -200,8 +200,14 @@ function checkStartConfiguration(
       const b = seeded[partnerIndex].participant
       const g = pairByKey.get(pairKey(a.id, b.id))
       if (!g) return null
-      if (g.result !== 'player1_won' && g.result !== 'player2_won') return null // undecided or draw
-      matches.push({ a: a.id, b: b.id, winner: g.result === 'player1_won' ? a.id : b.id })
+      // The pair's presence is enough for the structure; the winner is
+      // taken from the result when it is already fixed.
+      matches.push({
+        a: a.id,
+        b: b.id,
+        winner:
+          g.result === 'player1_won' ? a.id : g.result === 'player2_won' ? b.id : null,
+      })
     }
   }
   return matches
@@ -210,10 +216,12 @@ function checkStartConfiguration(
 
 /**
  * Follows the bracket from the start-round matches through the published
- * rounds: for every bracket pair of a round a game with that pair and a
- * fixed, non-draw result must exist (it gives the winner). The bracket may be
- * embedded in rounds with arbitrary other games — games outside the bracket
- * (including games between eliminated players) are ignored.
+ * rounds: every bracket pair of a round contributes its winner when its game
+ * has a fixed, non-draw result; undecided or missing bracket pairs end the
+ * derivation (the returned rounds stop there — deeper winners are unknown).
+ * The bracket may be embedded in rounds with arbitrary other games — games
+ * outside the bracket (including games between eliminated players) are
+ * ignored.
  */
 function followBracket(
   games: Game[],
@@ -230,18 +238,31 @@ function followBracket(
     for (let k = 0; k < prev.length; k += 2) {
       const w1 = prev[k].winner
       const w2 = prev[k + 1].winner
-      if (w1 == null || w2 == null) return null
+      if (w1 == null || w2 == null) return rounds // cannot derive deeper rounds
       const g = games.find(
         (x) =>
           x.round === r &&
           x.player2 != null &&
-          pairKey(x.player1, x.player2) === pairKey(w1, w2) &&
-          (x.result === 'player1_won' || x.result === 'player2_won'),
+          pairKey(x.player1, x.player2) === pairKey(w1, w2),
       )
-      if (!g) return null
-      nextMatches.push({ a: w1, b: w2, winner: g.result === 'player1_won' ? w1 : w2 })
+      if (!g) {
+        // The bracket pair has not been played yet: record the round with
+        // undecided winners and stop the derivation.
+        nextMatches.push({ a: w1, b: w2, winner: null })
+        rounds.push(nextMatches)
+        return rounds
+      }
+      nextMatches.push({
+        a: w1,
+        b: w2,
+        winner:
+          g.result === 'player1_won' ? w1 : g.result === 'player2_won' ? w2 : null,
+      })
     }
     rounds.push(nextMatches)
+    // A round with an unresolved match ends the derivation: the winners of
+    // the next round are unknown.
+    if (nextMatches.some((m) => m.winner == null)) return rounds
   }
   return rounds
 }
@@ -330,8 +351,8 @@ export function generateKnockoutRoundGames(input: {
     throw new PairingError('No knockout bracket of the chosen size starts at the chosen round')
   }
   const rounds = followBracket(games, s, first, publishedRounds)
-  if (!rounds) {
-    throw new PairingError('The played rounds do not continue the knockout bracket')
+  if (!rounds || rounds.length !== knockoutRound - 1) {
+    throw new PairingError('The earlier knockout rounds are not fully played yet')
   }
 
   const prev = rounds[rounds.length - 1]
@@ -365,4 +386,89 @@ export function generateKnockoutRoundGames(input: {
 }
 
 // __APPEND__
+
+export interface BracketViewMatch {
+  /** First player (participant id); null when the slot is undetermined. */
+  a: number | null
+  /** Second player; null for a bye slot or an undetermined slot. */
+  b: number | null
+  /** Known winner; null while the match has not been decided. */
+  winner: number | null
+  /** True when `b` is a virtual seed (bye slot). */
+  bye: boolean
+}
+
+export interface BracketViewRound {
+  /** Tournament round this knockout round belongs to. */
+  round: number
+  /** 1-based knockout round (1 = bracket round 1, log2(size) = final). */
+  knockoutRound: number
+  matches: BracketViewMatch[]
+}
+
+export interface BracketView {
+  size: number
+  startRound: number
+  rounds: BracketViewRound[]
+  /** True when the final's winner is known. */
+  complete: boolean
+}
+
+/**
+ * Reconstructs the visual bracket for the given bracket size and start round
+ * from the published games (same canonical rules as the pairing assistant:
+ * embedded brackets supported, games outside the bracket ignored). Rounds that
+ * have not been played yet are projected down to the final as placeholder
+ * slots. Returns null when the played rounds do not form the requested
+ * bracket.
+ */
+export function buildBracketView(input: {
+  participants: Participant[]
+  games: Game[]
+  publishedRounds: number
+  bracketSize: number
+  startRound: number
+}): BracketView | null {
+  const { participants, games, publishedRounds, bracketSize, startRound } = input
+  if (!isBracketSize(bracketSize) || startRound < 1 || startRound > publishedRounds) return null
+  const startingPointsById = new Map(participants.map((p) => [p.id, p.startingPoints ?? 0]))
+  const ratingById = new Map(participants.map((p) => [p.id, p.capturedRating?.value ?? 0]))
+
+  const first = matchStartRound(
+    participants,
+    games,
+    startRound,
+    bracketSize,
+    startingPointsById,
+    ratingById,
+  )
+  if (!first) return null
+  const played = followBracket(games, startRound, first, publishedRounds)
+  if (!played) return null
+
+  const rounds: BracketViewRound[] = played.map((matches, i) => ({
+    round: startRound + i,
+    knockoutRound: i + 1,
+    matches: matches.map((m) => ({ a: m.a, b: m.b, winner: m.winner, bye: m.b == null })),
+  }))
+
+  // Project the remaining rounds down to the final: winners of adjacent slots
+  // (placeholder when a winner is not yet known).
+  let prev: BracketViewMatch[] = rounds[rounds.length - 1].matches
+  let ko = rounds.length
+  while (prev.length > 1) {
+    ko++
+    const matches: BracketViewMatch[] = []
+    for (let k = 0; k + 1 < prev.length; k += 2) {
+      matches.push({ a: prev[k].winner, b: prev[k + 1].winner, winner: null, bye: false })
+    }
+    rounds.push({ round: startRound + ko - 1, knockoutRound: ko, matches })
+    prev = matches
+  }
+
+  const finalMatches = rounds[rounds.length - 1].matches
+  const complete = finalMatches.length === 1 && finalMatches[0].winner != null
+  return { size: bracketSize, startRound, rounds, complete }
+}
+
 

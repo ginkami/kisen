@@ -1,7 +1,36 @@
 import {
   remapLegacyRounds,
   backfillScheduleLocalTime,
+  withDefaultKnockoutBracket,
 } from '../services/firestoreTournamentRepository.ts'
+
+describe('withDefaultKnockoutBracket', () => {
+  it('injects the default when settings lack hasKnockoutBracket', () => {
+    const result = withDefaultKnockoutBracket({
+      settings: { considerSente: false, tieBreaks: [{ type: 'points' }] },
+    })
+    expect(result.settings).toEqual({
+      considerSente: false,
+      tieBreaks: [{ type: 'points' }],
+      hasKnockoutBracket: { size: 0, startRound: 0 },
+    })
+  })
+
+  it('injects the default when there is no settings at all', () => {
+    const result = withDefaultKnockoutBracket({ publishedRounds: 2 })
+    expect(result.settings).toEqual({
+      hasKnockoutBracket: { size: 0, startRound: 0 },
+    })
+  })
+
+  it('keeps an existing hasKnockoutBracket untouched', () => {
+    const data = {
+      settings: { hasKnockoutBracket: { size: 8, startRound: 3 } },
+    }
+    expect(withDefaultKnockoutBracket(data)).toBe(data)
+  })
+})
+
 
 describe('remapLegacyRounds', () => {
   it('migrates a legacy document with currentRound and zero publishedRounds', () => {

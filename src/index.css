@@ -139,6 +139,11 @@ div:has(> button[data-val='=']) + .gote-card > div  {
   background-color: transparent !important;
 }
 
+.vertical-connector {
+  top: calc(1 / 4 * 100% - 1px);
+  bottom: calc(1 / 4 * 100% - 1px);
+}
+
 @media (max-width: 640px) {
   main .card-body {
     padding: 0.5rem;

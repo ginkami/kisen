@@ -151,10 +151,28 @@ export const gameSchema = z.object({
 
 export type Game = z.infer<typeof gameSchema>
 
+export const knockoutBracketSettingsSchema = z.object({
+  /**
+   * Bracket size (a power of two), 0 = the tournament has no knockout
+   * bracket. Maintained via the edit form's Advanced Settings.
+   */
+  size: z.number().int().default(0),
+  /**
+   * The tournament round the knockout round 1 starts at, 0 = unset.
+   */
+  startRound: z.number().int().default(0),
+})
+
+export type KnockoutBracketSettings = z.infer<typeof knockoutBracketSettingsSchema>
+
 export const tournamentSettingsSchema = z.object({
   timeControl: timeControlSchema,
   tieBreaks: tieBreaksSchema,
   considerSente: z.boolean().default(false),
+  hasKnockoutBracket: knockoutBracketSettingsSchema.default({
+    size: 0,
+    startRound: 0,
+  }),
 })
 
 export type TournamentSettings = z.infer<typeof tournamentSettingsSchema>

@@ -28,7 +28,7 @@ import { tieBreakTypeSchema } from '../../domain/tieBreak.ts'
 import type { TournamentFormState, ScheduleRow } from '../../hooks/useTournamentForm.ts'
 import type { TimeControl, TimeControlFormat } from '../../domain/timeControl.ts'
 import type { TieBreak, TieBreakType } from '../../domain/tieBreak.ts'
-import type { TournamentLocale } from '../../domain/tournament.ts'
+import type { TournamentLocale, KnockoutBracketSettings } from '../../domain/tournament.ts'
 import type { Event } from '../../domain/event.ts'
 import type { Association } from '../../domain/association.ts'
 import { useMyAssociations } from '../../hooks/useAssociations.ts'
@@ -528,14 +528,30 @@ function TimeControlSection({
   )
 }
 
+/** Bracket size slider stops: index 0..9 → 0, 4, 8, … 1024. */
+const BRACKET_SIZE_STOPS = [0, 4, 8, 16, 32, 64, 128, 256, 512, 1024]
+
 function AdvancedSettingsSection({
   considerSente,
   onConsiderSenteChange,
+  hasKnockoutBracket,
+  onHasKnockoutBracketChange,
 }: {
   considerSente: boolean
   onConsiderSenteChange: (value: boolean) => void
+  hasKnockoutBracket: KnockoutBracketSettings
+  onHasKnockoutBracketChange: (value: KnockoutBracketSettings) => void
 }) {
   const { t } = useTranslation()
+  // Defensive default: documents loaded through paths that bypass the zod
+  // schema may lack the field.
+  const bracket = hasKnockoutBracket ?? { size: 0, startRound: 0 }
+  const sizeIndex = Math.max(
+    0,
+    BRACKET_SIZE_STOPS.findIndex((v) => v === bracket.size),
+  )
+  // The collapse starts open when a bracket is already configured.
+  const [bracketOpen, setBracketOpen] = useState(bracket.size > 0)
 
   return (
     <div className="card bg-base-200 shadow-sm">
@@ -556,6 +572,98 @@ function AdvancedSettingsSection({
               {t('tournament.edit.advanced.considerSente')}
             </span>
           </label>
+        </div>
+
+        <div
+          className={[
+            'collapse collapse-arrow bg-base-100',
+            bracketOpen ? 'collapse-open' : 'collapse-close',
+          ].join(' ')}
+          data-testid="knockout-bracket-collapse"
+        >
+          <div
+            className="collapse-title cursor-pointer text-sm font-medium"
+            onClick={() => setBracketOpen((o) => !o)}
+          >
+            {t('tournament.edit.advanced.knockoutBracket.showIfAny')}
+          </div>
+          <div className="collapse-content">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="form-control">
+                <label className="label" htmlFor="knockout-bracket-size-slider">
+                  <span className="label-text">{t('tournament.edit.advanced.knockoutBracket.size')}</span>
+                  <span className="badge badge-outline" data-testid="knockout-bracket-size-value">
+                    {bracket.size === 0
+                      ? t('tournament.edit.advanced.knockoutBracket.none')
+                      : bracket.size}
+                  </span>
+                </label>
+                <div className="w-full max-w-xs">
+                  <input
+                    id="knockout-bracket-size-slider"
+                    type="range"
+                    min={0}
+                    max={BRACKET_SIZE_STOPS.length - 1}
+                    step={1}
+                    value={sizeIndex}
+                    onChange={(e) =>
+                      onHasKnockoutBracketChange({
+                        ...hasKnockoutBracket,
+                        size: BRACKET_SIZE_STOPS[Number(e.target.value)],
+                      })
+                    }
+                    className="range range-primary range-sm"
+                  />
+                  <div className="flex w-full justify-between px-1 text-xs opacity-60">
+                    {BRACKET_SIZE_STOPS.map((v) => (
+                      <span className="w-1" key={v}>{v === 0 ? '0' : v}</span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <div className="form-control">
+                <label className="label" htmlFor="knockout-bracket-start-round-slider">
+                  <span className="label-text">
+                    {t('tournament.edit.advanced.knockoutBracket.startRound')}
+                  </span>
+                  <span className="badge badge-outline" data-testid="knockout-bracket-start-round-value">
+                    {bracket.startRound === 0
+                      ? t('tournament.edit.advanced.knockoutBracket.none')
+                      : bracket.startRound}
+                  </span>
+                </label>
+                <div className="w-full max-w-xs">
+                  <input
+                    id="knockout-bracket-start-round-slider"
+                    type="range"
+                    min={0}
+                    max={10}
+                    step={1}
+                    value={bracket.startRound}
+                    onChange={(e) =>
+                      onHasKnockoutBracketChange({
+                        ...hasKnockoutBracket,
+                        startRound: Number(e.target.value),
+                      })
+                    }
+                    className="range range-primary range-sm"
+                  />
+                  <div className="flex w-full justify-between px-1 text-xs opacity-60">
+                    {Array.from({ length: 11 }, (_, i) => (
+                      <span className="w-1" key={i}>{i}</span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {bracket.size > 0 && bracket.startRound === 0 && (
+              <div className="mt-1 flex items-start gap-2 text-xs opacity-70">
+                <BsInfoCircleFill className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                <span>{t('tournament.edit.advanced.knockoutBracket.startRoundHint')}</span>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -974,6 +1082,7 @@ export function TournamentEditForm({
     addRegulation,
     removeRegulation,
     updateConsiderSente,
+    updateHasKnockoutBracket,
     addScheduleRow,
     updateScheduleRow,
     removeScheduleRow,
@@ -1401,6 +1510,8 @@ export function TournamentEditForm({
           <AdvancedSettingsSection
             considerSente={formState.settings.considerSente}
             onConsiderSenteChange={updateConsiderSente}
+            hasKnockoutBracket={formState.settings.hasKnockoutBracket}
+            onHasKnockoutBracketChange={updateHasKnockoutBracket}
           />
         </div>
       )}
