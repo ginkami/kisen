@@ -2,6 +2,10 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import App from './App'
 
+vi.mock('./hooks/useAppSettings.ts', () => ({
+  useAppSettings: () => ({ lockLogin: false, loginHash: '' }),
+}))
+
 vi.mock('@tanstack/react-query', () => ({
   useQuery: vi.fn(() => ({ data: [], isLoading: false, isError: false })),
   useQueryClient: () => ({

@@ -18,6 +18,14 @@ vi.mock('../context/AuthContext.tsx', () => ({
   useAuth: () => authState,
 }))
 
+const settingsState = vi.hoisted(() => ({
+  settings: { lockLogin: false, loginHash: '' } as unknown,
+}))
+
+vi.mock('../hooks/useAppSettings.ts', () => ({
+  useAppSettings: () => settingsState.settings,
+}))
+
 function renderPage() {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
@@ -47,7 +55,8 @@ describe('AppAdminPage', () => {
     expect(
       screen.getByRole('tab', { name: 'appAdmin.tabs.settings' })
     ).toBeInTheDocument()
-    expect(screen.getByText('appAdmin.settings.empty')).toBeInTheDocument()
+    // The settings are still loading (the subscription has not pushed yet).
+    expect(screen.getByText('appAdmin.settings.loading')).toBeInTheDocument()
   })
 
   it('shows a spinner instead of the access alert while loading', () => {

@@ -1,6 +1,7 @@
 {
   "auth": {
     "pageTitle": "Sign in | shogi·world",
+    "unavailable": "The login page is hidden.",
     "title": "Tournament Hub",
     "email": "Email",
     "displayName": "How should we address you",
@@ -570,14 +571,19 @@
       "settings": "Settings"
     },
     "settings": {
-      "empty": "No settings have been added yet."
+      "loading": "Loading settings…",
+      "lockLogin": "Hide the login page (testing mode)",
+      "loginHash": "Login page access hash",
+      "save": "Save",
+      "saved": "Settings saved.",
+      "saveError": "Failed to save the settings."
     },
     "errors": {
       "noAccess": "Only administrators can access this page."
     }
   },
   "home": {
-    "pageTitle": "ShogiWorld — Shogi Tournament Management Platform",
+    "pageTitle": "Shogi·World — Shogi Tournament Management Platform",
     "title": "Tournaments",
     "tabs": {
       "finished": "Finished",

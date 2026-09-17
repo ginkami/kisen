@@ -7,6 +7,7 @@ import { UserMenu } from './UserMenu.tsx'
 import { NewTournamentButton } from './NewTournamentButton.tsx'
 import { AdminDrawer } from './AdminDrawer.tsx'
 import { BlockedNoticeBanner } from './BlockedNoticeBanner.tsx'
+import { useAppSettings } from '../hooks/useAppSettings.ts'
 import { useAuth } from '../context/AuthContext.tsx'
 
 export interface LayoutOutletContext {
@@ -26,6 +27,10 @@ export function Layout() {
   // The state lives here so both side drawers can close each other.
   const [isPairingToolsOpen, setIsPairingToolsOpen] = useState(false)
   const { pathname } = useLocation()
+  // Testing-mode lock: hides the guest auth buttons when enabled by an admin.
+  const appSettings = useAppSettings()
+  // No buttons until the settings snapshot arrives — prevents the flicker.
+  const settingsLoading = appSettings === null
 
   // The admin drawer is only meaningful for an authenticated session.
   useEffect(() => {
@@ -59,14 +64,16 @@ export function Layout() {
         </div>
 
         <div className="navbar-end gap-2">
-          <NewTournamentButton hasUnsavedChanges={hasUnsavedChanges} />
+          {!settingsLoading && (isAuthenticated || !appSettings?.lockLogin) && (
+            <NewTournamentButton hasUnsavedChanges={hasUnsavedChanges} />
+          )}
           <LanguageSwitcher />
 
-          {isLoading ? (
+          {isLoading || settingsLoading ? (
             <span className="loading loading-spinner loading-sm text-primary-content" />
           ) : isAuthenticated ? (
             <UserMenu onOpenAdmin={openAdmin} />
-          ) : (
+          ) : appSettings?.lockLogin ? null : (
             <Link
               to="/login"
               className="btn btn-secondary btn-sm"

@@ -72,6 +72,13 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // ---------- App settings (singleton application settings document) ----------
+    match /app/settings {
+      // Public read: the header hides the guest auth buttons for visitors.
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
     // ---------- Associations (РђСЃСЃРѕС†РёР°С†РёРё) ----------
     match /associations/{associationId} {
       allow read: if true;
