@@ -545,7 +545,7 @@ export function PairingsBoard({
                 <button
                   type="button"
                   onClick={onTogglePairingTools}
-                  className="btn btn-secondary btn-sm"
+                  className="btn btn-secondary btn-xs"
                   aria-label={t('tournament.edit.pairingTools.open')}
                 >
                   <FaPeopleArrows className="h-5 w-5" />
