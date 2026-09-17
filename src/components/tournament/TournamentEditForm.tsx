@@ -1083,6 +1083,7 @@ export function TournamentEditForm({
     removeRegulation,
     updateConsiderSente,
     updateHasKnockoutBracket,
+    isFinished,
     addScheduleRow,
     updateScheduleRow,
     removeScheduleRow,
@@ -1102,6 +1103,14 @@ export function TournamentEditForm({
     setValidationErrors,
     slugTaken,
   } = useTournamentForm(tournamentId)
+
+  const parentEventTitleEn =
+    useQuery({
+      queryKey: ['event', 'fesaTitle', formState?.parentEvent],
+      queryFn: () => eventService.getById(formState!.parentEvent!),
+      enabled: !!formState?.parentEvent,
+      staleTime: 30 * 1000,
+    }).data?.locales.en?.title ?? null
 
   // Client-side mirror of the Firestore tournament-update rules: admins, the
   // creator, and managers of the host association may edit. Guarding here
@@ -1575,6 +1584,22 @@ export function TournamentEditForm({
           tieBreaks={formState.settings.tieBreaks}
           updateStartingPoints={updateStartingPoints}
           updateGames={updateGames}
+          fesa={{
+            isFinished,
+            tournamentTitleEn: formState.locales.en?.title ?? formState.locales.ru?.title ?? '',
+            parentEventTitleEn,
+            settlementEn: formState.location.locales.en?.settlement || null,
+            timeControl: formState.settings.timeControl,
+            roundDates: formState.scheduleRows
+              .filter((r): r is Extract<typeof r, { kind: 'round' }> => r.kind === 'round')
+              .map((r) =>
+                r.scheduledAtLocal
+                  ? `${r.scheduledAtLocal.year}-${String(r.scheduledAtLocal.month).padStart(2, '0')}-${String(r.scheduledAtLocal.day).padStart(2, '0')}`
+                  : r.scheduledAt
+                    ? r.scheduledAt.toISOString().slice(0, 10)
+                    : null,
+              ),
+          }}
         />
       )}
 

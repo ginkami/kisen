@@ -2,7 +2,8 @@ import { useMemo, useState, useCallback, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import * as Flags from 'country-flag-icons/react/3x2'
 import { PiCrownSimple } from 'react-icons/pi'
-import { BsCheckLg } from 'react-icons/bs'
+import { BsCheckLg, BsDownload } from 'react-icons/bs'
+
 import { getCountryName } from '../../utils/countries.ts'
 import {
   rankToColor, computeStandings,
@@ -10,10 +11,12 @@ import {
   handicapForView,
 } from './crosstable/crosstableModel.ts'
 import type { Game } from '../../domain/tournament.ts'
+import type { TimeControl } from '../../domain/timeControl.ts'
 import type { TieBreak } from '../../domain/tieBreak.ts'
 import type { SupportedLocale } from '../../domain/locale.ts'
 import type { ParticipantRow } from '../../hooks/useTournamentForm.ts'
 import { TableScrollProvider, StickyTableCell } from './tablescroll';
+import { buildFesaReport } from './crosstable/fesaReport.ts'
 
 interface CrosstableSectionProps {
   games: Game[]
@@ -24,6 +27,15 @@ interface CrosstableSectionProps {
   tieBreaks: TieBreak[]
   updateStartingPoints: (participantId: number, value: number) => void
   updateGames: (round: number, gamesForRound: Game[]) => void
+  /** FESA export context; rendered only when the tournament is finished. */
+  fesa?: {
+    isFinished: boolean
+    tournamentTitleEn: string
+    parentEventTitleEn: string | null
+    settlementEn: string | null
+    timeControl: TimeControl
+    roundDates: (string | null)[]
+  }
 }
 
 const COL_NO = 28, COL_FLAG = 20, COL_RANK = 45
@@ -32,7 +44,7 @@ const OFF_RANK = OFF_FLAG + COL_FLAG
 const OFF_NAME = OFF_RANK + COL_RANK
 
 export function CrosstableSection({
-  games, participants, roundCount, publishedRounds, considerSente, tieBreaks, updateStartingPoints, updateGames,
+  games, participants, roundCount, publishedRounds, considerSente, tieBreaks, updateStartingPoints, updateGames, fesa,
 }: CrosstableSectionProps) {
   const { t, i18n } = useTranslation()
   const locale = (i18n.language as SupportedLocale) ?? 'ru'
@@ -61,6 +73,39 @@ export function CrosstableSection({
     for (const p of participants) m.set(p.id, p)
     return m
   }, [participants])
+
+  const handleDownloadFesa = () => {
+    if (!fesa) return
+    const report = buildFesaReport({
+      isFinished: fesa.isFinished,
+      tournamentTitleEn: fesa.tournamentTitleEn,
+      parentEventTitleEn: fesa.parentEventTitleEn,
+      settlementEn: fesa.settlementEn,
+      timeControl: fesa.timeControl,
+      roundDates: fesa.roundDates,
+      roundCount,
+      participants: participants.map((p) => {
+        const loc = p.locales.en ?? p.locales.ru
+        return {
+          id: p.id,
+          familyNameEn: loc?.familyName ?? '',
+          givenNameEn: loc?.givenName ?? '',
+          nationality: p.nationality || '',
+          startingPoints: p.startingPoints ?? 0,
+        }
+      }),
+      games,
+      standings,
+    })
+    if (!report) return
+    const blob = new Blob([report.content], { type: 'text/plain;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = report.fileName
+    a.click()
+    URL.revokeObjectURL(url)
+  }
 
   function findGame(pid: number, round: number): Game | undefined {
     return games.find((g) => g.round === round && (g.player1 === pid || g.player2 === pid))
@@ -154,6 +199,7 @@ export function CrosstableSection({
   }
 
   return (
+    <>
     <TableScrollProvider>
       <table className="table table-xs md:table-sm w-auto table-fixed border-b border-base-300 pb-2">
         <thead className="bg-base-200 text-base-200-content text-xs">
@@ -239,5 +285,13 @@ export function CrosstableSection({
         </tbody>
       </table>
     </TableScrollProvider>
+    <div className="mt-2">
+      {fesa?.isFinished && (
+        <button type="button" className="btn btn-xs btn-ghost" onClick={handleDownloadFesa}>
+          FESA <BsDownload className="h-3 w-3" />
+        </button>
+      )}
+    </div>
+    </>
   )
 }

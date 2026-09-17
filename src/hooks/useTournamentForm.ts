@@ -1453,6 +1453,7 @@ export function useTournamentForm(tournamentId: string | undefined) {
     updateLocationLocale,
     updateArbiter,
     updateHasKnockoutBracket,
+    isFinished: tournament?.status === 'finished',
     updateTimeControlType,
     updateTimeControlField,
     setTieBreaks,
