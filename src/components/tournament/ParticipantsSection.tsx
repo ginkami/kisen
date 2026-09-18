@@ -137,7 +137,9 @@ export function ParticipantsSection({
         <div className="space-y-2">
           {rows.map((row) => {
             const nameLoc = row.locales[activeLocale] ?? row.locales['ru'] ?? row.locales['en']
-            const summaryName = [nameLoc?.familyName, nameLoc?.givenName].filter((v) => v !== '').join(', ')
+            const summaryName = [nameLoc?.familyName, nameLoc?.givenName]
+              .filter((v) => v != null && v !== '')
+              .join(', ')
             const summaryRating = row.ratingValue.trim()
             return (
             <details
