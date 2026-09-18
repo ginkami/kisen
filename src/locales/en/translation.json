@@ -392,6 +392,26 @@
           "award": "Award ceremony, closing",
           "break": "Break"
         }
+      },
+      "promotion": {
+        "title": "Promotion",
+        "add": "Promotional activity",
+        "loading": "Loading promotions…",
+        "empty": "No promotional activities yet.",
+        "showOnHome": "Show on the home page",
+        "activeLabel": "Active",
+        "startsAt": "from",
+        "endsAt": "to",
+        "startBeforeEnd": "\"from\" must be earlier than \"to\"",
+        "save": "Save",
+        "delete": "Delete",
+        "deleteConfirmTitle": "Delete promotion",
+        "deleteConfirm": "Delete this promotional activity?",
+        "status": {
+          "notStarted": "not started",
+          "active": "running",
+          "finished": "finished"
+        }
       }
     },
     "timeControl": {

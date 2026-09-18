@@ -21,6 +21,7 @@ import type {
 import { firestoreTournamentRepository } from './firestoreTournamentRepository.ts'
 import { sanitizeDeep } from '../utils/sanitize.ts'
 import { eventService } from './eventService.ts'
+import { deletePromotionsByTournament } from './promotionService.ts'
 import { getTournamentStartYearMonth, getTournamentStartDate } from '../utils/yearMonth.ts'
 import { supportedLocales } from '../domain/locale.ts'
 import { resolveLocationByIp, resolvedToTournamentLocation } from './geoService.ts'
@@ -163,6 +164,9 @@ export class TournamentService {
     return this.repository.getBySlug(slug)
   }
 
+  async getByIds(ids: string[]): Promise<Tournament[]> {
+    return this.repository.getByIds(ids)
+  }
   async getById(id: string): Promise<Tournament | null> {
     return this.repository.getById(id)
   }
@@ -407,6 +411,13 @@ export class TournamentService {
   async delete(id: string): Promise<void> {
     const existing = await this.repository.getById(id)
     await this.repository.delete(id)
+
+    // Cascade: remove all promotions referencing the deleted tournament.
+    // Non-fatal: a failed cascade leaves orphaned promotions (harmless) and must
+    // not undo the tournament deletion.
+    await deletePromotionsByTournament(id).catch((err: unknown) => {
+      console.warn(`Failed to delete promotions for tournament ${id}:`, err)
+    })
 
     // Sync event startYearMonth if tournament had a parentEvent
     if (existing?.parentEvent) {

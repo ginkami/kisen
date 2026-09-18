@@ -40,6 +40,7 @@ import { ExpandableField } from './ExpandableField.tsx'
 import { TournamentLocationInput } from './TournamentLocationInput.tsx'
 import { PairingsSection } from './PairingsSection.tsx'
 import { PairingToolsDrawer } from './PairingToolsDrawer.tsx'
+import { PromotionSection } from './PromotionSection.tsx'
 import type { LayoutOutletContext } from '../Layout.tsx'
 import { CrosstableSection } from './CrosstableSection.tsx'
 import { EventPickerModal } from './EventPickerModal.tsx'
@@ -1522,6 +1523,10 @@ export function TournamentEditForm({
             hasKnockoutBracket={formState.settings.hasKnockoutBracket}
             onHasKnockoutBracketChange={updateHasKnockoutBracket}
           />
+
+          {isAdmin && (
+            <PromotionSection tournamentId={tournamentId ?? 'new'} />
+          )}
         </div>
       )}
 

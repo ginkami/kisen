@@ -1,6 +1,11 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../../context/AuthContext.tsx'
+import { promotionStatus } from '../../domain/promotion.ts'
+import {
+  listAllPromotions,
+  type Promotion,
+} from '../../services/promotionService.ts'
 import {
   useAssociationsByIds,
   useMyAssociations,
@@ -14,6 +19,7 @@ import {
   type PublicTournamentStatus,
 } from '../../hooks/usePublicTournaments.ts'
 import { canEditTournament, type Tournament } from '../../domain/tournament.ts'
+import { tournamentService } from '../../services/tournamentService.ts'
 import {
   EMPTY_TOURNAMENT_FILTERS,
   TournamentFiltersForm,
@@ -183,6 +189,73 @@ export function PublicTournamentsBoard() {
     EMPTY_TOURNAMENT_FILTERS
   )
 
+  const [promotions, setPromotions] = useState<Promotion[] | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    listAllPromotions()
+      .then((list) => {
+        if (!cancelled) setPromotions(list)
+      })
+      .catch(() => {
+        if (!cancelled) setPromotions([])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const now = useMemo(() => new Date(), [])
+  const qualifyingPromotions = useMemo(() => {
+    if (promotions === null) return null
+    return promotions
+      .filter(
+        (p) =>
+          p.showOnHome &&
+          promotionStatus(p.startedAt, p.endedAt, now) !== 'finished',
+      )
+      .sort((a, b) => {
+        const statusA = promotionStatus(a.startedAt, a.endedAt, now)
+        const statusB = promotionStatus(b.startedAt, b.endedAt, now)
+        if (statusA !== statusB) return statusA === 'active' ? -1 : 1
+        if (statusA === 'active') return b.startedAt.getTime() - a.startedAt.getTime()
+        return a.startedAt.getTime() - b.startedAt.getTime()
+      })
+  }, [promotions, now])
+
+  const promotedTournamentIds = useMemo(
+    () => (qualifyingPromotions ?? []).map((p) => p.tournament),
+    [qualifyingPromotions],
+  )
+
+  const [promotedTournaments, setPromotedTournaments] = useState<Tournament[] | null>(null)
+  useEffect(() => {
+    if (promotedTournamentIds === null) return
+    if (promotedTournamentIds.length === 0) {
+      setPromotedTournaments([])
+      return
+    }
+    let cancelled = false
+    tournamentService
+      .getByIds(promotedTournamentIds)
+      .then((list) => {
+        if (cancelled) return
+        const byId = new Map(list.map((t) => [t.id, t]))
+        setPromotedTournaments(
+          promotedTournamentIds
+            .map((id) => byId.get(id))
+            .filter((x): x is Tournament => !!x),
+        )
+      })
+      .catch(() => {
+        if (!cancelled) setPromotedTournaments([])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [promotedTournamentIds])
+
+  const promotedReady = qualifyingPromotions !== null && promotedTournaments !== null
   const filters = useMemo<PublicTournamentFilters>(
     () => ({
       country: applied.country || undefined,
@@ -222,6 +295,22 @@ export function PublicTournamentsBoard() {
 
         <div className="min-w-0 flex-1">
           <h1 className="mb-4 text-2xl font-semibold">{t('home.title')}</h1>
+
+          {promotedReady &&
+            promotedTournaments !== null &&
+            promotedTournaments.length > 0 && (
+              <section className="mb-6 space-y-3">
+                {promotedTournaments.map((tournament) => (
+                  <TournamentCard
+                    key={tournament.id}
+                    tournament={tournament}
+                    parentEvent={null}
+                    association={null}
+                    canEdit={canEditTournamentById(tournament)}
+                  />
+                ))}
+              </section>
+            )}
 
           <details className="xl:hidden mb-4">
             <summary className="btn btn-outline btn-sm">

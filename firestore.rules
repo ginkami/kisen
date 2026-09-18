@@ -79,6 +79,13 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin();
     }
 
+
+    // ---------- Promotions (продвижение турниров) ----------
+    match /promotions/{promotionId} {
+      // Public read: the home page renders promoted tournament cards for visitors.
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
     // ---------- Associations (РђСЃСЃРѕС†РёР°С†РёРё) ----------
     match /associations/{associationId} {
       allow read: if true;

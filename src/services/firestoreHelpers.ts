@@ -34,6 +34,9 @@ export function isTimestampLike(value: unknown): boolean {
  * Handles real Timestamp instances, objects with toDate(), and plain { seconds, nanoseconds }.
  */
 export function timestampToDate(value: unknown): Date {
+  if (value instanceof Date) {
+    return value
+  }
   if (value instanceof Timestamp) {
     return value.toDate()
   }

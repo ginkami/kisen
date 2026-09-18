@@ -1,0 +1,8 @@
+// promotion (коллекция promotions)
+{
+    "id": "UID", // (PK)
+    "tournament": "UUIDv7", // (Required, FK Ref: tournament.id) Продвигаемый турнир
+    "showOnHome": "Bool",
+    "startedAt": "Date", // Время начала продвижения
+    "endedAt": "Date" // Время окончания продвижения
+}

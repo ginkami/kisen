@@ -5,12 +5,18 @@ vi.mock('./firestoreTournamentRepository.ts', () => ({
   firestoreTournamentRepository: {},
 }))
 
+vi.mock('./promotionService.ts', () => ({
+  deletePromotionsByTournament: vi.fn().mockResolvedValue(undefined),
+}))
+
+import { deletePromotionsByTournament } from './promotionService.ts'
 import { TournamentService } from './tournamentService.ts'
 
 function createMockRepository(): TournamentRepository {
   return {
     getBySlug: vi.fn().mockResolvedValue(null),
     getById: vi.fn().mockResolvedValue(null),
+  getByIds: vi.fn().mockResolvedValue([]),
     list: vi.fn().mockResolvedValue([]),
     create: vi.fn((tournament: Tournament) => Promise.resolve(tournament)),
     update: vi.fn((tournament: Tournament) => Promise.resolve(tournament)),
@@ -108,6 +114,36 @@ describe('TournamentService', () => {
       const tournament = vi.mocked(repo.create).mock.calls[0][0] as Tournament
       expect(tournament.settings.timeControl.type).toBe('byoyomi')
       expect(tournament.settings.tieBreaks).toHaveLength(3)
+    })
+  })
+
+  describe('delete', () => {
+    it('cascades: deletes all promotions of the tournament', async () => {
+      const repo = createMockRepository()
+      const service = new TournamentService(repo)
+      vi.mocked(repo.getById).mockResolvedValue({ id: 't-1' } as Tournament)
+      const cascadeMock = vi.mocked(deletePromotionsByTournament)
+
+      await service.delete('t-1')
+
+      expect(repo.delete).toHaveBeenCalledWith('t-1')
+      expect(cascadeMock).toHaveBeenCalledWith('t-1')
+    })
+
+    it('does not fail the deletion when the promotion cascade fails', async () => {
+      const repo = createMockRepository()
+      const service = new TournamentService(repo)
+      vi.mocked(repo.getById).mockResolvedValue({ id: 't-1' } as Tournament)
+      vi.mocked(deletePromotionsByTournament).mockRejectedValue(
+        new Error('cascade failed'),
+      )
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+      await expect(service.delete('t-1')).resolves.toBeUndefined()
+      expect(repo.delete).toHaveBeenCalledWith('t-1')
+
+      warnSpy.mockRestore()
+      vi.mocked(deletePromotionsByTournament).mockResolvedValue(undefined)
     })
   })
 })

@@ -11,6 +11,7 @@ import {
   orderBy,
   limit,
   startAfter,
+  documentId,
 } from 'firebase/firestore'
 import { db } from './firebaseConfig.ts'
 import type { Tournament } from '../domain/tournament.ts'
@@ -262,6 +263,19 @@ export class FirestoreTournamentRepository implements TournamentRepository {
       id: docSnap.id,
       ...docSnap.data(),
     } as Record<string, unknown>)
+  }
+
+  async getByIds(ids: string[]): Promise<Tournament[]> {
+    const chunks = chunkArray(ids, 10)
+    const results = await Promise.all(
+      chunks.map(async (chunk) => {
+        const snapshot = await getDocs(
+          query(this.collectionRef, where(documentId(), "in", chunk))
+        )
+        return Promise.all(snapshot.docs.map((docSnapshot) => fromFirestore(docSnapshot.data())))
+      })
+    )
+    return results.flat()
   }
 
   async getById(id: string): Promise<Tournament | null> {

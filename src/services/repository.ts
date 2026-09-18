@@ -33,6 +33,7 @@ export interface PaginatedTournaments {
 export interface TournamentRepository {
   getBySlug(slug: string): Promise<Tournament | null>
   getById(id: string): Promise<Tournament | null>
+  getByIds(ids: string[]): Promise<Tournament[]>
   list(filters?: ListTournamentsFilters): Promise<Tournament[]>
   listPublishedTournaments(
     params: ListPublishedTournamentsParams
