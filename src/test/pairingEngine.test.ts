@@ -308,3 +308,75 @@ describe('generatePairings', () => {
   })
 })
 
+// Regression for the down-float closeness multiplier: a synthetic 27-player
+// Swiss after 5 rounds where the sole leader (2, r=2235) must pair down. His
+// unplayed candidates in the 4-point group are 3 (r=2005) and 5 (r=1726).
+// Without the cross-group closeness multiplier the same-half structure of the
+// 3-point group outvoted the direct closeness and the engine paired the leader
+// with the lower-rated 5; with the multiplier the strongest available opponent
+// (3) is chosen. Fixture: [id, rating] and [round, p1, p2, status, result].
+const LEADER_FIXTURE_PARTICIPANTS: Array<[number, number]> = [
+  [1, 2473], [2, 2235], [4, 2005], [3, 2005], [27, 1936], [5, 1726],
+  [6, 1647], [7, 1618], [26, 1], [8, 1485], [10, 1310], [9, 1360],
+  [28, 1285], [13, 1268], [11, 1289], [16, 1193], [17, 1188], [18, 1114],
+  [15, 1204], [14, 1227], [19, 1083], [20, 1049], [21, 1004], [22, 965],
+  [23, 960], [24, 910], [25, 712],
+]
+
+const LEADER_FIXTURE_GAMES: Array<[number, number, number | null, Game['status'], Game['result']]> = [
+  [1, 27, null, 'forfeit', null], [1, 1, 14, 'completed', 'player1_won'], [1, 15, 2, 'completed', 'player2_won'],
+  [1, 3, 16, 'completed', 'player1_won'], [1, 4, 17, 'completed', 'player1_won'], [1, 18, 5, 'completed', 'player2_won'],
+  [1, 6, 19, 'completed', 'player1_won'], [1, 7, 20, 'completed', 'player1_won'], [1, 21, 8, 'completed', 'player2_won'],
+  [1, 9, 22, 'completed', 'player1_won'], [1, 10, 23, 'completed', 'player1_won'], [1, 11, 24, 'completed', 'player1_won'],
+  [1, 28, 25, 'completed', 'player1_won'], [1, 13, 26, 'completed', 'player2_won'],
+  [2, 27, null, 'forfeit', 'player2_won'], [2, 1, 8, 'completed', 'player1_won'], [2, 2, 9, 'completed', 'player1_won'],
+  [2, 3, 10, 'completed', 'player1_won'], [2, 11, 4, 'completed', 'player2_won'], [2, 5, 28, 'completed', 'player1_won'],
+  [2, 26, 6, 'completed', 'player1_won'], [2, 7, 13, 'completed', 'player1_won'], [2, 20, 14, 'completed', 'player2_won'],
+  [2, 15, 21, 'completed', 'player1_won'], [2, 16, 22, 'completed', 'player1_won'], [2, 17, 23, 'completed', 'player1_won'],
+  [2, 24, 18, 'completed', 'player2_won'], [2, 19, 25, 'completed', 'player1_won'],
+  [3, 27, null, 'forfeit', 'player2_won'], [3, 1, 5, 'completed', 'player1_won'], [3, 2, 7, 'completed', 'player1_won'],
+  [3, 3, 26, 'completed', 'player1_won'], [3, 6, 4, 'completed', 'player2_won'], [3, 8, 15, 'completed', 'player1_won'],
+  [3, 9, 16, 'completed', 'player2_won'], [3, 10, 17, 'completed', 'player1_won'], [3, 28, 19, 'completed', 'player1_won'],
+  [3, 14, 13, 'completed', 'player2_won'], [3, 20, 23, 'completed', 'player1_won'], [3, 21, 24, 'completed', 'player1_won'],
+  [3, 22, 25, 'completed', 'player1_won'], [3, 18, 11, 'completed', 'player1_won'],
+  [4, 1, 3, 'completed', 'player1_won'], [4, 2, 4, 'completed', 'player1_won'], [4, 16, 5, 'completed', 'player2_won'],
+  [4, 7, 28, 'completed', 'player1_won'], [4, 8, 18, 'completed', 'player2_won'], [4, 10, 26, 'completed', 'player2_won'],
+  [4, 6, 17, 'completed', 'player1_won'], [4, 9, 19, 'completed', 'player1_won'], [4, 11, 20, 'completed', 'player1_won'],
+  [4, 21, 13, 'completed', 'player2_won'], [4, 14, 22, 'completed', 'player1_won'], [4, 15, 23, 'completed', 'player1_won'],
+  [4, 24, 25, 'completed', 'player2_won'], [4, 27, null, 'bye', 'player1_won'],
+  [5, 16, null, 'forfeit', null], [5, 1, 2, 'completed', 'player2_won'], [5, 4, 18, 'completed', 'player1_won'],
+  [5, 3, 7, 'completed', 'player1_won'], [5, 26, 5, 'completed', 'player2_won'], [5, 11, 27, 'completed', 'player2_won'],
+  [5, 6, 28, 'completed', 'player1_won'], [5, 8, 13, 'completed', 'player1_won'], [5, 9, 14, 'completed', 'player1_won'],
+  [5, 10, 15, 'completed', 'player1_won'], [5, 21, 17, 'completed', 'player2_won'], [5, 19, 22, 'completed', 'player1_won'],
+  [5, 20, 25, 'completed', 'player1_won'], [5, 24, 23, 'completed', 'player2_won'],
+]
+
+describe('generatePairings down-float alignment', () => {
+  it('pairs the sole leader down with the strongest available opponent', () => {
+    const participants = LEADER_FIXTURE_PARTICIPANTS.map(([id, rating]) => makeParticipant(id, rating))
+    const games = LEADER_FIXTURE_GAMES.map(([round, p1, p2, status, result]) =>
+      makeGame({ round, player1: p1, player2: p2, status, result }),
+    )
+    const newGames = generatePairings({
+      participants,
+      games,
+      round: 6,
+      publishedRounds: 5,
+      considerSente: false,
+    })
+
+    const leaderGame = newGames.find((g) => g.player1 === 2 || g.player2 === 2)
+    expect(leaderGame).toBeDefined()
+    const opponent = leaderGame?.player1 === 2 ? leaderGame?.player2 : leaderGame?.player1
+    expect(opponent).toBe(3)
+
+    // The rest of the field pairs at the same score levels as before: only the
+    // two down-float pairs inside the 4/3-point boundary are redistributed.
+    expect(pairSet(newGames)).toEqual([
+      '1-4', '11-16', '13-20', '14-19', '15-27', '17-28', '2-3',
+      '21-25', '22-23', '5-9', '6-18', '7-26', '8-10',
+    ])
+    expect(byeIds(newGames)).toEqual([24])
+  })
+})
+

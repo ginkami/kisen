@@ -45,9 +45,23 @@ const RATING_DEV_UNIT = 100
 const RATING_DEV_MAX = 90
 const RATING_CLOSE_DIVISOR = 200
 const RATING_CLOSE_UNIT = 2
+/**
+ * Down-float pairs (crossing score groups) weight rating closeness much
+ * higher than same-group pairs: when a player floats down — most importantly
+ * the top board paired against a lower score group — the opponent should be
+ * the closest-rated (typically the strongest) available one, per the Swiss
+ * rule for upper-board alignment. Bounded: the worst case (3000 rating gap)
+ * is 15 · 2 · 50 = 1500, far below the smallest non-zero score level (65536).
+ */
+const RATING_CLOSE_CROSS_MULTIPLIER = 50
 const BYE_EXTRA_EXPONENT = 9
+/**
+ * Bye recipient rating tie-break: kept strong enough (100 per 100 rating
+ * points) that the down-float closeness multiplier cannot push the bye onto a
+ * higher-rated player — the bye still goes to the weakest candidate.
+ */
 const BYE_RATING_DIVISOR = 100
-const BYE_RATING_UNIT = 2
+const BYE_RATING_UNIT = 100
 
 export interface PlayerStats {
   id: number
@@ -300,7 +314,8 @@ export function generatePairings(input: PairingEngineInput): Game[] {
       if (considerSente && !isColorLegal(a, b) && !isColorLegal(b, a)) continue
 
       let penalty = scorePenalty(Math.abs(a.points - b.points))
-      penalty += ratingClosenessPenalty(a.rating, b.rating)
+      const crossGroup = a.points !== b.points
+      penalty += ratingClosenessPenalty(a.rating, b.rating) * (crossGroup ? RATING_CLOSE_CROSS_MULTIPLIER : 1)
       if (a.points === b.points) {
         const pi = positionInGroup.get(a.id) as number
         const pj = positionInGroup.get(b.id) as number
