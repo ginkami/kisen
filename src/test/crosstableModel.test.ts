@@ -42,10 +42,13 @@ describe('computeStandings', () => {
       makeGame({ round: 1, player1: 3, player2: null, status: 'bye' }),
     ]
     const standings = computeStandings(games, participants, tb, 1)
-    expect(standings[0].participantId).toBe(1)
+    // Face value vs. self: participant 3's bye round counts as a game against
+    // a robot with their own score (1 point), so BH(3) = 1 outranks BH(1) = 0.
+    expect(standings[0].participantId).toBe(3)
     expect(standings[0].place).toBe(1)
-    expect(standings[1].participantId).toBe(3)
+    expect(standings[1].participantId).toBe(1)
     expect(standings[1].place).toBe(2)
+    expect(standings[2].participantId).toBe(2)
   })
 
   it('uses buchholz as tiebreaker', () => {
@@ -101,7 +104,7 @@ describe('computeStandings', () => {
     expect(standings.map((s) => s.participantId)).toEqual([4, 1, 2, 3])
   })
 
-  it('ignores byes in buchholz_sum (no opponent to sum)', () => {
+  it('counts own byes in buchholz_sum via the robot (score = own points)', () => {
     const participants = [makeParticipant(1), makeParticipant(2), makeParticipant(3)]
     const games = [
       makeGame({ round: 1, player1: 1, player2: null, status: 'bye' }),
@@ -111,8 +114,10 @@ describe('computeStandings', () => {
     const standings = computeStandings(games, participants, sumTb, 1)
 
     const values = new Map(standings.map((s) => [s.participantId, s.tieBreakValues.buchholz_sum]))
-    expect(values.get(1)).toBe(0)
-    // Participant 2 faced 3 (BH 1) -> 1; participant 3 faced 2 (BH 0) -> 0.
+    // Participant 1's bye round counts as a game against a robot with their
+    // own points (1). Participant 2 faced 3 (BH 1) -> 1; participant 3 faced
+    // 2 (BH 0) -> 0.
+    expect(values.get(1)).toBe(1)
     expect(values.get(2)).toBe(1)
     expect(values.get(3)).toBe(0)
   })
@@ -125,8 +130,10 @@ describe('computeStandings', () => {
     ]
     const standings = computeStandings(games, participants, tb, 1)
     const placeMap = new Map(standings.map((s) => [s.participantId, s.place]))
-    expect(placeMap.get(1)).toBe(1)
-    expect(placeMap.get(3)).toBe(2)
+    // Face value vs. self: participant 3's bye adds a robot with their own
+    // score (1 point) to BH, placing 3 above 1 (BH 0).
+    expect(placeMap.get(3)).toBe(1)
+    expect(placeMap.get(1)).toBe(2)
     expect(placeMap.get(2)).toBe(3)
   })
 
@@ -200,6 +207,52 @@ describe('Tie-break calculators via computeStandings', () => {
     expect(p2.tieBreakValues.direct_encounter).toBe(1)
     expect(p3.tieBreakValues.direct_encounter).toBe(0)
     expect(p2.place).toBeLessThan(p3.place)
+  })
+
+  it('face value vs. self: opponent forfeit adds 0.5, own skip adds a robot', () => {
+    // R1: 1 beats 2; 3 forfeits (skip). R2: 1 beats 3; 2 gets a bye (skip).
+    // Points: 1 -> 2, 2 -> 1 (bye face value), 3 -> 0.
+    // Forfeits: 3 -> 1. Skips: 2 -> 1, 3 -> 1.
+    // BH(1) = adj(2) + adj(3) = 1 + (0 + 0.5) = 1.5 — the opponent's forfeit
+    // contributes 0.5 ("vs. self" draw).
+    // BH(2) = adj(1) + robot(own points 1) = 2 + 1 = 3.
+    // BH(3) = adj(1) + robot(own points 0) = 2 + 0 = 2.
+    const participants = [makeParticipant(1), makeParticipant(2), makeParticipant(3)]
+    const tb: TieBreak[] = [{ type: 'points' }, { type: 'buchholz' }]
+    const games = [
+      makeGame({ round: 1, player1: 1, player2: 2, result: 'player1_won', status: 'completed' }),
+      makeGame({ round: 1, player1: 3, player2: null, result: null, status: 'forfeit' }),
+      makeGame({ round: 2, player1: 1, player2: 3, result: 'player1_won', status: 'completed' }),
+      makeGame({ round: 2, player1: 2, player2: null, status: 'bye' }),
+    ]
+    const standings = computeStandings(games, participants, tb, 2)
+    const values = new Map(standings.map((s) => [s.participantId, s.tieBreakValues.buchholz]))
+    expect(values.get(1)).toBe(1.5)
+    expect(values.get(2)).toBe(3)
+    expect(values.get(3)).toBe(2)
+  })
+
+  it('face value vs. self: robot entries feed buchholz_cut, buchholz_median, buchholz_plus and sonneborn_berger', () => {
+    // R1: 1 beats 2. R2: 1 beats 3. R3: 1 bye (skip).
+    // Points: 1 -> 3, 2 -> 0, 3 -> 0.
+    // P1's opponent score list: [adj(2)=0, adj(3)=0, robot=3].
+    // BH cut 1: 3 - lowest (0) = 3. BH median: 3 - 0 - 3 = 0.
+    // BH+: adj(2)+1 + adj(3)+1 + robot (3 + 0.5 draw) = 1 + 1 + 3.5 = 5.5.
+    // SB: 1*0 + 1*0 + robot draw 0.5*3 = 1.5.
+    const participants = [makeParticipant(1), makeParticipant(2), makeParticipant(3)]
+    const games = [
+      makeGame({ round: 1, player1: 1, player2: 2, result: 'player1_won', status: 'completed' }),
+      makeGame({ round: 2, player1: 1, player2: 3, result: 'player1_won', status: 'completed' }),
+      makeGame({ round: 3, player1: 1, player2: null, status: 'bye' }),
+    ]
+    const p1Values = (tb: TieBreak[]) => {
+      const standings = computeStandings(games, participants, tb, 3)
+      return standings.find((s) => s.participantId === 1)!.tieBreakValues
+    }
+    expect(p1Values([{ type: 'points' }, { type: 'buchholz_cut', cutCount: 1 }]).buchholz_cut).toBe(3)
+    expect(p1Values([{ type: 'points' }, { type: 'buchholz_median' }]).buchholz_median).toBe(0)
+    expect(p1Values([{ type: 'points' }, { type: 'buchholz_plus' }]).buchholz_plus).toBe(5.5)
+    expect(p1Values([{ type: 'points' }, { type: 'sonneborn_berger' }]).sonneborn_berger).toBe(1.5)
   })
 })
 

@@ -68,30 +68,78 @@ function opponentIdInGame(game: Game, participantId: number): number | null {
 
 // ---------------------------------------------------------------------------
 // Tie-break calculators
+//
+// Unplayed rounds follow the "face value vs. self" convention:
+// - an opponent's bye counts at face value (already inside their points);
+// - an opponent's forfeit counts 0.5 into their score ("vs. self" draw);
+// - the participant's own skipped round (bye or forfeit) counts as a game
+//   against a virtual "robot" whose score equals the participant's own
+//   points; the game against the robot is a draw.
 // ---------------------------------------------------------------------------
 
-function getOpponentPointsPerGame(
-  games: Game[], participantId: number, pointsMap: Map<number, number>, upToRound: number
+function countSkips(
+  games: Game[], participantId: number, upToRound: number
+): { forfeits: number; skips: number } {
+  let forfeits = 0
+  let skips = 0
+  for (const g of games) {
+    if (g.round > upToRound) continue
+    if (g.status !== 'bye' && g.status !== 'forfeit') continue
+    if (g.player1 !== participantId && g.player2 !== participantId) continue
+    skips += 1
+    if (g.status === 'forfeit') forfeits += 1
+  }
+  return { forfeits, skips }
+}
+
+/** Opponent score including the 0.5 "vs. self" value per forfeit. */
+function adjustedScore(
+  pointsMap: Map<number, number>, forfeitsMap: Map<number, number>, participantId: number
+): number {
+  return (pointsMap.get(participantId) ?? 0) + 0.5 * (forfeitsMap.get(participantId) ?? 0)
+}
+
+/**
+ * Opponent score list for the Buchholz family: the adjusted score of every
+ * faced opponent, plus one robot entry (the participant's own points) per
+ * skipped round.
+ */
+function getOpponentScores(
+  games: Game[], participantId: number, pointsMap: Map<number, number>,
+  forfeitsMap: Map<number, number>, skipsMap: Map<number, number>, upToRound: number
 ): number[] {
-  const oppPts: number[] = []
+  const scores: number[] = []
   for (const g of games) {
     if (g.round > upToRound) continue
     if (g.status === 'forfeit') continue
     const opp = opponentIdInGame(g, participantId)
     if (opp == null) continue
-    oppPts.push(pointsMap.get(opp) ?? 0)
+    scores.push(adjustedScore(pointsMap, forfeitsMap, opp))
   }
-  return oppPts
+  const ownPoints = pointsMap.get(participantId) ?? 0
+  for (let i = 0; i < (skipsMap.get(participantId) ?? 0); i++) {
+    scores.push(ownPoints)
+  }
+  return scores
 }
 
-function calcBuchholz(games: Game[], participantId: number, pointsMap: Map<number, number>, upToRound: number): number {
-  return getOpponentPointsPerGame(games, participantId, pointsMap, upToRound).reduce((a, b) => a + b, 0)
+function calcBuchholz(
+  games: Game[], participantId: number, pointsMap: Map<number, number>,
+  forfeitsMap: Map<number, number>, skipsMap: Map<number, number>, upToRound: number
+): number {
+  return getOpponentScores(
+    games, participantId, pointsMap, forfeitsMap, skipsMap, upToRound,
+  ).reduce((a, b) => a + b, 0)
 }
 
 // Sum of Buchholz (BH-BH): the sum of the Buchholz values of the opponents the
 // participant has faced. `bhByParticipant` is precomputed in a first pass.
+// Robot rounds (the participant's own skips) contribute the participant's own
+// points — the robot "is" the participant.
 function calcBuchholzSum(
-  games: Game[], participantId: number, upToRound: number, bhByParticipant: Map<number, number>
+  games: Game[], participantId: number, pointsMap: Map<number, number>,
+  skipsMap: Map<number, number>, upToRound: number,
+  bhByParticipant: Map<number, number>
 ): number {
   let sum = 0
   for (const g of games) {
@@ -101,11 +149,15 @@ function calcBuchholzSum(
     if (opp == null) continue
     sum += bhByParticipant.get(opp) ?? 0
   }
-  return sum
+  const ownPoints = pointsMap.get(participantId) ?? 0
+  return sum + (skipsMap.get(participantId) ?? 0) * ownPoints
 }
 
-function calcBuchholzCut(games: Game[], participantId: number, pointsMap: Map<number, number>, upToRound: number, cutCount: number): number {
-  const oppPts = getOpponentPointsPerGame(games, participantId, pointsMap, upToRound)
+function calcBuchholzCut(
+  games: Game[], participantId: number, pointsMap: Map<number, number>,
+  forfeitsMap: Map<number, number>, skipsMap: Map<number, number>, upToRound: number, cutCount: number
+): number {
+  const oppPts = getOpponentScores(games, participantId, pointsMap, forfeitsMap, skipsMap, upToRound)
   if (oppPts.length === 0) return 0
   const bh = oppPts.reduce((a, b) => a + b, 0)
   const n = Math.min(cutCount, oppPts.length)
@@ -113,37 +165,50 @@ function calcBuchholzCut(games: Game[], participantId: number, pointsMap: Map<nu
   return bh - sorted.slice(0, n).reduce((a, b) => a + b, 0)
 }
 
-function calcBuchholzMedian(games: Game[], participantId: number, pointsMap: Map<number, number>, upToRound: number): number {
-  const oppPts = getOpponentPointsPerGame(games, participantId, pointsMap, upToRound)
+function calcBuchholzMedian(
+  games: Game[], participantId: number, pointsMap: Map<number, number>,
+  forfeitsMap: Map<number, number>, skipsMap: Map<number, number>, upToRound: number
+): number {
+  const oppPts = getOpponentScores(games, participantId, pointsMap, forfeitsMap, skipsMap, upToRound)
   if (oppPts.length <= 1) return oppPts.reduce((a, b) => a + b, 0)
   const bh = oppPts.reduce((a, b) => a + b, 0)
   const sorted = [...oppPts].sort((a, b) => a - b)
   return bh - sorted[0] - sorted[sorted.length - 1]
 }
 
-function calcBuchholzPlus(games: Game[], participantId: number, pointsMap: Map<number, number>, upToRound: number): number {
+function calcBuchholzPlus(
+  games: Game[], participantId: number, pointsMap: Map<number, number>,
+  forfeitsMap: Map<number, number>, skipsMap: Map<number, number>, upToRound: number
+): number {
   let sum = 0
   for (const g of games) {
     if (g.round > upToRound) continue
     if (g.status === 'forfeit') continue
     const opp = opponentIdInGame(g, participantId)
     if (opp == null) continue
-    sum += (pointsMap.get(opp) ?? 0) + resultPointsForParticipant(g, participantId)
+    sum += adjustedScore(pointsMap, forfeitsMap, opp) + resultPointsForParticipant(g, participantId)
   }
-  return sum
+  // Robot rounds: a draw (0.5) against the robot (score = own points).
+  const ownPoints = pointsMap.get(participantId) ?? 0
+  return sum + (skipsMap.get(participantId) ?? 0) * (ownPoints + 0.5)
 }
 
-function calcSonnebornBerger(games: Game[], participantId: number, pointsMap: Map<number, number>, upToRound: number): number {
+function calcSonnebornBerger(
+  games: Game[], participantId: number, pointsMap: Map<number, number>,
+  forfeitsMap: Map<number, number>, skipsMap: Map<number, number>, upToRound: number
+): number {
   let sum = 0
   for (const g of games) {
     if (g.round > upToRound) continue
     if (g.status === 'forfeit') continue
     const opp = opponentIdInGame(g, participantId)
     if (opp == null) continue
-    const oppPts = pointsMap.get(opp) ?? 0
+    const oppPts = adjustedScore(pointsMap, forfeitsMap, opp)
     sum += resultPointsForParticipant(g, participantId) * oppPts
   }
-  return sum
+  // Robot rounds: a draw (0.5) against the robot (score = own points).
+  const ownPoints = pointsMap.get(participantId) ?? 0
+  return sum + (skipsMap.get(participantId) ?? 0) * 0.5 * ownPoints
 }
 
 function calcWinsCount(games: Game[], participantId: number, upToRound: number): number {
@@ -227,12 +292,28 @@ export function computeStandings(
   const hasSlPoints = tieBreaks.some((tb) => tb.type === 'sl_points')
   const slByPoints = hasSlPoints ? buildSlPointsByPointsValue(pointsMap) : null
 
+  // "Face value vs. self": forfeit/skip counts feed every opponent-result
+  // tie-break (adjusted opponent scores + robot rounds for own skips).
+  const needsSkipCounts = tieBreaks.some((tb) =>
+    tb.type === 'buchholz' || tb.type === 'buchholz_cut' || tb.type === 'buchholz_median' ||
+    tb.type === 'buchholz_plus' || tb.type === 'sonneborn_berger' || tb.type === 'buchholz_sum',
+  )
+  const forfeitsMap = new Map<number, number>()
+  const skipsMap = new Map<number, number>()
+  if (needsSkipCounts) {
+    for (const p of participants) {
+      const { forfeits, skips } = countSkips(allGames, p.id, upToRound)
+      forfeitsMap.set(p.id, forfeits)
+      skipsMap.set(p.id, skips)
+    }
+  }
+
   // Sum of Buchholz needs every participant's BH first (two-pass, like DE).
   const hasBuchholzSum = tieBreaks.some((tb) => tb.type === 'buchholz_sum')
   const bhByParticipant = new Map<number, number>()
   if (hasBuchholzSum) {
     for (const p of participants) {
-      bhByParticipant.set(p.id, calcBuchholz(allGames, p.id, pointsMap, upToRound))
+      bhByParticipant.set(p.id, calcBuchholz(allGames, p.id, pointsMap, forfeitsMap, skipsMap, upToRound))
     }
   }
 
@@ -246,12 +327,12 @@ export function computeStandings(
     for (const tb of tieBreaks) {
       if (tb.type === 'points' || tb.type === 'direct_encounter') continue
       switch (tb.type) {
-        case 'buchholz': tieBreakValues.buchholz = calcBuchholz(allGames, p.id, pointsMap, upToRound); break
-        case 'buchholz_cut': tieBreakValues.buchholz_cut = calcBuchholzCut(allGames, p.id, pointsMap, upToRound, tb.cutCount); break
-        case 'buchholz_median': tieBreakValues.buchholz_median = calcBuchholzMedian(allGames, p.id, pointsMap, upToRound); break
-        case 'buchholz_plus': tieBreakValues.buchholz_plus = calcBuchholzPlus(allGames, p.id, pointsMap, upToRound); break
-        case 'sonneborn_berger': tieBreakValues.sonneborn_berger = calcSonnebornBerger(allGames, p.id, pointsMap, upToRound); break
-        case 'buchholz_sum': tieBreakValues.buchholz_sum = calcBuchholzSum(allGames, p.id, upToRound, bhByParticipant); break
+        case 'buchholz': tieBreakValues.buchholz = calcBuchholz(allGames, p.id, pointsMap, forfeitsMap, skipsMap, upToRound); break
+        case 'buchholz_cut': tieBreakValues.buchholz_cut = calcBuchholzCut(allGames, p.id, pointsMap, forfeitsMap, skipsMap, upToRound, tb.cutCount); break
+        case 'buchholz_median': tieBreakValues.buchholz_median = calcBuchholzMedian(allGames, p.id, pointsMap, forfeitsMap, skipsMap, upToRound); break
+        case 'buchholz_plus': tieBreakValues.buchholz_plus = calcBuchholzPlus(allGames, p.id, pointsMap, forfeitsMap, skipsMap, upToRound); break
+        case 'sonneborn_berger': tieBreakValues.sonneborn_berger = calcSonnebornBerger(allGames, p.id, pointsMap, forfeitsMap, skipsMap, upToRound); break
+        case 'buchholz_sum': tieBreakValues.buchholz_sum = calcBuchholzSum(allGames, p.id, pointsMap, skipsMap, upToRound, bhByParticipant); break
         case 'wins_count': tieBreakValues.wins_count = calcWinsCount(allGames, p.id, upToRound); break
         case 'sl_points': tieBreakValues.sl_points = slByPoints?.get(points) ?? 1; break
       }
