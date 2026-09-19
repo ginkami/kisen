@@ -150,6 +150,7 @@ export function ParticipantsSection({
               }}
               className="collapse bg-base-100 border border-base-300"
               name="participants-accordion"
+              style={{ zIndex: rows.length - index }}
             >
               <summary className="collapse-title flex justify-between items-center p-1 pe-4">
                 <div className="min-w-0 truncate flex items-center gap-1.5 pl-3">
@@ -172,7 +173,7 @@ export function ParticipantsSection({
                         e.preventDefault()
                         setPendingRemoveRowId(row.rowId)
                       }}
-                      className="btn btn-sm btn-circle btn-accent tooltip"
+                      className="btn btn-sm btn-circle btn-accent tooltip tooltip-left"
                       data-tip={t('tournament.edit.participants.remove')}
                       aria-label={t('tournament.edit.participants.remove')}
                     >
@@ -185,7 +186,7 @@ export function ParticipantsSection({
                       e.preventDefault()
                       handleAddAfter(row.rowId === 'empty-placeholder' ? undefined : row.rowId)
                     }}
-                    className="btn btn-sm btn-circle btn-success tooltip"
+                    className="btn btn-sm btn-circle btn-success tooltip tooltip-left"
                     data-tip={t('tournament.edit.participants.add')}
                     aria-label={t('tournament.edit.participants.add')}
                   >
