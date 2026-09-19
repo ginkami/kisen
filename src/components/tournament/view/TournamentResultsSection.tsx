@@ -146,7 +146,6 @@ export function TournamentResultsSection({
     return (
       <div className="card bg-base-200 shadow-sm">
         <div className="card-body">
-          <h2 className="card-title">{t('tournament.view.results.rounds')}</h2>
           <p className="text-sm opacity-70">{t('tournament.view.results.noResults')}</p>
         </div>
       </div>

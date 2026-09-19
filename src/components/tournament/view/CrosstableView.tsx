@@ -183,6 +183,15 @@ export function CrosstableView({
       </span>
     )
   }
+  if (safePublishedRounds < 1) {
+    return (
+      <div className="card bg-base-200 shadow-sm">
+        <div className="card-body">
+          <p className="text-sm opacity-70">{t('tournament.view.results.noResults')}</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <TableScrollProvider>
@@ -219,7 +228,7 @@ export function CrosstableView({
             ))}
           </tr>
           <tr>
-            {Array.from({ length: safePublishedRounds }, (_, i) => i + 1).map((r) => (
+            {Array.from({ length: safePublishedRounds || 1 }, (_, i) => i + 1).map((r) => (
               <th key={r} className="z-20 text-left pl-2.5">{r}</th>
             ))}
           </tr>
@@ -283,7 +292,7 @@ export function CrosstableView({
                   {loc?.location || ''}
                 </td>
                 <td className="text-right font-mono">{p.capturedRating?.value ?? ''}</td>
-                {Array.from({ length: safePublishedRounds }, (_, i) => i + 1).map((r) => (
+                {Array.from({ length: safePublishedRounds || 1 }, (_, i) => i + 1).map((r) => (
                   <td key={r} className="text-left p-0.5 w-1">{roundCell(s.participantId, r)}</td>
                 ))}
                 {showStartingPoints && <td className="text-center font-mono w-1">{p.startingPoints ?? 0}</td>}
