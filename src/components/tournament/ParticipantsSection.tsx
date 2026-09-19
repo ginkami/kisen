@@ -135,7 +135,7 @@ export function ParticipantsSection({
         )}
 
         <div className="space-y-2">
-          {rows.map((row) => {
+          {rows.map((row, index) => {
             const nameLoc = row.locales[activeLocale] ?? row.locales['ru'] ?? row.locales['en']
             const summaryName = [nameLoc?.familyName, nameLoc?.givenName]
               .filter((v) => v != null && v !== '')
@@ -153,7 +153,7 @@ export function ParticipantsSection({
             >
               <summary className="collapse-title flex justify-between items-center p-1 pe-4">
                 <div className="min-w-0 truncate flex items-center gap-1.5 pl-3">
-                  <b>{summaryName || '—'}</b>
+                  {index + 1}. <b>{summaryName || '—'}</b>
                   {summaryRating && <span className="opacity-70">{summaryRating}</span>}
                   {row.rank && (
                     <span
