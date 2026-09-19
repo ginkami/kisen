@@ -88,6 +88,22 @@ function calcBuchholz(games: Game[], participantId: number, pointsMap: Map<numbe
   return getOpponentPointsPerGame(games, participantId, pointsMap, upToRound).reduce((a, b) => a + b, 0)
 }
 
+// Sum of Buchholz (BH-BH): the sum of the Buchholz values of the opponents the
+// participant has faced. `bhByParticipant` is precomputed in a first pass.
+function calcBuchholzSum(
+  games: Game[], participantId: number, upToRound: number, bhByParticipant: Map<number, number>
+): number {
+  let sum = 0
+  for (const g of games) {
+    if (g.round > upToRound) continue
+    if (g.status === 'forfeit') continue
+    const opp = opponentIdInGame(g, participantId)
+    if (opp == null) continue
+    sum += bhByParticipant.get(opp) ?? 0
+  }
+  return sum
+}
+
 function calcBuchholzCut(games: Game[], participantId: number, pointsMap: Map<number, number>, upToRound: number, cutCount: number): number {
   const oppPts = getOpponentPointsPerGame(games, participantId, pointsMap, upToRound)
   if (oppPts.length === 0) return 0
@@ -211,12 +227,21 @@ export function computeStandings(
   const hasSlPoints = tieBreaks.some((tb) => tb.type === 'sl_points')
   const slByPoints = hasSlPoints ? buildSlPointsByPointsValue(pointsMap) : null
 
+  // Sum of Buchholz needs every participant's BH first (two-pass, like DE).
+  const hasBuchholzSum = tieBreaks.some((tb) => tb.type === 'buchholz_sum')
+  const bhByParticipant = new Map<number, number>()
+  if (hasBuchholzSum) {
+    for (const p of participants) {
+      bhByParticipant.set(p.id, calcBuchholz(allGames, p.id, pointsMap, upToRound))
+    }
+  }
+
   const rows: StandingRow[] = participants.map((p) => {
     const points = pointsMap.get(p.id) ?? 0
     const tieBreakValues: Record<TieBreakType, number> = {
       points,
       buchholz: 0, buchholz_cut: 0, buchholz_median: 0, buchholz_plus: 0,
-      sonneborn_berger: 0, direct_encounter: 0, wins_count: 0, sl_points: 0,
+      sonneborn_berger: 0, buchholz_sum: 0, direct_encounter: 0, wins_count: 0, sl_points: 0,
     }
     for (const tb of tieBreaks) {
       if (tb.type === 'points' || tb.type === 'direct_encounter') continue
@@ -226,6 +251,7 @@ export function computeStandings(
         case 'buchholz_median': tieBreakValues.buchholz_median = calcBuchholzMedian(allGames, p.id, pointsMap, upToRound); break
         case 'buchholz_plus': tieBreakValues.buchholz_plus = calcBuchholzPlus(allGames, p.id, pointsMap, upToRound); break
         case 'sonneborn_berger': tieBreakValues.sonneborn_berger = calcSonnebornBerger(allGames, p.id, pointsMap, upToRound); break
+        case 'buchholz_sum': tieBreakValues.buchholz_sum = calcBuchholzSum(allGames, p.id, upToRound, bhByParticipant); break
         case 'wins_count': tieBreakValues.wins_count = calcWinsCount(allGames, p.id, upToRound); break
         case 'sl_points': tieBreakValues.sl_points = slByPoints?.get(points) ?? 1; break
       }

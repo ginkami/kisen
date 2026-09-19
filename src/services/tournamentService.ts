@@ -88,6 +88,7 @@ function defaultSettings(): Tournament['settings'] {
       { type: 'points' },
       { type: 'buchholz' },
       { type: 'sonneborn_berger' },
+      { type: 'buchholz_sum' },
     ],
     considerSente: false,
     hasKnockoutBracket: { size: 0, startRound: 0 },

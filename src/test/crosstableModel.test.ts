@@ -61,6 +61,62 @@ describe('computeStandings', () => {
     expect(standings[2].participantId).toBe(3)
   })
 
+  it('computes buchholz_sum as the sum of faced opponents buchholz values', () => {
+    // Round 1: 1 beats 3, 2 beats 4. Round 2: 1 vs 2 draw, 3 vs 4 draw.
+    // Points: 1 -> 1.5, 2 -> 1.5, 3 -> 0.5, 4 -> 0.5
+    // BH: 1 -> 0.5 + 1.5 = 2.0, 2 -> 0.5 + 1.5 = 2.0, 3 -> 1.5 + 0.5 = 2.0, 4 -> 1.5 + 0.5 = 2.0
+    // BH-BH (each faced two opponents with BH 2.0): all four -> 4.0
+    const participants = [makeParticipant(1), makeParticipant(2), makeParticipant(3), makeParticipant(4)]
+    const games = [
+      makeGame({ round: 1, player1: 1, player2: 3, result: 'player1_won', status: 'completed' }),
+      makeGame({ round: 1, player1: 2, player2: 4, result: 'player1_won', status: 'completed' }),
+      makeGame({ round: 2, player1: 1, player2: 2, result: 'draw', status: 'completed' }),
+      makeGame({ round: 2, player1: 3, player2: 4, result: 'draw', status: 'completed' }),
+    ]
+    const sumTb: TieBreak[] = [{ type: 'points' }, { type: 'buchholz_sum' }]
+    const standings = computeStandings(games, participants, sumTb, 2)
+
+    const values = new Map(standings.map((s) => [s.participantId, s.tieBreakValues.buchholz_sum]))
+    expect(values.get(1)).toBe(4)
+    expect(values.get(2)).toBe(4)
+    expect(values.get(3)).toBe(4)
+    expect(values.get(4)).toBe(4)
+  })
+
+  it('breaks points ties with buchholz_sum (stronger schedule ranks higher)', () => {
+    // Points: 1 -> 1, 2 -> 1, 3 -> 0, 4 -> 1 (round 2: 4 beats 3).
+    // BH: 1 -> 0 (faced 3), 2 -> 1 (faced 4), 3 -> 1 + 1 = 2, 4 -> 1 + 0 = 1.
+    // BH-BH: 1 -> BH(3) = 2, 2 -> BH(4) = 1, 3 -> BH(1) + BH(4) = 0 + 1 = 1,
+    //        4 -> BH(2) + BH(3) = 1 + 2 = 3.
+    // Points tie between 1, 2, 4 -> BH-BH ranks 4 (3.0), then 1 (2.0), then 2 (1.0).
+    const participants = [makeParticipant(1), makeParticipant(2), makeParticipant(3), makeParticipant(4)]
+    const games = [
+      makeGame({ round: 1, player1: 1, player2: 3, result: 'player1_won', status: 'completed' }),
+      makeGame({ round: 1, player1: 2, player2: 4, result: 'player1_won', status: 'completed' }),
+      makeGame({ round: 2, player1: 3, player2: 4, result: 'player2_won', status: 'completed' }),
+    ]
+    const sumTb: TieBreak[] = [{ type: 'points' }, { type: 'buchholz_sum' }]
+    const standings = computeStandings(games, participants, sumTb, 2)
+
+    expect(standings.map((s) => s.participantId)).toEqual([4, 1, 2, 3])
+  })
+
+  it('ignores byes in buchholz_sum (no opponent to sum)', () => {
+    const participants = [makeParticipant(1), makeParticipant(2), makeParticipant(3)]
+    const games = [
+      makeGame({ round: 1, player1: 1, player2: null, status: 'bye' }),
+      makeGame({ round: 1, player1: 2, player2: 3, result: 'player1_won', status: 'completed' }),
+    ]
+    const sumTb: TieBreak[] = [{ type: 'points' }, { type: 'buchholz_sum' }]
+    const standings = computeStandings(games, participants, sumTb, 1)
+
+    const values = new Map(standings.map((s) => [s.participantId, s.tieBreakValues.buchholz_sum]))
+    expect(values.get(1)).toBe(0)
+    // Participant 2 faced 3 (BH 1) -> 1; participant 3 faced 2 (BH 0) -> 0.
+    expect(values.get(2)).toBe(1)
+    expect(values.get(3)).toBe(0)
+  })
+
   it('assigns correct opponent place numbers', () => {
     const participants = [makeParticipant(1), makeParticipant(2), makeParticipant(3)]
     const games = [

@@ -3,7 +3,7 @@ export type TieBreakType =
   | 'buchholz'         // Бухгольц полный (BH)
   | 'buchholz_cut'     // Бухгольц усеченный (BHC)
   | 'buchholz_median'  // Медианный Бухгольц (MCH)
-  | 'buchholz_plus'    // Бухгольц суммарный (BH+)
+  | 'buchholz_plus'    // Бухгольц+ (BH+)
   | 'sonneborn_berger' // Зоннеборн-Бергер (SB)
   | 'direct_encounter' // Личная встреча (DE)
   | 'wins_count'       // Количество побед

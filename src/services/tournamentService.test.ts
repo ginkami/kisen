@@ -72,10 +72,11 @@ describe('TournamentService', () => {
         },
       })
 
-      expect(created.settings.tieBreaks).toHaveLength(3)
+      expect(created.settings.tieBreaks).toHaveLength(4)
       expect(created.settings.tieBreaks[0].type).toBe('points')
       expect(created.settings.tieBreaks[1].type).toBe('buchholz')
       expect(created.settings.tieBreaks[2].type).toBe('sonneborn_berger')
+      expect(created.settings.tieBreaks[3].type).toBe('buchholz_sum')
     })
 
     it('creates a tournament with draft status and isPublic false', async () => {
@@ -113,7 +114,7 @@ describe('TournamentService', () => {
       expect(repo.create).toHaveBeenCalledTimes(1)
       const tournament = vi.mocked(repo.create).mock.calls[0][0] as Tournament
       expect(tournament.settings.timeControl.type).toBe('byoyomi')
-      expect(tournament.settings.tieBreaks).toHaveLength(3)
+      expect(tournament.settings.tieBreaks).toHaveLength(4)
     })
   })
 

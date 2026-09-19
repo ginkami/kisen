@@ -433,6 +433,7 @@
       "buchholz_median": "Бухгольц медианный",
       "buchholz_plus": "Бухгольц+",
       "sonneborn_berger": "Бергер",
+      "buchholz_sum": "Бухгольц суммарный",
       "direct_encounter": "Личная встреча",
       "wins_count": "Число побед",
       "sl_points": "СЛ Баллы",
@@ -443,6 +444,7 @@
         "buchholz_median": "МБ",
         "buchholz_plus": "Бухг.+",
         "sonneborn_berger": "Берг.",
+        "buchholz_sum": "СБ",
         "direct_encounter": "ЛВ",
         "wins_count": "ЧВ",
         "sl_points": "СЛБ"

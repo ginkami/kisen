@@ -429,6 +429,7 @@
       "buchholz_median": "Median Buchholz",
       "buchholz_plus": "Buchholz+",
       "sonneborn_berger": "Sonneborn-Berger",
+      "buchholz_sum": "Sum of Buchholz",
       "direct_encounter": "Direct encounter",
       "wins_count": "Wins count",
       "sl_points": "SL Points",
@@ -439,6 +440,7 @@
         "buchholz_median": "MCH",
         "buchholz_plus": "BH+",
         "sonneborn_berger": "SB",
+        "buchholz_sum": "BH-BH",
         "direct_encounter": "DE",
         "wins_count": "WIN",
         "sl_points": "SL Pts"
