@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useQuery } from '@tanstack/react-query'
 import { sanitizeTextInput } from '../../utils/sanitize.ts'
+import { playerService } from '../../services/playerService.ts'
 
 import { BsLink45Deg, BsFillPersonVcardFill, BsFillPersonPlusFill, BsFillPersonXFill } from 'react-icons/bs'
 import { CountrySelect } from './CountrySelect.tsx'
@@ -79,6 +81,27 @@ export function ParticipantRow({ row, activeLocale, onUpdate, validationErrors, 
 
   const currentLocale = row.locales[locale] ?? row.locales['ru'] ?? { familyName: '', givenName: '', title: '', location: '' }
 
+  // The linked player label must reflect the actual player entity, not the
+  // participant's own editable copy: editing participant fields must not
+  // appear to change the linked player.
+  const { data: linkedPlayer } = useQuery({
+    queryKey: ['player', row.player],
+    queryFn: () => playerService.getById(row.player!),
+    enabled: !!row.player,
+    staleTime: 30_000,
+  })
+  const linkedPlayerLocale =
+    linkedPlayer !== undefined && linkedPlayer !== null
+      ? (linkedPlayer.locales[locale] ??
+        linkedPlayer.locales['ru'] ??
+        linkedPlayer.locales['en'])
+      : undefined
+  const linkedPlayerLabel =
+    linkedPlayerLocale &&
+    (linkedPlayerLocale.familyName !== '' || linkedPlayerLocale.givenName !== '')
+      ? `${linkedPlayerLocale.familyName}, ${linkedPlayerLocale.givenName}`
+      : `${currentLocale.familyName}, ${currentLocale.givenName}`
+
   const handleFamilyNameChange = (value: string) => {
     const sanitized = sanitizeTextInput(value)
     onUpdate({
@@ -146,9 +169,7 @@ export function ParticipantRow({ row, activeLocale, onUpdate, validationErrors, 
               onClick={() => setShowEditModal(true)}
             >
               <BsFillPersonVcardFill className="h-4 w-4 text-primary" />
-              <span className="text-sm">
-                {currentLocale.familyName}, {currentLocale.givenName}
-              </span>
+              <span className="text-sm">{linkedPlayerLabel}</span>
             </button>
             <button
               type="button"
