@@ -260,7 +260,7 @@ export function CrosstableSection({
                   {rank && (
                     <span className="badge badge-xs text-white flex items-center gap-0.5 w-fit" style={{ backgroundColor: rc ?? undefined }}>
                       {rank}
-                      {title && <span className="tooltip tooltip-top" data-tip={title}><PiCrownSimple className="h-3 w-3" /></span>}
+                      {title && <span className="tooltip tooltip-right" data-tip={title}><PiCrownSimple className="h-3 w-3" /></span>}
                     </span>
                   )}
                 </StickyTableCell>

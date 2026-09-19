@@ -124,7 +124,7 @@ export function TournamentResultsSection({
             >
               {rank}
               {title && (
-                <span className="tooltip tooltip-top" data-tip={title}>
+                <span className="tooltip tooltip-right" data-tip={title}>
                   <PiCrownSimple className="h-3 w-3" />
                 </span>
               )}

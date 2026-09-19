@@ -118,7 +118,7 @@ export function CrosstableView({
     return (
       <>
         {Flag && (
-          <span className="tooltip tooltip-top" data-tip={getCountryName(nat, locale)}>
+          <span>
             <Flag className="h-3 w-4 rounded-sm mt-0.5" />
           </span>
         )}
@@ -126,7 +126,7 @@ export function CrosstableView({
           <span className="badge badge-xs text-white flex items-center gap-0.5" style={{ backgroundColor: rc ?? undefined }}>
             {rank}
             {title && (
-              <span className="tooltip tooltip-top" data-tip={title}>
+              <span>
                 <PiCrownSimple className="h-3 w-3" />
               </span>
             )}
@@ -258,7 +258,7 @@ export function CrosstableView({
                   {rank && (
                     <span className="badge badge-xs text-white flex items-center gap-0.5 w-fit" style={{ backgroundColor: rc ?? undefined }}>
                       {rank}
-                      {title && <span className="tooltip tooltip-top" data-tip={title}><PiCrownSimple className="h-3 w-3" /></span>}
+                      {title && <span className="tooltip tooltip-right" data-tip={title}><PiCrownSimple className="h-3 w-3" /></span>}
                     </span>
                   )}
                 </StickyTableCell>
