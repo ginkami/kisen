@@ -690,6 +690,15 @@ function TieBreaksSection({
       (type === 'buchholz_cut' || !tieBreaks.some((tb) => tb.type === type))
   )
 
+  // `selectedType` may reference a type that is no longer available (the
+  // initial 'buchholz' is already in the default tie-breaks, or it was just
+  // added and dropped from the list). Derive the effective selection instead
+  // of letting the select show a phantom option while the state stays stale —
+  // that made «Бухгольц усеченный» unaddable without the cut-count field.
+  const selectedTypeExists = availableTypes.includes(selectedType)
+  const effectiveType: TieBreakType | undefined =
+    selectedTypeExists ? selectedType : availableTypes[0]
+
   return (
     <div className="card bg-base-200 shadow-sm">
       <div className="card-body">
@@ -719,7 +728,7 @@ function TieBreaksSection({
           <div className="mt-3 flex flex-wrap items-end gap-2">
             <div className="form-control">
               <select
-                value={selectedType}
+                value={effectiveType ?? ''}
                 onChange={(e) =>
                   setSelectedType(e.target.value as TieBreakType)
                 }
@@ -732,7 +741,7 @@ function TieBreaksSection({
                 ))}
               </select>
             </div>
-            {selectedType === 'buchholz_cut' && (
+            {effectiveType === 'buchholz_cut' && (
               <NumberField
                 label={t('tournament.edit.tieBreaks.cutCount')}
                 value={cutCount}
@@ -743,9 +752,10 @@ function TieBreaksSection({
             <button
               type="button"
               onClick={() => {
+                if (!effectiveType) return
                 onAdd(
-                  selectedType,
-                  selectedType === 'buchholz_cut' ? cutCount : undefined
+                  effectiveType,
+                  effectiveType === 'buchholz_cut' ? cutCount : undefined
                 )
                 setCutCount(1)
               }}
