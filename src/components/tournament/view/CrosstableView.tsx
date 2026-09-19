@@ -122,7 +122,7 @@ export function CrosstableView({
             <Flag className="h-3 w-4 rounded-sm mt-0.5" />
           </span>
         )}
-        {rank && (
+        {rank ? (
           <span className="badge badge-xs text-white flex items-center gap-0.5" style={{ backgroundColor: rc ?? undefined }}>
             {rank}
             {title && (
@@ -131,6 +131,8 @@ export function CrosstableView({
               </span>
             )}
           </span>
+        ) : (
+          <span/>    
         )}
         <span className="font-medium pl-1">{loc?.familyName}, {loc?.givenName}</span>
         <span className="font-mono text-[80%] mt-[3px]">{p.capturedRating?.value ?? ''}</span>
