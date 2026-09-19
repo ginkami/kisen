@@ -36,6 +36,11 @@ export function ConfirmModal({
     }
   }, [isOpen])
 
+  // Skip rendering entirely while closed: hidden <dialog> markup in every row
+  // of a large participants list adds needless DOM to re-diff on each keystroke.
+  // (Early return is AFTER the hooks to keep the hook order stable.)
+  if (!isOpen) return null
+
   const confirmButtonClass =
     variant === 'error' ? 'btn btn-error' : 'btn btn-primary'
 

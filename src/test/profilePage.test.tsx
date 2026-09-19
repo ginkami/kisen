@@ -452,7 +452,7 @@ describe('ProfilePage leave association management', () => {
     expect(dialog).toHaveTextContent('profile.edit.associations.leaveConfirm')
     // the modal backdrop also carries aria-label=cancelText, so pick the first (real) button
     fireEvent.click(within(dialog).getAllByRole('button', { name: 'common.cancel' })[0])
-    await waitFor(() => expect(dialog).not.toHaveAttribute('open'))
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
     expect(associationService.update).not.toHaveBeenCalled()
   })
 
@@ -471,7 +471,7 @@ describe('ProfilePage leave association management', () => {
         managers: ['other-user'],
       })
     )
-    await waitFor(() => expect(dialog).not.toHaveAttribute('open'))
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
   })
 
   it('shows an error alert when the removal fails', async () => {
@@ -485,7 +485,7 @@ describe('ProfilePage leave association management', () => {
     await waitFor(() =>
       expect(screen.getByText('profile.edit.associations.errors.leave')).toBeInTheDocument()
     )
-    await waitFor(() => expect(dialog).not.toHaveAttribute('open'))
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
   })
 })
 

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { memo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import { sanitizeTextInput } from '../../utils/sanitize.ts'
@@ -63,7 +63,7 @@ function playerToParticipantPatch(player: Player, _locale: SupportedLocale): Par
   }
 }
 
-export function ParticipantRow({ row, activeLocale, onUpdate, validationErrors, canLinkPlayers = true }: ParticipantRowProps) {
+function ParticipantRowComponent({ row, activeLocale, onUpdate, validationErrors, canLinkPlayers = true }: ParticipantRowProps) {
   const { t, i18n } = useTranslation()
   const locale = activeLocale
 
@@ -376,3 +376,15 @@ export function ParticipantRow({ row, activeLocale, onUpdate, validationErrors, 
     </div>
   )
 }
+
+// Every keystroke re-renders the whole form: skip untouched rows. The per-row
+// onUpdate closure is recreated on each render by the section, so it is
+// ignored on purpose — it closes over stable state setters only.
+export const ParticipantRow = memo(
+  ParticipantRowComponent,
+  (prev, next) =>
+    prev.row === next.row &&
+    prev.activeLocale === next.activeLocale &&
+    prev.validationErrors === next.validationErrors &&
+    prev.canLinkPlayers === next.canLinkPlayers,
+)

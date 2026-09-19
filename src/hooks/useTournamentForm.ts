@@ -724,7 +724,9 @@ export function useTournamentForm(tournamentId: string | undefined) {
   const updateForm = useCallback(
     (updater: (state: TournamentFormState) => TournamentFormState) => {
       setFormState((prev) => (prev ? normalizeState(updater(prev)) : prev))
-      setValidationErrors({})
+      // Keep the same object identity when there are no errors: a fresh {}
+      // on every keystroke would break React.memo on heavy row components.
+      setValidationErrors((prev) => (Object.keys(prev).length > 0 ? {} : prev))
     },
     []
   )

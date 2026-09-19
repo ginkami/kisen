@@ -81,6 +81,7 @@ export function CountrySelect({
           <span className="opacity-70">{placeholder ?? ''}</span>
         )}
       </button>
+      {isOpen && (
       <ul
         tabIndex={0}
         className="dropdown-content menu bg-base-100 rounded-box z-[1] w-full max-h-64 flex-nowrap overflow-auto shadow"
@@ -126,6 +127,7 @@ export function CountrySelect({
           ))
         )}
       </ul>
+      )}
     </div>
   )
 }

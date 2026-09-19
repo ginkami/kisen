@@ -119,3 +119,29 @@ describe('ParticipantRow linked player label', () => {
     expect(mockedGetById).toHaveBeenCalledWith('11111111-1111-4111-8111-111111111111')
   })
 })
+
+describe('ParticipantRow keystrokes', () => {
+  it('routes name edits to onUpdate as participant patches', () => {
+    mockedGetById.mockResolvedValue(makePlayer())
+    const onUpdate = vi.fn()
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    })
+    const { container } = render(
+      <QueryClientProvider client={queryClient}>
+        <ParticipantRow
+          row={makeRow()}
+          activeLocale={'ru' as SupportedLocale}
+          onUpdate={onUpdate}
+        />
+      </QueryClientProvider>,
+    )
+
+    const familyInput = container.querySelector('input[type="text"]') as HTMLInputElement
+    fireEvent.change(familyInput, { target: { value: 'Новый' } })
+
+    expect(onUpdate).toHaveBeenCalledTimes(1)
+    const patch = onUpdate.mock.calls[0][0] as Partial<ParticipantRowType>
+    expect(patch.locales?.ru?.familyName).toBe('Новый')
+  })
+})
