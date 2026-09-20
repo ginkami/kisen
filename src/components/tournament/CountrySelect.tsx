@@ -28,6 +28,7 @@ export function CountrySelect({
   const [isOpen, setIsOpen] = useState(false)
   const [search, setSearch] = useState('')
   const searchInputRef = useRef<HTMLInputElement>(null)
+  const rootRef = useRef<HTMLDivElement>(null)
   const countries = useMemo(() => getCountryList(lang), [lang])
   const selected = countries.find((country) => country.code === value)
 
@@ -47,27 +48,36 @@ export function CountrySelect({
     }
   }, [isOpen])
 
+  // Close on a pointer press outside the dropdown. A document-level listener
+  // (instead of blur) never races with the option click: the option's own
+  // mousedown handler runs in the target phase before this bubble-phase one.
+  useEffect(() => {
+    if (!isOpen) return
+    const onDocumentMouseDown = (e: MouseEvent) => {
+      if (rootRef.current && !rootRef.current.contains(e.target as Node)) {
+        setIsOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', onDocumentMouseDown)
+    return () => document.removeEventListener('mousedown', onDocumentMouseDown)
+  }, [isOpen])
+
   const handleSelect = (code: string) => {
     onChange(code)
     setIsOpen(false)
-    ;(document.activeElement as HTMLElement | null)?.blur()
-  }
-
-  const handleBlur = (e: React.FocusEvent) => {
-    // Close only when focus leaves the dropdown entirely
-    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
-      setIsOpen(false)
-    }
   }
 
   return (
     <div
+      ref={rootRef}
       className={['dropdown w-full', isOpen ? 'dropdown-open' : ''].join(' ')}
-      onBlur={handleBlur}
     >
       <button
         type="button"
-        tabIndex={0}
+        // No explicit tabIndex: daisyUI v5 applies `pointer-events: none` to
+        // `> [tabindex]:first-child` of an open dropdown, which would make
+        // this toggle unclickable. A native <button> stays keyboard-focusable
+        // without the attribute.
         className={`btn w-full justify-start ${buttonClassName ?? ''}`}
         aria-expanded={isOpen}
         onClick={() => setIsOpen((prev) => !prev)}
@@ -102,6 +112,13 @@ export function CountrySelect({
             <button
               type="button"
               className={value === '' ? 'active' : ''}
+              // Select on mousedown: the pointer press happens before any blur
+              // or list unmount, so the choice can never be eaten by the
+              // close-on-outside-press handler.
+              onMouseDown={(e) => {
+                e.preventDefault()
+                handleSelect('')
+              }}
               onClick={() => handleSelect('')}
             >
               {placeholder}
@@ -118,6 +135,12 @@ export function CountrySelect({
               <button
                 type="button"
                 className={value === country.code ? 'active' : ''}
+                // See the placeholder button: select on mousedown so the close
+                // handler can never unmount the option before the selection.
+                onMouseDown={(e) => {
+                  e.preventDefault()
+                  handleSelect(country.code)
+                }}
                 onClick={() => handleSelect(country.code)}
               >
                 <FlagIcon code={country.code} className="h-4 w-6 rounded-sm" />

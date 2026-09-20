@@ -27,4 +27,43 @@ describe('CountrySelect', () => {
     const options = container.querySelectorAll('ul li button')
     expect(options.length).toBeGreaterThan(100)
   })
+
+  it('selects a country on mousedown and closes the list', () => {
+    const onChange = vi.fn()
+    const { container } = render(
+      <CountrySelect value="" onChange={onChange} lang="en" placeholder="No country" />,
+    )
+    fireEvent.click(container.querySelector('button') as HTMLButtonElement)
+
+    const options = container.querySelectorAll('ul li button')
+    const country = Array.from(options).find((b) => b.textContent !== 'No country')!
+    fireEvent.mouseDown(country)
+
+    expect(onChange).toHaveBeenCalledTimes(1)
+    expect(container.querySelector('ul')).toBeNull()
+  })
+
+  it('keeps the list open when pressing inside it (search input focus)', () => {
+    const { container } = render(
+      <CountrySelect value="" onChange={vi.fn()} lang="en" placeholder="No country" />,
+    )
+    fireEvent.click(container.querySelector('button') as HTMLButtonElement)
+
+    // A press on the search input (inside the root) must not close the list.
+    fireEvent.mouseDown(container.querySelector('ul input') as HTMLInputElement)
+
+    expect(container.querySelector('ul')).not.toBeNull()
+  })
+
+  it('closes on a press outside the dropdown', () => {
+    const { container } = render(
+      <CountrySelect value="" onChange={vi.fn()} lang="en" placeholder="No country" />,
+    )
+    fireEvent.click(container.querySelector('button') as HTMLButtonElement)
+    expect(container.querySelector('ul')).not.toBeNull()
+
+    fireEvent.mouseDown(document.body)
+
+    expect(container.querySelector('ul')).toBeNull()
+  })
 })
