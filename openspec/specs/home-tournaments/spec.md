@@ -6,7 +6,7 @@ The home page lists published tournaments (isPublic with status finished, ongoin
 
 ### Requirement: Home page lists published tournaments by phase
 
-The home page SHALL render the heading «Турниры» and a tab panel (`tabs-border`) with three tabs — «Завершенные», «Проходящие», «Предстоящие» — each labeled with the number of tournaments in that section. Each tab SHALL render the list of published tournaments (`isPublic === true` with status `finished`, `ongoing`, or `upcoming` respectively; `draft`, `canceled`, and `proposed_for_removing` tournaments SHALL NOT be listed). Loading, empty («Турниров не найдено»), and error states SHALL be handled per section.
+The home page SHALL render the heading «Турниры» and a tab panel (`tabs-border`) with three tabs — «Архив», «Идут», «Анонсы» — each labeled with the number of tournaments in that section. Each tab SHALL render the list of published tournaments (`isPublic === true` with status `finished`, `ongoing`, or `upcoming` respectively; `draft`, `canceled`, and `proposed_for_removing` tournaments SHALL NOT be listed). Loading, empty («Турниров не найдено»), and error states SHALL be handled per section.
 
 #### Scenario: Sections and counts
 
@@ -21,16 +21,16 @@ The home page SHALL render the heading «Турниры» and a tab panel (`tabs
 
 ### Requirement: Sections order by start time and paginate by 30
 
-Tournaments in each section SHALL be ordered by the tournament start time (`startAt`): «Завершенные» and «Проходящие» — most recent first, «Предстоящие» — soonest first. Each section SHALL load tournaments in pages of 30 via cursor pagination. When a section has more tournaments to show, a text button «Показать следующие 30 турниров» SHALL be rendered at the bottom of the section; clicking it SHALL load the next page showing a spinner while loading.
+Tournaments in each section SHALL be ordered by the tournament start time (`startAt`): «Архив» and «Идут» — most recent first, «Анонсы» — soonest first. Each section SHALL load tournaments in pages of 30 via cursor pagination. When a section has more tournaments to show, a text button «Показать следующие 30 турниров» SHALL be rendered at the bottom of the section; clicking it SHALL load the next page showing a spinner while loading.
 
 #### Scenario: Upcoming tournaments are ordered soonest first
 
-- **WHEN** the «Предстоящие» section lists tournaments
+- **WHEN** the «Анонсы» section lists tournaments
 - **THEN** they are ordered by start time ascending
 
 #### Scenario: Finished tournaments are ordered recent first
 
-- **WHEN** the «Завершенные» section lists tournaments
+- **WHEN** the «Архив» section lists tournaments
 - **THEN** they are ordered by start time descending
 
 #### Scenario: Loading the next page

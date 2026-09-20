@@ -4,7 +4,7 @@ The home page is still the initial scaffold (static text and demo buttons). Per 
 
 ## What Changes
 
-- New home page layout: `h1` «Турниры», a fixed left filter form (desktop; collapsible on small screens), and a daisyUI `tabs-border` panel with three tabs — «Завершенные», «Проходящие», «Предстоящие» — each with its count in the tab label.
+- New home page layout: `h1` «Турниры», a fixed left filter form (desktop; collapsible on small screens), and a daisyUI `tabs-border` panel with three tabs — «Архив», «Идут», «Анонсы» — each with its count in the tab label.
 - Each section lists published tournaments (`isPublic && status ∈ {finished, ongoing, upcoming}`) in pages of 30, cursor-paginated («Показать следующие 30 турниров» text button with spinner per section).
 - Ordering by a new top-level `startAt` timestamp (min of rounds/events scheduledAt, maintained by the service alongside `startYearMonth`): finished/ongoing — recent first (desc); upcoming — soonest first (asc). New composite Firestore indexes + a one-time backfill script for existing documents.
 - Filter form: title search (client-side substring), date range (server-side range on `startAt`), country (server-side equality, reusing `CountrySelect`), city (client-side substring across locale settlements). «Применить» applies; «Отмена» clears and resets.
