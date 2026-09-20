@@ -32,7 +32,7 @@ import type { TournamentLocale, KnockoutBracketSettings } from '../../domain/tou
 import type { Event } from '../../domain/event.ts'
 import type { Association } from '../../domain/association.ts'
 import { useMyAssociations } from '../../hooks/useAssociations.ts'
-import { canEditTournament } from '../../domain/tournament.ts'
+import { canEditTournament, TournamentConflictError } from '../../domain/tournament.ts'
 import { eventService } from '../../services/eventService.ts'
 import { regulationService } from '../../services/regulationService.ts'
 import { LocaleTabs } from './LocaleTabs.tsx'
@@ -1113,6 +1113,10 @@ export function TournamentEditForm({
     deleteTournament,
     setValidationErrors,
     slugTaken,
+    remoteChanged,
+    editingSessions,
+    reloadFromServer,
+    forceSave,
   } = useTournamentForm(tournamentId)
 
   const parentEventTitleEn =
@@ -1437,6 +1441,53 @@ export function TournamentEditForm({
           </button>
         </div>
       </div>
+
+      {(remoteChanged || saveError instanceof TournamentConflictError) && (
+        <div className="alert alert-warning">
+          <div className="flex-1">
+            <p className="font-semibold">{t('tournament.edit.conflict.title')}</p>
+            <p className="text-sm">{t('tournament.edit.conflict.banner')}</p>
+          </div>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              className="btn btn-sm"
+              onClick={() => {
+                // Rescue the unsaved form state to the clipboard before it is
+                // discarded by the reload.
+                if (formState) {
+                  void navigator.clipboard
+                    ?.writeText(JSON.stringify(formState))
+                    .catch(() => {})
+                }
+                void reloadFromServer()
+              }}
+            >
+              {t('tournament.edit.conflict.reload')}
+            </button>
+            <button
+              type="button"
+              className="btn btn-sm btn-warning"
+              onClick={() => {
+                clearSaveError()
+                forceSave()
+              }}
+            >
+              {t('tournament.edit.conflict.forceSave')}
+            </button>
+          </div>
+        </div>
+      )}
+      {editingSessions.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 text-sm opacity-80">
+          <span>{t('tournament.edit.presence.editingNow')}</span>
+          {editingSessions.map((s) => (
+            <span key={s.userId} className="badge badge-outline">
+              {s.displayName}
+            </span>
+          ))}
+        </div>
+      )}
 
       {saveError && (
         <div className="alert alert-error">

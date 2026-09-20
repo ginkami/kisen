@@ -5,6 +5,20 @@ import { tieBreaksSchema } from './tieBreak.ts'
 import { playerRatingSchema } from './playerRating.ts'
 import { handicapSchema } from './handicap.ts'
 
+/**
+ * Thrown when a tournament update was prepared against an older revision than
+ * the one currently stored (another manager or tab saved in between).
+ */
+export class TournamentConflictError extends Error {
+  /** The revision currently stored in Firestore. */
+  readonly currentRevision: number
+  constructor(currentRevision: number) {
+    super(`Tournament was changed by someone else (stored revision ${currentRevision})`)
+    this.name = 'TournamentConflictError'
+    this.currentRevision = currentRevision
+  }
+}
+
 export const tournamentStatusSchema = z.enum([
   'draft',
   'upcoming',
@@ -203,6 +217,11 @@ const tournamentObjectSchema = z.object({
   status: tournamentStatusSchema,
   isPublic: z.boolean(),
   publishedRounds: z.number().int().min(0).default(0),
+  /**
+   * Optimistic concurrency token, incremented on every saved update. Legacy
+   * documents without the field default to 0 (first save writes 1).
+   */
+  revision: z.number().int().min(0).default(0),
   /**
    * Legacy duplicate of publishedRounds. Kept only so old Firestore documents
    * (where the real value lived in currentRound and publishedRounds was 0)

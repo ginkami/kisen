@@ -45,6 +45,10 @@ vi.mock('../services/tournamentService.ts', () => ({
     slugExists: vi.fn(() => Promise.resolve(false)),
     publish: vi.fn(),
     delete: vi.fn(),
+    subscribeToTournament: vi.fn(() => () => {}),
+    announceEditingSession: vi.fn().mockResolvedValue(undefined),
+    removeEditingSession: vi.fn().mockResolvedValue(undefined),
+    subscribeToEditingSessions: vi.fn(() => () => {}),
   },
 }))
 
@@ -100,6 +104,7 @@ function makeTournament(part: Partial<Tournament> = {}): Tournament {
     participants: [],
     games: [],
     publishedRounds: 0,
+    revision: 0,
     ...part,
   } as Tournament
 }

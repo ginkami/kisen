@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '../context/AuthContext.tsx'
 import type { LayoutOutletContext } from '../components/Layout.tsx'
 import { tournamentService } from '../services/tournamentService.ts'
+import type { EditingSession } from '../services/repository.ts'
 import type {
   Tournament,
   TournamentLocale,
@@ -200,6 +201,11 @@ export interface TournamentFormState {
   slug: string
   parentEvent: string | null
   hostAssociation: string | null
+  /**
+   * Optimistic concurrency token from the loaded tournament; travels with the
+   * update input and is compared with the stored revision on save.
+   */
+  revision: number
   locales: Record<SupportedLocale, TournamentLocale>
   location: {
     latitude: number | null
@@ -337,6 +343,7 @@ function tournamentToFormState(tournament: Tournament): TournamentFormState {
     slug: tournament.slug,
     parentEvent: tournament.parentEvent,
     hostAssociation: tournament.hostAssociation,
+    revision: tournament.revision ?? 0,
     locales,
     location,
     arbiter: (() => {
@@ -431,6 +438,7 @@ async function formStateToUpdateInput(
 
   const input: {
     id: string
+    revision: number
     locales: Tournament['locales']
     location: Tournament['location'] | undefined
     settings: TournamentSettings
@@ -445,6 +453,7 @@ async function formStateToUpdateInput(
     desiredSlug?: string
   } = {
     id: tournament.id,
+    revision: state.revision,
     locales: buildLocalesForSave(state.locales),
     location: await buildLocationForSave(state.location),
     settings: state.settings,
@@ -712,6 +721,49 @@ export function useTournamentForm(tournamentId: string | undefined) {
   useEffect(() => {
     setHasUnsavedChanges(isDirty)
   }, [isDirty, setHasUnsavedChanges])
+
+  // --- Multi-editor awareness (revision tracking, realtime, presence) ---
+  const isDirtyRef = useRef(false)
+  useEffect(() => {
+    isDirtyRef.current = isDirty
+  }, [isDirty])
+
+  const revisionRef = useRef(0)
+  useEffect(() => {
+    revisionRef.current = formState?.revision ?? 0
+  }, [formState?.revision])
+
+  const [remoteChanged, setRemoteChanged] = useState(false)
+  const [editingSessions, setEditingSessions] = useState<EditingSession[]>([])
+
+  useEffect(() => {
+    if (!tournamentId || tournamentId === 'new' || !firebaseUser) return
+    const displayName =
+      (user?.locales as Record<string, { displayName?: string }> | undefined)?.[
+        i18n.language
+      ]?.displayName ??
+      firebaseUser.displayName ??
+      firebaseUser.uid
+    const session = { userId: firebaseUser.uid, displayName }
+    void tournamentService.announceEditingSession(tournamentId, session)
+    const heartbeat = setInterval(() => {
+      void tournamentService.announceEditingSession(tournamentId, session)
+    }, 15_000)
+    const unsubscribe = tournamentService.subscribeToEditingSessions(
+      tournamentId,
+      (sessions) => {
+        setEditingSessions(sessions.filter((s) => s.userId !== firebaseUser.uid))
+      }
+    )
+    return () => {
+      clearInterval(heartbeat)
+      unsubscribe()
+      void tournamentService
+        .removeEditingSession(tournamentId, firebaseUser.uid)
+        .catch(() => {})
+    }
+  }, [tournamentId, firebaseUser, user, i18n.language])
+
 
   const clearCreateError = useCallback(() => setCreateError(null), [])
 
@@ -1194,6 +1246,10 @@ export function useTournamentForm(tournamentId: string | undefined) {
       return updated
     },
     onSuccess: (updated) => {
+      // Record our own new revision before the local snapshot echo arrives,
+      // so the realtime handler ignores it.
+      revisionRef.current = updated.revision ?? 0
+      setRemoteChanged(false)
       queryClient.setQueryData([TOURNAMENT_QUERY_KEY, updated.id], updated)
       queryClient.invalidateQueries({ queryKey: ['tournaments'] })
       queryClient.invalidateQueries({ queryKey: ['events'] })
@@ -1202,6 +1258,55 @@ export function useTournamentForm(tournamentId: string | undefined) {
       setLastSavedSnapshot(JSON.stringify(snapshot))
     },
   })
+
+  // Realtime awareness: subscribe to the tournament document. A clean form
+  // follows remote changes silently; a dirty form is only warned.
+  useEffect(() => {
+    if (!tournamentId || tournamentId === 'new') return
+    return tournamentService.subscribeToTournament(tournamentId, (remote) => {
+      if (!remote) return
+      const remoteRevision = remote.revision ?? 0
+      // Ignore our own save echo and anything older than what we hold.
+      if (remoteRevision <= revisionRef.current) return
+      if (!isDirtyRef.current) {
+        const snapshot = tournamentToFormState(remote)
+        queryClient.setQueryData([TOURNAMENT_QUERY_KEY, remote.id], remote)
+        revisionRef.current = remoteRevision
+        setFormState(snapshot)
+        setLastSavedSnapshot(JSON.stringify(snapshot))
+      } else {
+        setRemoteChanged(true)
+      }
+    })
+  }, [tournamentId, queryClient])
+
+  /** Discards local changes and reloads the tournament from the server. */
+  const reloadFromServer = useCallback(async () => {
+    if (!tournamentId || tournamentId === 'new') return
+    const fresh = await tournamentService.getById(tournamentId)
+    if (!fresh) return
+    const snapshot = tournamentToFormState(fresh)
+    queryClient.setQueryData([TOURNAMENT_QUERY_KEY, fresh.id], fresh)
+    revisionRef.current = fresh.revision ?? 0
+    setFormState(snapshot)
+    setLastSavedSnapshot(JSON.stringify(snapshot))
+    setRemoteChanged(false)
+    saveMutation.reset()
+  }, [tournamentId, queryClient, saveMutation])
+
+  /** Re-saves the local state over the fresh revision (intentional overwrite). */
+  const forceSave = useCallback(() => {
+    if (!tournamentId || tournamentId === 'new' || !formState) return
+    void tournamentService.getById(tournamentId).then((fresh) => {
+      if (!fresh) return
+      const forcedState: TournamentFormState = {
+        ...formState,
+        revision: fresh.revision ?? 0,
+      }
+      setFormState(forcedState)
+      saveMutation.mutate(forcedState)
+    })
+  }, [tournamentId, formState, saveMutation])
 
   const publishMutation = useMutation({
     mutationFn: async () => {
@@ -1483,5 +1588,9 @@ export function useTournamentForm(tournamentId: string | undefined) {
     restorePairingSnapshot,
     updateStartingPoints,
     slugTaken,
+    remoteChanged,
+    editingSessions,
+    reloadFromServer,
+    forceSave,
   }
 }

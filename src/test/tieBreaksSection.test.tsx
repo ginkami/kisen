@@ -87,6 +87,10 @@ vi.mock('../hooks/useTournamentForm.ts', () => ({
     publish: vi.fn(),
     deleteTournament: vi.fn(),
     slugTaken: false,
+    remoteChanged: false,
+    editingSessions: [],
+    reloadFromServer: vi.fn(),
+    forceSave: vi.fn(),
   }),
   rowsToParticipants: (rows: unknown[]) => rows,
 }))
@@ -137,6 +141,7 @@ function makeTournament(): Tournament {
     parentEvent: null,
     regulations: [],
     updatedAt: new Date('2026-01-01T00:00:00Z'),
+    revision: 0,
     locales: {
       ru: { title: 'Тестовый турнир' },
       en: { title: 'Test tournament' },

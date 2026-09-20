@@ -30,10 +30,30 @@ export interface PaginatedTournaments {
   nextCursor: QueryDocumentSnapshot | null
 }
 
+export interface EditingSession {
+  userId: string
+  displayName: string
+  /** Server timestamp of the last heartbeat; null while pending. */
+  updatedAt: Date | null
+}
+
 export interface TournamentRepository {
   getBySlug(slug: string): Promise<Tournament | null>
   getById(id: string): Promise<Tournament | null>
   getByIds(ids: string[]): Promise<Tournament[]>
+  subscribeToTournament(
+    id: string,
+    onUpdate: (tournament: Tournament | null) => void
+  ): () => void
+  announceEditingSession(
+    tournamentId: string,
+    session: { userId: string; displayName: string }
+  ): Promise<void>
+  removeEditingSession(tournamentId: string, userId: string): Promise<void>
+  subscribeToEditingSessions(
+    tournamentId: string,
+    onSessions: (sessions: EditingSession[]) => void
+  ): () => void
   list(filters?: ListTournamentsFilters): Promise<Tournament[]>
   listPublishedTournaments(
     params: ListPublishedTournamentsParams

@@ -3,6 +3,9 @@ import {
   doc,
   getDoc,
   getDocs,
+  onSnapshot,
+  runTransaction,
+  serverTimestamp,
   setDoc,
   writeBatch,
   deleteDoc,
@@ -14,8 +17,9 @@ import {
   documentId,
 } from 'firebase/firestore'
 import { db } from './firebaseConfig.ts'
-import type { Tournament } from '../domain/tournament.ts'
+import { TournamentConflictError, type Tournament } from '../domain/tournament.ts'
 import type {
+  EditingSession,
   ListPublishedTournamentsParams,
   ListTournamentsFilters,
   PaginatedTournaments,
@@ -27,6 +31,7 @@ import {
   chunkArray,
   datesToTimestamps,
   timestampsToDates,
+  timestampToDate,
   removeUndefined,
 } from './firestoreHelpers.ts'
 
@@ -234,11 +239,22 @@ function entryInstant(value: unknown): Date | null {
 }
 
 async function fromFirestore(data: Record<string, unknown>): Promise<Tournament> {
-  const remapped = withDefaultKnockoutBracket(
-    withDefaultArbiter(remapLegacyLocation(remapLegacyRounds(data)))
+  const remapped = withDefaultRevision(
+    withDefaultKnockoutBracket(
+      withDefaultArbiter(remapLegacyLocation(remapLegacyRounds(data)))
+    )
   )
   const backfilled = await backfillScheduleLocalTime(remapped)
   return timestampsToDates(backfilled) as Tournament
+}
+
+/**
+ * Legacy documents predate the optimistic-concurrency `revision` field; the
+ * first save of such a document starts the counter at 1.
+ */
+function withDefaultRevision(data: Record<string, unknown>): Record<string, unknown> {
+  if (typeof data.revision === 'number') return data
+  return { ...data, revision: 0 }
 }
 
 export class FirestoreTournamentRepository implements TournamentRepository {
@@ -387,8 +403,28 @@ export class FirestoreTournamentRepository implements TournamentRepository {
 
   async update(tournament: Tournament): Promise<Tournament> {
     const docRef = doc(db, COLLECTION_NAME, tournament.id)
-    await setDoc(docRef, toFirestore(tournament))
-    return tournament
+    // Optimistic concurrency: compare the stored revision with the revision
+    // the editor loaded; a mismatch means another manager/tab saved first.
+    return runTransaction(db, async (tx) => {
+      const snapshot = await tx.get(docRef)
+      if (!snapshot.exists()) {
+        throw new Error(`Tournament with id ${tournament.id} not found`)
+      }
+      const current = await fromFirestore({
+        id: snapshot.id,
+        ...snapshot.data(),
+      } as Record<string, unknown>)
+      if ((current.revision ?? 0) !== (tournament.revision ?? 0)) {
+        throw new TournamentConflictError(current.revision ?? 0)
+      }
+      const next: Tournament = {
+        ...tournament,
+        revision: (tournament.revision ?? 0) + 1,
+        updatedAt: new Date(),
+      }
+      tx.set(docRef, toFirestore(next))
+      return next
+    })
   }
 
   async updateMany(tournaments: Tournament[]): Promise<void> {
@@ -396,7 +432,15 @@ export class FirestoreTournamentRepository implements TournamentRepository {
     for (const chunk of chunkArray(tournaments)) {
       const batch = writeBatch(db)
       for (const tournament of chunk) {
-        batch.set(doc(db, COLLECTION_NAME, tournament.id), toFirestore(tournament))
+        // Administrative cascade: no conflict check, but bump the revision so
+        // concurrent editors hit a conflict on their next save.
+        batch.set(
+          doc(db, COLLECTION_NAME, tournament.id),
+          toFirestore({
+            ...tournament,
+            revision: (tournament.revision ?? 0) + 1,
+          }),
+        )
       }
       await batch.commit()
     }
@@ -405,6 +449,80 @@ export class FirestoreTournamentRepository implements TournamentRepository {
   async delete(id: string): Promise<void> {
     const docRef = doc(db, COLLECTION_NAME, id)
     await deleteDoc(docRef)
+  }
+
+  subscribeToTournament(
+    id: string,
+    onUpdate: (tournament: Tournament | null) => void
+  ): () => void {
+    return onSnapshot(
+      doc(db, COLLECTION_NAME, id),
+      (snapshot) => {
+        if (!snapshot.exists()) {
+          onUpdate(null)
+          return
+        }
+        void fromFirestore({
+          id: snapshot.id,
+          ...snapshot.data(),
+        } as Record<string, unknown>).then(onUpdate)
+      },
+      (error) => {
+        console.warn(`Tournament ${id} snapshot failed:`, error)
+      }
+    )
+  }
+
+  async announceEditingSession(
+    tournamentId: string,
+    session: { userId: string; displayName: string }
+  ): Promise<void> {
+    await setDoc(
+      doc(db, COLLECTION_NAME, tournamentId, 'sessions', session.userId),
+      {
+        userId: session.userId,
+        displayName: session.displayName,
+        updatedAt: serverTimestamp(),
+      }
+    )
+  }
+
+  async removeEditingSession(tournamentId: string, userId: string): Promise<void> {
+    await deleteDoc(doc(db, COLLECTION_NAME, tournamentId, 'sessions', userId))
+  }
+
+  subscribeToEditingSessions(
+    tournamentId: string,
+    onSessions: (sessions: EditingSession[]) => void
+  ): () => void {
+    const STALE_MS = 30_000
+    return onSnapshot(
+      collection(db, COLLECTION_NAME, tournamentId, 'sessions'),
+      (snapshot) => {
+        const now = Date.now()
+        const sessions: EditingSession[] = []
+        for (const docSnapshot of snapshot.docs) {
+          const data = docSnapshot.data() as {
+            userId?: string
+            displayName?: string
+            updatedAt?: unknown
+          }
+          // A pending server timestamp (null) is the local echo of our own
+          // heartbeat — keep it; anything older than STALE_MS is a dead session.
+          const updatedAt = data.updatedAt ? timestampToDate(data.updatedAt) : null
+          if (updatedAt && now - updatedAt.getTime() > STALE_MS) continue
+          sessions.push({
+            userId: data.userId ?? docSnapshot.id,
+            displayName: data.displayName ?? '',
+            updatedAt,
+          })
+        }
+        onSessions(sessions)
+      },
+      (error) => {
+        console.warn(`Tournament ${tournamentId} sessions snapshot failed:`, error)
+      }
+    )
   }
 
   async slugExists(slug: string): Promise<string | null> {

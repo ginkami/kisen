@@ -14,6 +14,7 @@ import {
 } from './slugService.ts'
 import type {
   TournamentRepository,
+  EditingSession,
   ListTournamentsFilters,
   ListPublishedTournamentsParams,
   PaginatedTournaments,
@@ -62,6 +63,12 @@ export interface UpdateTournamentInput {
   hostAssociation?: string | null
   regulations?: string[]
   desiredSlug?: string
+  /**
+   * Optimistic concurrency: the revision the editor loaded. The repository
+   * compares it with the stored revision and throws TournamentConflictError
+   * on mismatch. Falls back to the loaded `existing` revision when omitted.
+   */
+  revision?: number
   existing?: Tournament
 }
 
@@ -242,6 +249,7 @@ export class TournamentService {
       status: 'draft',
       isPublic: false,
       publishedRounds: 0,
+      revision: 0,
       startYearMonth: getTournamentStartYearMonth({
         schedule: input.schedule,
       } as Tournament),
@@ -288,6 +296,7 @@ export class TournamentService {
       status: 'draft',
       isPublic: false,
       publishedRounds: 0,
+      revision: 0,
       startYearMonth: getTournamentStartYearMonth({
         schedule,
       } as Tournament),
@@ -356,6 +365,7 @@ export class TournamentService {
 
     const updated: Tournament = {
       ...existing,
+      revision: input.revision ?? existing.revision ?? 0,
       locales: input.locales ?? existing.locales,
       location: input.location ?? existing.location,
       settings: input.settings ?? existing.settings,
@@ -426,6 +436,31 @@ export class TournamentService {
         console.warn(`Failed to sync event ${existing.parentEvent} startYearMonth:`, err)
       })
     }
+  }
+
+  subscribeToTournament(
+    id: string,
+    onUpdate: (tournament: Tournament | null) => void
+  ): () => void {
+    return this.repository.subscribeToTournament(id, onUpdate)
+  }
+
+  announceEditingSession(
+    tournamentId: string,
+    session: { userId: string; displayName: string }
+  ): Promise<void> {
+    return this.repository.announceEditingSession(tournamentId, session)
+  }
+
+  removeEditingSession(tournamentId: string, userId: string): Promise<void> {
+    return this.repository.removeEditingSession(tournamentId, userId)
+  }
+
+  subscribeToEditingSessions(
+    tournamentId: string,
+    onSessions: (sessions: EditingSession[]) => void
+  ): () => void {
+    return this.repository.subscribeToEditingSessions(tournamentId, onSessions)
   }
 
   async slugExists(slug: string, excludeId?: string): Promise<boolean> {

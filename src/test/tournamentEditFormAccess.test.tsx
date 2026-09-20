@@ -98,6 +98,10 @@ vi.mock('../hooks/useTournamentForm.ts', () => ({
     publish: vi.fn(),
     deleteTournament: vi.fn(),
     slugTaken: false,
+    remoteChanged: false,
+    editingSessions: [],
+    reloadFromServer: vi.fn(),
+    forceSave: vi.fn(),
   }),
   rowsToParticipants: (rows: unknown[]) => rows,
 }))

@@ -412,6 +412,15 @@
           "active": "running",
           "finished": "finished"
         }
+      },
+      "conflict": {
+        "title": "Tournament changed by another manager",
+        "banner": "The version is outdated: the tournament was changed in another tab or by another manager. Reload the form (your current edits will be copied to the clipboard) or force-save — the other manager's changes will be overwritten.",
+        "reload": "Reload",
+        "forceSave": "Force save"
+      },
+      "presence": {
+        "editingNow": "Currently editing:"
       }
     },
     "timeControl": {
