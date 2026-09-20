@@ -35,7 +35,7 @@ export function MarkdownCollapsibleSections({ markdown }: MarkdownCollapsibleSec
   const sections = useMemo(() => buildMarkdownSections(markdown), [markdown])
   if (sections.length === 0) return null
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 md-section">
       {sections.map((section, index) => (
         <SectionView key={index} section={section} />
       ))}

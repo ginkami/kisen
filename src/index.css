@@ -18,6 +18,10 @@
     font-family: "PT Sans Narrow", sans-serif;
     font-weight: bold;
   }
+
+  a:hover{
+    text-decoration: underline;
+  }
 }
 
 @plugin "daisyui" {
@@ -71,6 +75,10 @@
   font-style: normal;
   font-size: 1.5rem;
   margin-left: -1rem;
+  color: oklch(0.9521 0 0);
+}
+.logo:hover {
+  text-decoration: none;
 }
 .logo::before{
   content: '·';
@@ -87,6 +95,9 @@
   vertical-align: top;
   margin-left: .1rem;
   opacity: .5;
+}
+footer .logo{
+  color: oklch(0.19162 0 0);
 }
 footer .logo::after{
   font-size: .55rem;
@@ -188,4 +199,23 @@ div:has(> button[data-val='=']) + .gote-card > div  {
   .drop-zone-card > div[role='button'] {
     padding-left: 0.25rem;
   }
+}
+
+.md-section .collapse {
+  margin: 0;
+}
+
+.md-section .collapse-title {
+  padding: 1rem 0 0 0;
+}
+
+.md-section .collapse-content {
+  padding-bottom: 0;
+}
+
+.md-section a {
+  text-decoration: underline;
+}
+.md-section a:hover {
+  text-decoration: none;
 }
