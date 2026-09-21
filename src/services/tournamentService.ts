@@ -58,6 +58,11 @@ export interface UpdateTournamentInput {
   participants?: Tournament['participants']
   games?: Tournament['games']
   status?: TournamentStatus
+  /**
+   * Visibility on the site, independent of the status. When omitted the
+   * stored value is kept — update() never derives isPublic from the status.
+   */
+  isPublic?: boolean
   publishedRounds?: number
   parentEvent?: string | null
   hostAssociation?: string | null
@@ -360,8 +365,7 @@ export class TournamentService {
       editTime: now,
     })
 
-    const isPublic =
-      nextStatus !== 'draft' && nextStatus !== 'proposed_for_removing'
+    const isPublic = input.isPublic !== undefined ? input.isPublic : existing.isPublic
 
     const updated: Tournament = {
       ...existing,
@@ -416,7 +420,15 @@ export class TournamentService {
   }
 
   async publish(id: string, existing?: Tournament): Promise<Tournament> {
-    return this.update({ id, status: 'upcoming', existing })
+    return this.update({ id, status: 'upcoming', isPublic: true, existing })
+  }
+
+  /**
+   * Takes the tournament off publication (isPublic = false) without changing
+   * its status. Symmetric to publish(); no validation is required to hide.
+   */
+  async unpublish(id: string, existing?: Tournament): Promise<Tournament> {
+    return this.update({ id, isPublic: false, existing })
   }
 
   async delete(id: string): Promise<void> {

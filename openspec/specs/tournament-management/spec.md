@@ -735,12 +735,14 @@ When the active round is a past round (strictly earlier than `currentRound`), th
 
 The tournament status SHALL be derived from the tournament's data on every save (`TournamentService.update`), computed from the merged state being written (games, currentRound, schedule) rather than the previously stored state:
 
-- **publish:** `publish()` requests `upcoming`; if round-1 pairings already exist in the stored tournament, the status SHALL become `ongoing` immediately.
+- **publish:** `publish()` requests `upcoming` and sets `isPublic: true`; if round-1 pairings already exist in the stored tournament, the status SHALL become `ongoing` immediately.
 - **first draw:** when `currentRound >= 1` (a draw has been published) or any game exists for round 1, the status SHALL be `ongoing`.
 - **finished:** when the last round of the schedule is published (`publishedRounds` >= its number), has at least one game, and every game of that round has a fixed outcome (`result != null` or status `bye`/`forfeit`), the status SHALL be `finished`. Carried-over forfeit games in a not-yet-published last round SHALL NOT mark the tournament `finished`.
 - **time fallback:** when the first round's `scheduledAt` has passed and no draw has been published, `upcoming` SHALL become `ongoing`.
 - **symmetric rollback:** removing the last fixed outcome SHALL roll `finished` back to `ongoing`; unpublishing all draws (`currentRound = 0`, no round-1 pairings) with the first round's start time not yet reached SHALL roll `ongoing` back to `upcoming`.
 - **sticky manual statuses:** `draft` SHALL only leave via the publish action; `canceled` and `proposed_for_removing` SHALL change only through an explicit status input.
+
+The `isPublic` flag SHALL be independent of the status: it SHALL mean only "the tournament is visible on the site" and MAY be `true` for any status. `update()` SHALL NOT derive `isPublic` from the status — it SHALL write `input.isPublic` when provided and otherwise keep the stored value. The new `unpublish()` service action SHALL set `isPublic: false` without changing the status. The Firestore rules SHALL NOT enforce any `isPublic`↔`status` invariant.
 
 #### Scenario: Publishing a tournament without pairings
 
@@ -797,6 +799,21 @@ The tournament status SHALL be derived from the tournament's data on every save 
 - **WHEN** the status is `canceled` and the tournament is saved with data that would otherwise imply `ongoing`
 - **THEN** the status remains `canceled`
 
+#### Scenario: Draft tournament can be public
+
+- **WHEN** a `draft` tournament is updated with `isPublic: true`
+- **THEN** the saved document keeps `status: 'draft'` and has `isPublic: true`
+
+#### Scenario: Save without isPublic input keeps the stored visibility
+
+- **WHEN** a hidden (`isPublic: false`) tournament of a public status (e.g. `upcoming`) is saved without an `isPublic` input
+- **THEN** the saved document keeps `isPublic: false`
+
+#### Scenario: Unpublish keeps the status
+
+- **WHEN** `unpublish()` is called for an `ongoing` public tournament
+- **THEN** the saved document has `isPublic: false` and `status: 'ongoing'`
+
 ### Requirement: Forfeit carry-over on draw publish
 
 When a draw is published (`publishDraw(round)`), for each participant whose game in the published round has `status: 'forfeit'` and who has no game in the next round (`round + 1`), the system SHALL automatically create a lone forfeit game (`player2: null`, `result: 'player2_won'`, `sente` per `considerSente`) in the next round. This SHALL NOT apply when the published round is the last round of the schedule. The operation SHALL be idempotent: if the next-round forfeit game already exists, no duplicate SHALL be created. Unpublishing the draw SHALL remove the carried-over forfeit games (existing `unpublishDraw` behavior removes all games in `oldCurrentRound + 1`).
@@ -830,23 +847,51 @@ When a draw is published (`publishDraw(round)`), for each participant whose game
 
 ### Requirement: Pairing tools drawer availability
 
-The tournament edit page SHALL render the "Pairing assistant" drawer (`PairingToolsDrawer`) and its toggle buttons only when all of the following hold: the tournament status is `ongoing`, the "Pairings" tab OR the "Crosstable" tab is active, and the form state is loaded. On the "Pairings" tab the drawer and its toggle buttons SHALL be available for every active round sub-tab (not only the round being prepared); on the "Crosstable" tab only the side sticky `FaPeopleArrows` tab SHALL be shown. The drawer and its toggle buttons SHALL NOT be rendered in any other state. When the availability conditions stop holding while the drawer is open, the drawer SHALL disappear. The sticky `FaPeopleArrows` tab SHALL show the tooltip «Открыть панель жеребьёвки».
+The tournament edit page SHALL render the "Pairing assistant" drawer (`PairingToolsDrawer`) and its toggle buttons only when all of the following hold: the "Pairings" tab OR the "Crosstable" tab is active, and the form state is loaded — regardless of the tournament status. On the "Pairings" tab the drawer and its toggle buttons SHALL be available for every active round sub-tab (not only the round being prepared); on the "Crosstable" tab only the side sticky `FaPeopleArrows` tab SHALL be shown. The drawer and its toggle buttons SHALL NOT be rendered in any other state. When the availability conditions stop holding while the drawer is open, the drawer SHALL disappear. The sticky `FaPeopleArrows` tab SHALL show the tooltip «Открыть панель жеребьёвки».
 
 #### Scenario: Drawer available on any round sub-tab of the pairings tab
 
-- **WHEN** an `ongoing` tournament's edit page shows the "Pairings" tab with any round sub-tab active
+- **WHEN** a tournament edit page (any status, e.g. `draft` or `upcoming`) shows the "Pairings" tab with any round sub-tab active
 - **THEN** the pairing tools drawer toggle buttons are displayed
 
 #### Scenario: Crosstable tab shows only the sticky tab
 
-- **WHEN** an `ongoing` tournament's edit page shows the "Crosstable" tab and the drawer is closed
+- **WHEN** a tournament edit page shows the "Crosstable" tab and the drawer is closed
 - **THEN** only the side sticky `FaPeopleArrows` tab is displayed, with the tooltip «Открыть панель жеребьёвки»
 - **AND** no pairings-board header toggle is rendered
 
-#### Scenario: Drawer unavailable on other tabs or statuses
+#### Scenario: Drawer unavailable on other tabs
 
-- **WHEN** the active tab is neither "Pairings" nor "Crosstable", or the tournament status is not `ongoing`
+- **WHEN** the active tab is neither "Pairings" nor "Crosstable"
 - **THEN** neither the drawer nor its toggle buttons are displayed
+
+### Requirement: Unpublish (Скрыть) button in the edit form header
+
+The tournament edit form header SHALL render publication controls between the «Сохранить» / "Save" button and the «Удалить» / "Delete" button, driven by the stored `isPublic` value and alternating: when `isPublic === false` a «Опубликовать» / "Publish" button SHALL be rendered for a tournament of any status (not only `draft`); when `isPublic === true` a «Скрыть» / "Unpublish" button SHALL be rendered. Confirming the publish action SHALL keep the existing publish flow (validation, confirmation dialog, `publish()`). Confirming the unpublish action SHALL open a confirmation dialog and then call `useTournamentForm.unpublish()`, which SHALL set `isPublic: false` without changing the status and without saving the dirty form state. Both buttons SHALL be disabled while a save, publish, unpublish, or delete operation is in flight.
+
+#### Scenario: Publish button for a non-draft hidden tournament
+
+- **WHEN** an `upcoming` tournament with `isPublic === false` is opened in the edit form
+- **THEN** the header shows the «Опубликовать» button between «Сохранить» and «Удалить»
+
+#### Scenario: Unpublish button for a public tournament
+
+- **WHEN** a tournament with `isPublic === true` is opened in the edit form
+- **THEN** the header shows the «Скрыть» / "Unpublish" button between «Сохранить» and «Удалить»
+- **AND** the «Опубликовать» button is not rendered
+
+#### Scenario: Unpublish confirmation hides the tournament
+
+- **WHEN** the user confirms the unpublish dialog
+- **THEN** the tournament is saved with `isPublic: false`
+- **AND** the status is unchanged
+- **AND** afterwards the header shows the «Опубликовать» button instead of «Скрыть»
+
+#### Scenario: Unpublish i18n strings
+
+- **WHEN** the ru or en locale dictionary is inspected
+- **THEN** `tournament.edit.unpublish` equals «Скрыть» / "Unpublish" respectively
+- **AND** unpublish confirmation title and message keys exist in both locales
 
 ### Requirement: Pairing tools drawer toggle buttons
 

@@ -292,6 +292,9 @@
       "publish": "Publish",
       "publishConfirmTitle": "Publish tournament",
       "publishConfirm": "Publish the tournament? It will become visible to everyone.",
+      "unpublish": "Unpublish",
+      "unpublishConfirmTitle": "Unpublish tournament",
+      "unpublishConfirm": "Unpublish the tournament? It will no longer be visible on the site.",
       "delete": "Delete",
       "deleteConfirmTitle": "Delete tournament",
       "deleteConfirm": "Delete the tournament? This action cannot be undone.",
@@ -299,6 +302,7 @@
         "load": "Failed to load tournament.",
         "save": "Failed to save tournament.",
         "publish": "Failed to publish tournament. Please check required fields.",
+        "unpublish": "Failed to unpublish the tournament.",
         "delete": "Failed to delete tournament.",
         "noAccess": "You do not have permission to edit this tournament."
       },

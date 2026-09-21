@@ -287,9 +287,6 @@ export const publishedTournamentSchema = tournamentObjectSchema
         'At least one locale is required'
       ),
   })
-  .refine((t) => t.status !== 'draft', {
-    message: 'Published tournament cannot have draft status',
-  })
   .transform(migrateLegacyRounds)
 
 export type PublishedTournament = z.infer<typeof publishedTournamentSchema>

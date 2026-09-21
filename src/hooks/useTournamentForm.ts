@@ -1376,6 +1376,25 @@ export function useTournamentForm(tournamentId: string | undefined) {
     },
   })
 
+  // Takes the tournament off publication (isPublic = false) without changing
+  // its status. Mirrors publish(): it acts on the stored tournament, not the
+  // dirty form state, and needs no publish validation.
+  const unpublishMutation = useMutation({
+    mutationFn: async () => {
+      if (!tournament) throw new Error('Tournament not loaded')
+      return tournamentService.unpublish(tournament.id, tournament)
+    },
+    onSuccess: (updated) => {
+      revisionRef.current = updated.revision ?? 0
+      queryClient.setQueryData([TOURNAMENT_QUERY_KEY, updated.id], updated)
+      queryClient.invalidateQueries({ queryKey: ['tournaments'] })
+      queryClient.invalidateQueries({ queryKey: ['events'] })
+      const snapshot = tournamentToFormState(updated)
+      setFormState(snapshot)
+      setLastSavedSnapshot(JSON.stringify(snapshot))
+    },
+  })
+
   const deleteMutation = useMutation({
     mutationFn: async () => {
       if (!tournament) throw new Error('Tournament not loaded')
@@ -1425,6 +1444,11 @@ export function useTournamentForm(tournamentId: string | undefined) {
     deleteMutation.reset()
     deleteMutation.mutate()
   }, [deleteMutation])
+
+  const unpublish = useCallback(() => {
+    unpublishMutation.reset()
+    unpublishMutation.mutate()
+  }, [unpublishMutation])
 
   const updateGames = useCallback(
     (round: number, gamesForRound: Game[]) => {
@@ -1545,14 +1569,17 @@ export function useTournamentForm(tournamentId: string | undefined) {
     isDirty,
     isSaving: saveMutation.isPending,
     isPublishing: publishMutation.isPending,
+    isUnpublishing: unpublishMutation.isPending,
     isDeleting: deleteMutation.isPending,
     saveError: saveMutation.error,
     publishError: publishMutation.error,
+    unpublishError: unpublishMutation.error,
     deleteError: deleteMutation.error,
     validationErrors,
     setValidationErrors,
     clearSaveError: saveMutation.reset,
     clearPublishError: publishMutation.reset,
+    clearUnpublishError: unpublishMutation.reset,
     clearDeleteError: deleteMutation.reset,
     updateLocale,
     updateBasic,
@@ -1576,6 +1603,7 @@ export function useTournamentForm(tournamentId: string | undefined) {
     sortParticipants,
     save,
     publish,
+    unpublish,
     deleteTournament,
     clearCreateError,
     retryCreateDraft,

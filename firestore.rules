@@ -128,14 +128,7 @@ service cloud.firestore {
     // ---------- Tournaments (РўСѓСЂРЅРёСЂС‹) ----------
     match /tournaments/{tournamentId} {
 
-      // РЎРёРЅС…СЂРѕРЅРёР·Р°С†РёСЏ isPublic Рё status
-      function isValidPublicStatus() {
-        return request.resource.data.isPublic == (
-          request.resource.data.status != 'draft'
-          && request.resource.data.status != 'proposed_for_removing'
-        );
-      }
-
+      // isPublic is an independent visibility flag (not derived from the status).
       // Р•СЃР»Рё С…РѕСЃС‚-Р°СЃСЃРѕС†РёР°С†РёСЏ РјРµРЅСЏРµС‚СЃСЏ, РїРѕР»СЊР·РѕРІР°С‚РµР»СЊ РґРѕР»Р¶РµРЅ Р±С‹С‚СЊ РјРµРЅРµРґР¶РµСЂРѕРј РёР»Рё СЃРѕР·РґР°С‚РµР»РµРј РЅРѕРІРѕР№.
       // РћС‡РёСЃС‚РєР° СЃСЃС‹Р»РєРё (null) СЂР°Р·СЂРµС€РµРЅР° С‚РѕРјСѓ, РєС‚Рѕ РјРѕР¶РµС‚ РґРµР№СЃС‚РІРѕРІР°С‚СЊ РѕС‚ РёРјРµРЅРё СЃС‚Р°СЂРѕР№ Р°СЃСЃРѕС†РёР°С†РёРё
       // (РЅР°РїСЂРёРјРµСЂ, РїСЂРё РµС‘ СѓРґР°Р»РµРЅРёРё).
@@ -152,7 +145,6 @@ service cloud.firestore {
           request.resource.data.get('hostAssociation', null) == null
           || canActForAssociation(request.resource.data.hostAssociation)
         )
-        && isValidPublicStatus()
         && isUserActive();
 
       // Optimistic concurrency: a save must be prepared against the stored
@@ -166,7 +158,6 @@ service cloud.firestore {
           || isOwner(resource.data.createdBy)
           || canActForAssociation(resource.data.hostAssociation)
         )
-        && isValidPublicStatus()
         && isValidHostAssociationChange()
         && isValidRevisionStep()
         && isUserActive();

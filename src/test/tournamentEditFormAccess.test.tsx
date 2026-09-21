@@ -59,13 +59,16 @@ vi.mock('../hooks/useTournamentForm.ts', () => ({
     isDirty: false,
     isSaving: false,
     isPublishing: false,
+    isUnpublishing: false,
     isDeleting: false,
     saveError: null,
     publishError: null,
+    unpublishError: null,
     deleteError: null,
     validationErrors: {},
     clearSaveError: vi.fn(),
     clearPublishError: vi.fn(),
+    clearUnpublishError: vi.fn(),
     clearDeleteError: vi.fn(),
     clearCreateError: vi.fn(),
     retryCreateDraft: vi.fn(),
@@ -96,6 +99,7 @@ vi.mock('../hooks/useTournamentForm.ts', () => ({
     updateStartingPoints: vi.fn(),
     save: vi.fn(),
     publish: vi.fn(),
+    unpublish: vi.fn(),
     deleteTournament: vi.fn(),
     slugTaken: false,
     remoteChanged: false,
@@ -289,6 +293,37 @@ describe('TournamentEditForm access guard', () => {
   })
 })
 
+describe('Publish / Unpublish header buttons', () => {
+  it('shows the Publish button for a hidden non-draft tournament', () => {
+    authState.user = makeUser('admin')
+    authState.firebaseUser = makeFirebaseUser('creator-1')
+    tournamentFormState.tournament = makeTournament({
+      createdBy: 'creator-1',
+      status: 'upcoming',
+      isPublic: false,
+    })
+    renderForm()
+
+    expect(screen.getByText('tournament.edit.publish')).toBeTruthy()
+    expect(screen.queryByText('tournament.edit.unpublish')).toBeNull()
+  })
+
+  it('shows the Unpublish button for a public tournament', () => {
+    authState.user = makeUser('admin')
+    authState.firebaseUser = makeFirebaseUser('creator-1')
+    tournamentFormState.tournament = makeTournament({
+      createdBy: 'creator-1',
+      status: 'ongoing',
+      isPublic: true,
+    })
+    renderForm()
+
+    expect(screen.getByText('tournament.edit.unpublish')).toBeTruthy()
+    expect(screen.queryByText('tournament.edit.publish')).toBeNull()
+  })
+
+})
+
 describe('Pairing tools drawer visibility', () => {
   it('shows the dice toggle on the pairings tab of an ongoing tournament and opens the drawer', () => {
     authState.firebaseUser = makeFirebaseUser('creator-1')
@@ -303,7 +338,7 @@ describe('Pairing tools drawer visibility', () => {
     expect(screen.getByText('tournament.edit.pairingTools.title')).toBeInTheDocument()
   })
 
-  it('hides the pairing tools toggle for a non-ongoing tournament', () => {
+  it('shows the pairing tools toggle for a non-ongoing (draft) tournament', () => {
     authState.firebaseUser = makeFirebaseUser('creator-1')
     tournamentFormState.tournament = makeTournament({ status: 'draft' })
     renderForm()
@@ -311,9 +346,10 @@ describe('Pairing tools drawer visibility', () => {
     fireEvent.click(screen.getByRole('tab', { name: 'tournament.edit.tabs.pairings' }))
 
     expect(
-      screen.queryByRole('button', { name: 'tournament.edit.pairingTools.open' })
-    ).not.toBeInTheDocument()
-    expect(screen.queryByText('tournament.edit.pairingTools.title')).not.toBeInTheDocument()
+      screen.getByRole('button', { name: 'tournament.edit.pairingTools.open' })
+    ).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'tournament.edit.pairingTools.open' }))
+    expect(screen.getByText('tournament.edit.pairingTools.title')).toBeInTheDocument()
   })
 
   it('shows the sticky dice tab on the crosstable tab and opens the drawer from it', () => {

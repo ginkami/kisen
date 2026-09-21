@@ -157,6 +157,88 @@ describe('TournamentService', () => {
     })
   })
 
+  describe('update isPublic', () => {
+    function makeExisting(overrides: Partial<Tournament> = {}): Tournament {
+      return {
+        id: 't-1',
+        slug: 't',
+        createdBy: 'user-1',
+        hostAssociation: null,
+        parentEvent: null,
+        status: 'draft',
+        isPublic: false,
+        publishedRounds: 0,
+        revision: 3,
+        startYearMonth: '202609',
+        updatedAt: new Date('2026-01-01T00:00:00Z'),
+        locales: { ru: { title: 'T' }, en: { title: 'T' } },
+        location: { country: 'jp', locales: { ru: { settlement: '' }, en: { settlement: '' } } },
+        arbiter: { locales: { ru: { givenName: '', familyName: '' }, en: { givenName: '', familyName: '' } } },
+        settings: { considerSente: false, tieBreaks: [{ type: 'points' }] },
+        schedule: { events: [], rounds: [] },
+        participants: [],
+        games: [],
+        regulations: [],
+        ...overrides,
+      } as Tournament
+    }
+
+    it('keeps isPublic true for a draft tournament when explicitly set', async () => {
+      const repo = createMockRepository()
+      const service = new TournamentService(repo)
+      const existing = makeExisting({ status: 'draft', isPublic: false })
+      vi.mocked(repo.getById).mockResolvedValue(existing)
+
+      await service.update({ id: 't-1', isPublic: true, existing })
+
+      const saved = vi.mocked(repo.update).mock.calls[0][0] as Tournament
+      expect(saved.status).toBe('draft')
+      expect(saved.isPublic).toBe(true)
+    })
+
+    it('keeps the stored isPublic when the update does not provide one', async () => {
+      const repo = createMockRepository()
+      const service = new TournamentService(repo)
+      const existing = makeExisting({ status: 'upcoming', isPublic: false })
+      vi.mocked(repo.getById).mockResolvedValue(existing)
+
+      await service.update({ id: 't-1', existing })
+
+      const saved = vi.mocked(repo.update).mock.calls[0][0] as Tournament
+      expect(saved.status).toBe('upcoming')
+      expect(saved.isPublic).toBe(false)
+    })
+
+    it('unpublish sets isPublic false without changing the status', async () => {
+      const repo = createMockRepository()
+      const service = new TournamentService(repo)
+      // publishedRounds: 1 keeps the data-driven status at 'ongoing' (an
+      // ongoing tournament without any published data rolls back to
+      // 'upcoming' by the documented lifecycle rules).
+      const existing = makeExisting({ status: 'ongoing', isPublic: true, publishedRounds: 1 })
+      vi.mocked(repo.getById).mockResolvedValue(existing)
+
+      await service.unpublish('t-1', existing)
+
+      const saved = vi.mocked(repo.update).mock.calls[0][0] as Tournament
+      expect(saved.isPublic).toBe(false)
+      expect(saved.status).toBe('ongoing')
+    })
+
+    it('publish sets isPublic true', async () => {
+      const repo = createMockRepository()
+      const service = new TournamentService(repo)
+      const existing = makeExisting({ status: 'draft', isPublic: false })
+      vi.mocked(repo.getById).mockResolvedValue(existing)
+
+      await service.publish('t-1', existing)
+
+      const saved = vi.mocked(repo.update).mock.calls[0][0] as Tournament
+      expect(saved.isPublic).toBe(true)
+      expect(saved.status).toBe('upcoming')
+    })
+  })
+
   describe('delete', () => {
     it('cascades: deletes all promotions of the tournament', async () => {
       const repo = createMockRepository()

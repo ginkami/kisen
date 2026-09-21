@@ -1071,13 +1071,16 @@ export function TournamentEditForm({
     isDirty,
     isSaving,
     isPublishing,
+    isUnpublishing,
     isDeleting,
     saveError,
     publishError,
+    unpublishError,
     deleteError,
     validationErrors,
     clearSaveError,
     clearPublishError,
+    clearUnpublishError,
     clearDeleteError,
     clearCreateError,
     retryCreateDraft,
@@ -1110,6 +1113,7 @@ export function TournamentEditForm({
     updateStartingPoints,
     save,
     publish,
+    unpublish,
     deleteTournament,
     setValidationErrors,
     slugTaken,
@@ -1165,7 +1169,7 @@ export function TournamentEditForm({
   )
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean
-    type: 'publish' | 'delete'
+    type: 'publish' | 'unpublish' | 'delete'
   }>({ isOpen: false, type: 'publish' })
 
   const { closeAdminDrawer, isPairingToolsOpen, setPairingToolsOpen } =
@@ -1223,10 +1227,9 @@ export function TournamentEditForm({
   }, [pairingHistory, restorePairingSnapshot])
 
   // The "Pairing assistant" drawer (and its toggle buttons) is only available
-  // on the pairings tab (any active round sub-tab) or the crosstable tab of an
-  // ongoing tournament.
+  // on the pairings tab (any active round sub-tab) or the crosstable tab,
+  // regardless of the tournament status.
   const pairingToolsAvailable =
-    tournament?.status === 'ongoing' &&
     (activeTab === 'pairings' || activeTab === 'crosstable') &&
     !!formState
 
@@ -1343,10 +1346,16 @@ export function TournamentEditForm({
     setConfirmModal({ isOpen: true, type: 'delete' })
   }
 
+  const handleUnpublish = () => {
+    setConfirmModal({ isOpen: true, type: 'unpublish' })
+  }
+
   const handleConfirmAction = async () => {
     setConfirmModal((prev) => ({ ...prev, isOpen: false }))
     if (confirmModal.type === 'publish') {
       await publish()
+    } else if (confirmModal.type === 'unpublish') {
+      await unpublish()
     } else {
       await deleteTournament()
     }
@@ -1413,11 +1422,11 @@ export function TournamentEditForm({
               t('tournament.edit.save')
             )}
           </button>
-          {tournament?.status === 'draft' && (
+          {tournament && !tournament.isPublic && (
             <button
               type="button"
               onClick={handlePublish}
-              disabled={isPublishing || isSaving || isDeleting}
+              disabled={isPublishing || isSaving || isUnpublishing || isDeleting}
               className="btn btn-success"
             >
               {isPublishing ? (
@@ -1427,10 +1436,24 @@ export function TournamentEditForm({
               )}
             </button>
           )}
+          {tournament?.isPublic && (
+            <button
+              type="button"
+              onClick={handleUnpublish}
+              disabled={isUnpublishing || isSaving || isPublishing || isDeleting}
+              className="btn btn-warning"
+            >
+              {isUnpublishing ? (
+                <span className="loading loading-spinner loading-xs" />
+              ) : (
+                t('tournament.edit.unpublish')
+              )}
+            </button>
+          )}
           <button
             type="button"
             onClick={handleDelete}
-            disabled={isDeleting || isSaving || isPublishing}
+            disabled={isDeleting || isSaving || isPublishing || isUnpublishing}
             className="btn btn-error btn-outline"
           >
             {isDeleting ? (
@@ -1501,6 +1524,14 @@ export function TournamentEditForm({
         <div className="alert alert-error">
           <p className="flex-1">{t('tournament.edit.errors.publish')}</p>
           <button type="button" onClick={clearPublishError} className="btn btn-sm btn-ghost">
+            ×
+          </button>
+        </div>
+      )}
+      {unpublishError && (
+        <div className="alert alert-error">
+          <p className="flex-1">{t('tournament.edit.errors.unpublish')}</p>
+          <button type="button" onClick={clearUnpublishError} className="btn btn-sm btn-ghost">
             ×
           </button>
         </div>
@@ -1674,12 +1705,16 @@ export function TournamentEditForm({
         title={
           confirmModal.type === 'publish'
             ? t('tournament.edit.publishConfirmTitle')
-            : t('tournament.edit.deleteConfirmTitle')
+            : confirmModal.type === 'unpublish'
+              ? t('tournament.edit.unpublishConfirmTitle')
+              : t('tournament.edit.deleteConfirmTitle')
         }
         message={
           confirmModal.type === 'publish'
             ? t('tournament.edit.publishConfirm')
-            : t('tournament.edit.deleteConfirm')
+            : confirmModal.type === 'unpublish'
+              ? t('tournament.edit.unpublishConfirm')
+              : t('tournament.edit.deleteConfirm')
         }
         confirmText={t('common.confirm')}
         cancelText={t('common.cancel')}
