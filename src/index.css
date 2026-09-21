@@ -181,6 +181,23 @@ div:has(> button[data-val='=']) + .gote-card > div  {
     font-size: .6rem;
     margin-left: .1rem;
   }
+  .authenticated .logo {
+    font-size: 0;
+  }
+  .authenticated .logo::before{
+    display: none;
+  }
+  .authenticated .logo::after{
+    background: no-repeat left url(./assets/logo.svg);
+        background-size: 3rem;
+        display: inline-block;
+        height: 2rem;
+        padding-left: 3.2rem;
+        background-position-x: 0.7rem;
+        margin-top: -.5rem;
+        opacity: 0.8;
+  }
+
   footer .logo::after{
     font-size: .5rem;
   }

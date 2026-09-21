@@ -56,7 +56,7 @@ export function Layout() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <header className="navbar bg-primary text-primary-content">
+      <header className={`navbar bg-primary text-primary-content ${isAuthenticated && ('authenticated')}`}>
         <div className="navbar-start">
           <Link to="/" className="logo">
             shogi world
