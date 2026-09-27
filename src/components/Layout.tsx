@@ -9,6 +9,7 @@ import { AdminDrawer } from './AdminDrawer.tsx'
 import { BlockedNoticeBanner } from './BlockedNoticeBanner.tsx'
 import { useAppSettings } from '../hooks/useAppSettings.ts'
 import { useAuth } from '../context/AuthContext.tsx'
+import { YMInitializer } from 'react-yandex-metrika';
 
 export interface LayoutOutletContext {
   setHasUnsavedChanges: (value: boolean) => void
@@ -121,6 +122,7 @@ export function Layout() {
             shogi world
           </Link>
         </div>
+        {import.meta.env.MODE === 'production' && <YMInitializer accounts={[113107444]} options={{ webvisor: true }} />}
       </footer>
     </div>
   )
