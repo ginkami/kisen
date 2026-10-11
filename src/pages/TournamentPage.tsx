@@ -124,17 +124,17 @@ export function TournamentPage({ tournamentId }: TournamentPageProps = {}) {
     <div className="mx-auto max-w-7xl space-y-6">
       {hasParentEvent ? (
         <>
-          {eventTitle && <h1 className="text-3xl font-bold">{eventTitle}</h1>}
+          {eventTitle && <h1 className="text-3xl font-bold no-print">{eventTitle}</h1>}
           {siblings.length > 0 && <EventTournamentTabs siblings={siblings} activeId={tournament.id} />}
-          <h2 className="text-2xl font-semibold">{tournamentTitle}</h2>
+          <h2 className="text-2xl font-semibold no-print">{tournamentTitle}</h2>
         </>
       ) : (
-        <h1 className="text-3xl font-bold">{tournamentTitle}</h1>
+        <h1 className="text-3xl font-bold no-print">{tournamentTitle}</h1>
       )}
 
       <TournamentMeta tournament={tournament} />
 
-      <div className="tabs tabs-box" role="tablist">
+      <div className="tabs tabs-box no-print" role="tablist">
         {tabs.map((tab) => {
           const Icon = tab.icon
           const isActive = activeTab === tab.id

@@ -16,7 +16,7 @@ export function EventTournamentTabs({ siblings, activeId }: EventTournamentTabsP
   const sorted = sortTournamentsByStart(siblings)
 
   return (
-    <div className="overflow-x-auto">
+    <div className="overflow-x-auto no-print">
       <div className="tabs tabs-lift">
         {sorted.map((t) => {
           const title =

@@ -52,7 +52,7 @@ export function TournamentMeta({ tournament }: TournamentMetaProps) {
     : ''
 
   return (
-    <div className="space-y-1 text-xs sm:text-sm">
+    <div className="space-y-1 text-xs sm:text-sm no-print">
       <div className="flex items-center gap-1 sm:gap-2">
         <BsCalendar3 className="h-4 w-4 opacity-60 shrink-0" />
         <span>{datesStr}</span>

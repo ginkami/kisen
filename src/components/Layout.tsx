@@ -57,7 +57,7 @@ export function Layout() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <header className={`navbar bg-primary text-primary-content ${isAuthenticated && ('authenticated')}`}>
+      <header className={`navbar bg-primary text-primary-content no-print ${isAuthenticated && ('authenticated')}`}>
         <div className="navbar-start">
           <Link to="/" className="logo">
             shogi world
@@ -110,13 +110,13 @@ export function Layout() {
         <button
           type="button"
           onClick={toggleAdmin}
-          className="fixed left-0 top-17 z-40 -translate-y-1/2 rounded-r-box bg-secondary p-3 text-secondary-content shadow-lg"
+          className="fixed left-0 top-17 z-40 -translate-y-1/2 rounded-r-box bg-secondary p-3 text-secondary-content shadow-lg no-print"
           aria-label={t('admin.title')}
         >
           <BsGear className="h-6 w-6" />
         </button>
       )}
-      <footer className="bg-base-100 py-6">
+      <footer className="bg-base-100 py-6 no-print">
         <div className="max-w-4xl mx-auto px-4 text-center">
           <Link to="/" className="logo" style={{ '--logo-after': `'v${version}'` } as React.CSSProperties }>
             shogi world

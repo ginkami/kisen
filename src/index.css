@@ -236,3 +236,16 @@ div:has(> button[data-val='=']) + .gote-card > div  {
 .md-section a:hover {
   text-decoration: none;
 }
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  .no-print-visible {
+    visibility: hidden !important;
+  }
+
+  .tournament-results * {
+    font-size: 90%;
+  }
+}

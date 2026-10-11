@@ -154,10 +154,10 @@ export function TournamentResultsSection({
 
   return (
     <div>
-      <div className="flex flex-row items-center gap-2">
+      <div className="flex flex-row items-center gap-2 no-print">
         <h2 className="card-title mt-[-3px]">{t('tournament.view.results.rounds')}</h2>
         {/* Round sub-tabs (published rounds only) */}
-        <div className="tabs tabs-box tabs-sm" role="tablist">
+        <div className="tabs tabs-box tabs-sm no-print" role="tablist">
           {Array.from({ length: publishedRoundCount }, (_, i) => i + 1).map((num) => {
             const isActive = num === activeRound
             return (
@@ -202,7 +202,7 @@ export function TournamentResultsSection({
                 <td className="p-0 text-center text-xs">{idx + 1}.</td>
                 {playerCells(game.player1)}
                 <td
-                  className={`text-center whitespace-nowrap font-mono pl-0 pr-0 font-bold ${forfeit ? 'text-error' : ''}`}
+                  className={`text-center whitespace-nowrap font-mono pl-0 pr-0 font-bold no-print-visible ${forfeit ? 'text-error' : ''}`}
                   data-result={resultFirstPlayer(game)}
                 >
                   {resultText(game)}
