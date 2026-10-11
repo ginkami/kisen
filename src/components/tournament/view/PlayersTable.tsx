@@ -7,6 +7,7 @@ import { rankToColor } from '../crosstable/crosstableModel.ts'
 import type { Participant } from '../../../domain/tournament.ts'
 import type { SupportedLocale } from '../../../domain/locale.ts'
 import { TableScrollProvider, StickyTableCell } from '../tablescroll';
+import { Tooltip } from '../../../components/Tooltip'
 
 const COL_NO = 28, COL_FLAG = 20, COL_RANK = 45
 const OFF_FLAG = COL_NO
@@ -62,26 +63,26 @@ export function PlayersTable({ participants }: PlayersTableProps) {
               <tr key={p.id} className="hover hover:relative hover:z-30">
                 <StickyTableCell width={COL_NO} className="!z-10 bg-base-100 font-mono text-center p-0">{idx + 1}</StickyTableCell>
                 <StickyTableCell left={OFF_FLAG} width={COL_FLAG} className="!z-10 bg-base-100 p-0">
-                  {Flag && 
-                    <div className="tooltip tooltip-top" data-tip={getCountryName(nat, locale)}>
+                  {Flag &&
+                    <Tooltip content={getCountryName(nat, locale)}>
                       <Flag className="h-3 w-4 rounded-sm mt-1" />
-                    </div>
+                    </Tooltip>
                   }
                 </StickyTableCell>
                 <StickyTableCell left={OFF_RANK} width={COL_RANK} className="!z-11 bg-base-100 p-0">
                   {rank && (
                     <span className="badge badge-xs text-white flex items-center gap-0.5 w-fit" style={{ backgroundColor: rc ?? undefined }}>
                       {rank}
-                      {title && <span className="tooltip tooltip-right" data-tip={title}><PiCrownSimple className="h-3 w-3" /></span>}
+                      {title && <Tooltip placement="right" content={title}><PiCrownSimple className="h-3 w-3" /></Tooltip>}
                     </span>
                   )}
                 </StickyTableCell>
                 <StickyTableCell left={OFF_NAME} className="!z-10 bg-base-100 whitespace-nowrap max-w-[10rem] p-0.5" showShadow>{loc?.familyName}, {loc?.givenName}</StickyTableCell>
                 <td className="whitespace-nowrap">
                   {resDiff && ResFlag && (
-                    <span className="tooltip tooltip-top mr-1" data-tip={getCountryName(res, locale)}>
+                    <Tooltip className="mr-1" content={getCountryName(res, locale)}>
                       <ResFlag className="h-3 w-3 rounded-sm inline mt-[-3px]" />
-                    </span>
+                    </Tooltip>
                   )}
                   {loc?.location || ''}
                 </td>

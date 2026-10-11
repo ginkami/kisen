@@ -5,6 +5,7 @@ import { formatDateTimeShort, formatScheduleDateTime } from '../../../utils/date
 import { resolveLocationTimeZone } from '../../../utils/scheduleTime.ts'
 import type { Tournament } from '../../../domain/tournament.ts'
 import type { SupportedLocale } from '../../../domain/locale.ts'
+import { Tooltip } from '../../../components/Tooltip'
 
 interface TournamentScheduleListProps {
   tournament: Tournament
@@ -31,15 +32,12 @@ export function TournamentScheduleList({ tournament }: TournamentScheduleListPro
                 <span className="text-sm font-semibold">
                   {formatScheduleDateTime(row.scheduledAt, i18n.language, timeZone).localTime}
                 </span>
-                <span
-                  className="tooltip"
-                  data-tip={t('tournament.view.localTimeHint')}
-                >
+                <Tooltip content={t('tournament.view.localTimeHint')}>
                   <BsInfoCircleFill
                     className="h-3 w-3 opacity-50"
                     aria-label={t('tournament.view.localTimeHint')}
                   />
-                </span>
+                </Tooltip>
                 <span className="text-[60%] opacity-60">
                   {(() => {
                     const parts = formatScheduleDateTime(row.scheduledAt, i18n.language, timeZone)

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Navigate, useOutletContext } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { ConfirmModal } from '../ConfirmModal.tsx'
+import { Tooltip } from '../Tooltip'
 import { useTranslation } from 'react-i18next'
 import { BsSliders2Vertical, BsJournalText, BsPlus, BsX, Bs123, BsGrid3X2, BsInfoCircleFill } from 'react-icons/bs'
 import { FaPeopleArrows } from "react-icons/fa";
@@ -950,15 +951,12 @@ function ScheduleSection({
           <div className="flex-1 flex items-center gap-1">
             <span>{t('tournament.edit.program.dateTime')}</span>
             {timeZone && (
-              <span
-                className="tooltip"
-                data-tip={t('tournament.edit.program.localTimeHint')}
-              >
+              <Tooltip content={t('tournament.edit.program.localTimeHint')}>
                 <BsInfoCircleFill
                   className="h-3 w-3 opacity-50"
                   aria-label={t('tournament.edit.program.localTimeHint')}
                 />
-              </span>
+              </Tooltip>
             )}
           </div>
           <div className="flex-1">{t('tournament.edit.program.event')}</div>
@@ -1030,24 +1028,26 @@ function ScheduleSection({
                 />
               </div>
               <div className="flex gap-1">
-                <button
-                  type="button"
-                  onClick={() => onAdd(row.id)}
-                  className="btn btn-sm btn-circle btn-success tooltip"
-                  data-tip={t('tournament.edit.rounds.add')}
-                  aria-label={t('tournament.edit.rounds.add')}
-                >
-                  <BsPlus className="h-4 w-4 text-primary-content" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onRemove(row.id)}
-                  className="btn btn-sm btn-circle btn-accent tooltip"
-                  data-tip={t('tournament.edit.rounds.remove')}
-                  aria-label={t('tournament.edit.rounds.remove')}
-                >
-                  <BsX className="h-4 w-4 text-primary-content" />
-                </button>
+                <Tooltip content={t('tournament.edit.rounds.add')}>
+                  <button
+                    type="button"
+                    onClick={() => onAdd(row.id)}
+                    className="btn btn-sm btn-circle btn-success"
+                    aria-label={t('tournament.edit.rounds.add')}
+                  >
+                    <BsPlus className="h-4 w-4 text-primary-content" />
+                  </button>
+                </Tooltip>
+                <Tooltip content={t('tournament.edit.rounds.remove')}>
+                  <button
+                    type="button"
+                    onClick={() => onRemove(row.id)}
+                    className="btn btn-sm btn-circle btn-accent"
+                    aria-label={t('tournament.edit.rounds.remove')}
+                  >
+                    <BsX className="h-4 w-4 text-primary-content" />
+                  </button>
+                </Tooltip>
               </div>
             </div>
           ))}
@@ -1725,15 +1725,16 @@ export function TournamentEditForm({
 
       {/* Pairing assistant drawer + its right-side sticky tab */}
       {pairingToolsAvailable && !isPairingToolsOpen && (
-        <button
-          type="button"
-          onClick={togglePairingTools}
-          className="tooltip fixed right-0 top-17 z-40 rounded-l-box bg-secondary p-3 text-secondary-content shadow-lg"
-          data-tip={t('tournament.edit.pairingTools.open')}
-          aria-label={t('tournament.edit.pairingTools.open')}
-        >
-          <FaPeopleArrows className="h-6 w-6" />
-        </button>
+        <Tooltip content={t('tournament.edit.pairingTools.open')}>
+          <button
+            type="button"
+            onClick={togglePairingTools}
+            className="fixed right-0 top-17 z-40 rounded-l-box bg-secondary p-3 text-secondary-content shadow-lg"
+            aria-label={t('tournament.edit.pairingTools.open')}
+          >
+            <FaPeopleArrows className="h-6 w-6" />
+          </button>
+        </Tooltip>
       )}
       {pairingToolsAvailable && isPairingToolsOpen && formState && (
         <PairingToolsDrawer

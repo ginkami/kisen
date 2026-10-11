@@ -23,6 +23,7 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { PlayerCard } from '../player/PlayerCard.tsx'
+import { Tooltip } from '../Tooltip'
 import type { Game, Participant } from '../../domain/tournament.ts'
 import type { ParticipantRow } from '../../hooks/useTournamentForm.ts'
 import {
@@ -755,9 +756,9 @@ function Row({
           disabled={handicapDisabled}
           className={`btn btn-xs -mt-2.5 btn-circle flex ${game.handicap != null ? 'btn-warning' : ''}`}
         >
-          <span className="tooltip tooltip-secondary z-10" data-tip={t('tournament.edit.pairings.handicap')}>
+          <Tooltip variant="secondary" className="relative z-10" content={t('tournament.edit.pairings.handicap')}>
             {handicapToSymbol(game.handicap as string | null)}
-          </span>
+          </Tooltip>
         </button>
       </div>
 

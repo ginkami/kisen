@@ -14,6 +14,7 @@ import type { Player } from '../../domain/player.ts'
 import { PlayerSearchPanel } from '../player/PlayerSearchPanel.tsx'
 import { PlayerEditModal } from '../player/PlayerEditModal.tsx'
 import { ConfirmModal } from '../ConfirmModal.tsx'
+import { Tooltip } from '../Tooltip'
 
 interface ParticipantRowProps {
   row: ParticipantRowType
@@ -162,34 +163,37 @@ function ParticipantRowComponent({ row, activeLocale, onUpdate, validationErrors
         <BsLink45Deg className="h-4 w-4" />
         {row.player ? (
           <>
-            <button
-              type="button"
-              className="btn btn-sm btn-ghost tooltip border-primary/10"
-              data-tip={t('tournament.edit.participants.editPlayer')}
-              onClick={() => setShowEditModal(true)}
-            >
-              <BsFillPersonVcardFill className="h-4 w-4 text-primary" />
-              <span className="text-sm">{linkedPlayerLabel}</span>
-            </button>
-            <button
-              type="button"
-              className="btn btn-sm btn-ghost tooltip"
-              data-tip={t('tournament.edit.participants.unlinkPlayer')}
-              onClick={() => setConfirmModal({ isOpen: true, type: 'unlink' })}
-            >
-              <BsFillPersonXFill className="h-4 w-4 text-error" />
-            </button>
+            <Tooltip content={t('tournament.edit.participants.editPlayer')}>
+              <button
+                type="button"
+                className="btn btn-sm btn-ghost border-primary/10"
+                onClick={() => setShowEditModal(true)}
+              >
+                <BsFillPersonVcardFill className="h-4 w-4 text-primary" />
+                <span className="text-sm">{linkedPlayerLabel}</span>
+              </button>
+            </Tooltip>
+            <Tooltip content={t('tournament.edit.participants.unlinkPlayer')}>
+              <button
+                type="button"
+                className="btn btn-sm btn-ghost"
+                onClick={() => setConfirmModal({ isOpen: true, type: 'unlink' })}
+              >
+                <BsFillPersonXFill className="h-4 w-4 text-error" />
+              </button>
+            </Tooltip>
           </>
         ) : (
           <div className="relative">
-            <button
-              type="button"
-              className="btn btn-sm btn-ghost tooltip"
-              data-tip={t('tournament.edit.participants.linkPlayer')}
-              onClick={() => setShowSearchPopover(!showSearchPopover)}
-            >
-              <BsFillPersonPlusFill className="h-4 w-4 text-success" />
-            </button>
+            <Tooltip content={t('tournament.edit.participants.linkPlayer')}>
+              <button
+                type="button"
+                className="btn btn-sm btn-ghost"
+                onClick={() => setShowSearchPopover(!showSearchPopover)}
+              >
+                <BsFillPersonPlusFill className="h-4 w-4 text-success" />
+              </button>
+            </Tooltip>
             {showSearchPopover && (
               <div className="absolute z-20 top-full mt-1 left-0 w-80 bg-base-100 rounded-lg shadow-lg border border-base-300 p-2">
                 <p className="text-xs font-semibold mb-2 px-1">

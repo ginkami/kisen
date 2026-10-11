@@ -17,6 +17,7 @@ import type { SupportedLocale } from '../../domain/locale.ts'
 import type { ParticipantRow } from '../../hooks/useTournamentForm.ts'
 import { TableScrollProvider, StickyTableCell } from './tablescroll';
 import { buildFesaReport } from './crosstable/fesaReport.ts'
+import { Tooltip } from '../Tooltip'
 
 interface CrosstableSectionProps {
   games: Game[]
@@ -212,7 +213,7 @@ export function CrosstableSection({
             <th rowSpan={2} className="z-20 whitespace-nowrap text-right">{t('tournament.edit.crosstable.rating')}</th>
             <th colSpan={roundCount} className="z-20 text-center p-0 pt-1 text-[80%] border-b border-b-base-200-content/30">{t('tournament.edit.pairings.title')}</th>
             <th rowSpan={2} className="z-20 text-center whitespace-nowrap w-fit">
-              <div className="tooltip tooltip-bottom" data-tip={t('tournament.edit.crosstable.spTooltip')}>{t('tournament.edit.crosstable.sp')}</div>
+              <Tooltip placement="bottom" content={t('tournament.edit.crosstable.spTooltip')}>{t('tournament.edit.crosstable.sp')}</Tooltip>
             </th>
             {tieBreaks.map((tb, index, array) => (
               <th
@@ -220,14 +221,13 @@ export function CrosstableSection({
                 key={tb.type}
                 className={`z-20 text-right whitespace-nowrap w-fit ${index === array.length - 1 ? 'last:rounded-tr-xl' : ''}`}
               >
-                <div 
-                  className={tb.type !== 'points' ? ' tooltip tooltip-bottom relative z-20' : ''} 
-                  {...(tb.type !== 'points' && { 'data-tip': t(`tournament.tieBreak.${tb.type}`) })}
-                >
-                  {tb.type === 'points'
-                    ? t('tournament.edit.crosstable.points')
-                    : t(`tournament.tieBreak.abbr.${tb.type}`) + (tb.type === 'buchholz_cut' ? String(tb.cutCount) : '')}
-                </div>
+                {tb.type !== 'points' ? (
+                  <Tooltip placement="bottom" content={t(`tournament.tieBreak.${tb.type}`)}>
+                    {t(`tournament.tieBreak.abbr.${tb.type}`) + (tb.type === 'buchholz_cut' ? String(tb.cutCount) : '')}
+                  </Tooltip>
+                ) : (
+                  t('tournament.edit.crosstable.points')
+                )}
               </th>
             ))}
           </tr>
@@ -254,19 +254,19 @@ export function CrosstableSection({
               <tr key={s.participantId} className="hover hover:relative hover:z-30">
                 <StickyTableCell width={COL_NO} className="!z-10 bg-base-100 font-mono text-center p-0">{s.place}</StickyTableCell>
                 <StickyTableCell left={OFF_FLAG} width={COL_FLAG} className="!z-10 bg-base-100 p-0">
-                  {Flag && <div className="tooltip tooltip-top" data-tip={getCountryName(nat, locale)}><Flag className="h-3 w-4 rounded-sm mt-1" /></div>}
+                  {Flag && <Tooltip content={getCountryName(nat, locale)}><Flag className="h-3 w-4 rounded-sm mt-1" /></Tooltip>}
                 </StickyTableCell>
                 <StickyTableCell left={OFF_RANK} width={COL_RANK} className="!z-11 bg-base-100 p-0">
                   {rank && (
                     <span className="badge badge-xs text-white flex items-center gap-0.5 w-fit" style={{ backgroundColor: rc ?? undefined }}>
                       {rank}
-                      {title && <span className="tooltip tooltip-right" data-tip={title}><PiCrownSimple className="h-3 w-3" /></span>}
+                      {title && <Tooltip placement="right" content={title}><PiCrownSimple className="h-3 w-3" /></Tooltip>}
                     </span>
                   )}
                 </StickyTableCell>
                 <StickyTableCell left={OFF_NAME} className="!z-10 bg-base-100 whitespace-nowrap max-w-[10rem] p-0.5" showShadow>{loc?.familyName}, {loc?.givenName}</StickyTableCell>
                 <td className="whitespace-nowrap">
-                  {resDiff && ResFlag && <span className="tooltip tooltip-top mr-1" data-tip={getCountryName(res, locale)}><ResFlag className="h-3 w-3 rounded-sm inline mt-[-3px]" /></span>}
+                  {resDiff && ResFlag && <Tooltip className="mr-1" content={getCountryName(res, locale)}><ResFlag className="h-3 w-3 rounded-sm inline mt-[-3px]" /></Tooltip>}
                   {loc?.location || ''}
                 </td>
                 <td className="text-right font-mono">{p.ratingValue || ''}</td>

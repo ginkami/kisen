@@ -5,8 +5,10 @@ vi.mock('react-i18next', () => ({
   }),
 }))
 
-import { render } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { CrosstableView } from '../components/tournament/view/CrosstableView.tsx'
+import { getCountryName } from '../utils/countries.ts'
 import type { Game, Participant } from '../domain/tournament.ts'
 import type { TieBreak } from '../domain/tieBreak.ts'
 
@@ -61,8 +63,8 @@ function renderView(overrides: Partial<Parameters<typeof CrosstableView>[0]> = {
   )
 }
 
-// Match rows by the name cell's own name span — tooltip cards embed other
-// participants' names into the row text, so tr.textContent is not reliable.
+// Match rows by the name cell's own name span. Tooltip cards render in a
+// portal now, but the in-cell lookup remains the reliable row key.
 function rowBy(container: HTMLElement, name: string): HTMLElement {
   const row = Array.from(container.querySelectorAll('tbody tr')).find((tr) => {
     const td = (tr as HTMLElement).querySelectorAll('td')[3] as HTMLElement | undefined
@@ -80,12 +82,24 @@ function roundCellOf(row: HTMLElement, round: number): HTMLElement {
   return row.querySelectorAll('td')[5 + round] as HTMLElement
 }
 
-function card(cell: HTMLElement): HTMLElement | null {
-  return cell.querySelector('.tooltip-content')
+const user = userEvent.setup()
+
+/** Hover a cell's tooltip trigger wrapper and return the open bubble (role=tooltip, portaled to body). */
+async function openTooltip(trigger: HTMLElement | null): Promise<HTMLElement> {
+  expect(trigger).not.toBeNull()
+  await user.hover(trigger as HTMLElement)
+  return await screen.findByRole('tooltip')
+}
+
+/** Opponent card wrappers (the `display: contents` divs) inside the bubble's grid. */
+function cardsIn(bubble: HTMLElement): HTMLElement[] {
+  const grid = bubble.querySelector('.grid')
+  if (!grid) throw new Error('opponent card grid not found in tooltip')
+  return Array.from(grid.querySelectorAll(':scope > div')) as HTMLElement[]
 }
 
 describe('CrosstableView opponent tooltips', () => {
-  it('hides unpublished rounds: games beyond publishedRounds are not rendered', () => {
+  it('hides unpublished rounds: games beyond publishedRounds are not rendered', async () => {
     // Round 4 pairings exist but the draw is not published yet.
     const unpublished = makeGame({ id: 'g5', round: 4, player1: 1, player2: 2, result: null, status: 'not_started' })
     const { container } = renderView({ games: [...games, unpublished] })
@@ -95,61 +109,96 @@ describe('CrosstableView opponent tooltips', () => {
     expect(cells).toHaveLength(6 + 3 + 1)
     // The name tooltip lists published games only — the round-4 opponent is absent.
     const nameCell = rowBy(container, 'Иванов').querySelectorAll('td')[3] as HTMLElement
-    const c = nameCell.querySelector('.tooltip-content')
-    expect(c).not.toBeNull()
-    expect(c!.textContent).toContain('Петров, И2')
-    expect(c!.querySelectorAll(':scope > div')).toHaveLength(1)
+    const c = await openTooltip(nameCell.querySelector(':scope > span'))
+    expect(c.textContent).toContain('Петров, И2')
+    expect(cardsIn(c)).toHaveLength(1)
   })
 
-  it('shows the opponent card on a paired result cell, from the hovered player perspective', () => {
+  it('shows the opponent card on a paired result cell, from the hovered player perspective', async () => {
     const { container } = renderView()
-    const c = card(roundCellOf(rowBy(container, 'Иванов'), 1))
-    expect(c).not.toBeNull()
-    const text = c!.textContent ?? ''
+    const cell = roundCellOf(rowBy(container, 'Иванов'), 1)
+    const c = await openTooltip(cell.querySelector(':scope > span'))
+    const text = c.textContent ?? ''
     expect(text).toContain('Петров, И2')
     expect(text).toContain('2300')
     // Петров: 0 tournament points (lost round 1, round 2 unfinished)
-    expect(c!.querySelector('.badge-primary')?.textContent).toBe('0')
-    expect(c!.querySelector('.badge-success')?.textContent).toBe('+')
+    expect(c.querySelector('.badge-primary')?.textContent).toBe('0')
+    expect(c.querySelector('.badge-success')?.textContent).toBe('+')
   })
 
-  it('shows no tooltip on bye, forfeit, and empty cells', () => {
+  it('shows no tooltip on bye, forfeit, and empty cells', async () => {
     const { container } = renderView()
-    expect(card(roundCellOf(rowBy(container, 'Иванов'), 3))).toBeNull() // bye
-    expect(card(roundCellOf(rowBy(container, 'Сидоров'), 3))).toBeNull() // forfeit
-    expect(card(roundCellOf(rowBy(container, 'Иванов'), 2))).toBeNull() // no game
+    expect(screen.queryByRole('tooltip')).toBeNull()
+    await user.hover(roundCellOf(rowBy(container, 'Иванов'), 3)) // bye
+    expect(screen.queryByRole('tooltip')).toBeNull()
+    await user.hover(roundCellOf(rowBy(container, 'Сидоров'), 3)) // forfeit
+    expect(screen.queryByRole('tooltip')).toBeNull()
+    await user.hover(roundCellOf(rowBy(container, 'Иванов'), 2)) // no game
+    expect(screen.queryByRole('tooltip')).toBeNull()
   })
 
-  it('lists all opponent cards in the name tooltip, byes omitted, forfeit result-only', () => {
+  it('lists all opponent cards in the name tooltip, byes omitted, forfeit result-only', async () => {
     const { container } = renderView()
     const nameCell = rowBy(container, 'Иванов').querySelectorAll('td')[3] as HTMLElement
-    const c = nameCell.querySelector('.tooltip-content')
-    expect(c).not.toBeNull()
+    const trigger = nameCell.querySelector<HTMLElement>(':scope > span')
+    const c = await openTooltip(trigger)
     // Only the round-1 opponent; the round-3 bye is omitted
-    expect(c!.textContent).toContain('Петров, И2')
-    expect(c!.textContent).not.toContain('Сидоров, И3')
-    expect(c!.querySelectorAll(':scope > div')).toHaveLength(1)
+    expect(c.textContent).toContain('Петров, И2')
+    expect(c.textContent).not.toContain('Сидоров, И3')
+    expect(cardsIn(c)).toHaveLength(1)
+
+    await user.unhover(trigger as HTMLElement)
+    expect(screen.queryByRole('tooltip')).toBeNull()
 
     // p3: round-2 card vs p2 (?), round-3 forfeit → result-only card
-    const c3 = (rowBy(container, 'Сидоров').querySelectorAll('td')[3] as HTMLElement)
-      .querySelector('.tooltip-content')
-    expect(c3).not.toBeNull()
-    const cards3 = Array.from(c3!.querySelectorAll(':scope > div'))
+    const nameCell3 = (rowBy(container, 'Сидоров').querySelectorAll('td')[3] as HTMLElement)
+    const c3 = await openTooltip(nameCell3.querySelector(':scope > span'))
+    const cards3 = cardsIn(c3)
     expect(cards3).toHaveLength(2)
     expect(cards3[0].textContent).toContain('Петров, И2')
     expect(cards3[1].textContent).toBe('-') // result-only forfeit card
     expect(cards3[1].querySelector('.badge-error')).not.toBeNull()
   })
 
-  it('renders result badges from the hovered player perspective', () => {
+  it('renders result badges from the hovered player perspective', async () => {
     const { container } = renderView()
     // p2 lost r1 to p1 → '-' error badge in p2's name tooltip
-    const c2 = (rowBy(container, 'Петров').querySelectorAll('td')[3] as HTMLElement)
-      .querySelector('.tooltip-content')!
-    const cards2 = Array.from(c2.querySelectorAll(':scope > div'))
+    const nameCell2 = rowBy(container, 'Петров').querySelectorAll('td')[3] as HTMLElement
+    const c2 = await openTooltip(nameCell2.querySelector(':scope > span'))
+    const cards2 = cardsIn(c2)
     expect(cards2).toHaveLength(2)
     expect(cards2[0].querySelector('.badge-error')?.textContent).toBe('-')
     // r2 game has no result → '?' on base-300
     expect(cards2[1].querySelector('.bg-base-300')?.textContent).toBe('?')
+  })
+
+  it('shows country and title tooltips inside the opponent card', async () => {
+    const titled: Participant = {
+      ...p2,
+      capturedRating: { value: 2300, rank: '1d' },
+      locales: { ru: { familyName: 'Петров', givenName: 'И2', title: 'Титул' } } as unknown as Participant['locales'],
+    }
+    const { container } = renderView({ participants: [p1, titled, p3] })
+    const cell = roundCellOf(rowBy(container, 'Иванов'), 1)
+    const bubble = await openTooltip(cell.querySelector(':scope > span'))
+
+    // The card's flag carries a country-name tooltip (spec: opponent hover cards).
+    // useHover opens via natively-bound mouseenter, so dispatch it directly.
+    const flagTrigger = bubble.querySelector('.grid .contents > span')
+    expect(flagTrigger).not.toBeNull()
+    fireEvent.mouseEnter(flagTrigger!)
+    const tipsAfterFlag = await screen.findAllByRole('tooltip')
+    expect(tipsAfterFlag.map((el) => el.textContent)).toContain(getCountryName('jp', 'ru'))
+
+    // The card's crown icon carries the opponent's title tooltip.
+    // mouseenter does not bubble, so dispatch it on the Tooltip's trigger
+    // wrapper (the element the native listener is bound to), not the svg.
+    const crown = bubble.querySelector('.badge svg')
+    expect(crown).not.toBeNull()
+    const crownTrigger = crown!.closest('span')
+    expect(crownTrigger).not.toBeNull()
+    fireEvent.mouseEnter(crownTrigger!)
+    const tipsAfterCrown = await screen.findAllByRole('tooltip')
+    expect(tipsAfterCrown.map((el) => el.textContent)).toContain('Титул')
   })
 })

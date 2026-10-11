@@ -3,6 +3,7 @@ import * as Flags from 'country-flag-icons/react/3x2'
 import { BsGraphUp } from 'react-icons/bs'
 import { PiCrownSimple } from 'react-icons/pi'
 import { useTranslation } from 'react-i18next'
+import { Tooltip } from '../Tooltip'
 
 interface PlayerCardProps {
   player: Player
@@ -25,24 +26,44 @@ export function PlayerCard({ player, locale, points, startingPoints, onStartingP
     return (
         <div className="relative player-card">
             {typeof points === 'number' && onStartingPointsChange && (
-                <label className="input input-xs p-1 w-14 round absolute right-0 -mt-[2px] -mr-2 top-0 z-10 tooltip tooltip-left" data-tip={t('tournament.edit.pairings.startingPoints')}>
+                <Tooltip placement="left" content={t('tournament.edit.pairings.startingPoints')}>
+                  <label className="input input-xs p-1 w-14 round absolute right-0 -mt-[2px] -mr-2 top-0 z-10">
                     <input type="number" value={startingPoints ?? 0} min={0} step={1} onChange={(e) => onStartingPointsChange(Number(e.target.value) || 0)} onKeyDown={(e) => { if (e.key === '-') e.preventDefault() }} className="wq-8" />
-                    <span className={`badge badge-xs badge-primary tooltip tooltip-left tooltip-secondary -mr-1 -ml-5`} data-tip={t('tournament.tieBreak.points')}>{points}</span>
-                </label>
+                    <Tooltip placement="left" variant="secondary" content={t('tournament.tieBreak.points')}>
+                      <span className="badge badge-xs badge-primary -mr-1 -ml-5">{points}</span>
+                    </Tooltip>
+                  </label>
+                </Tooltip>
             )}
             {typeof points === 'number' && !onStartingPointsChange && (
-                <span className="badge badge-xs badge-primary tooltip tooltip-left absolute right-0 top-0 z-10 -mr-2" data-tip={t('tournament.tieBreak.points')}>{points}</span>
+                <Tooltip placement="left" content={t('tournament.tieBreak.points')}>
+                  <span className="badge badge-xs badge-primary absolute right-0 top-0 z-10 -mr-2">{points}</span>
+                </Tooltip>
             )}
             {onToggleChange && (
-              <label className={`label absolute pl-1 z-10 right-0 top-6 -mt-px text-xs${toggleTooltip ? ' tooltip tooltip-left' : ''}`} data-tip={toggleTooltip}>
-                <input
-                  type="checkbox"
-                  checked={toggleChecked ?? true}
-                  onChange={onToggleChange ? (e) => onToggleChange(e.target.checked) : undefined}
-                  className="toggle toggle-neutral toggle-xs -mr-2"
-                  disabled={!onToggleChange || toggleDisabled}
-                />
-              </label>
+              toggleTooltip ? (
+                <Tooltip placement="left" content={toggleTooltip}>
+                  <label className="label absolute pl-1 z-10 right-0 top-6 -mt-px text-xs">
+                    <input
+                      type="checkbox"
+                      checked={toggleChecked ?? true}
+                      onChange={(e) => onToggleChange(e.target.checked)}
+                      className="toggle toggle-neutral toggle-xs -mr-2"
+                      disabled={toggleDisabled}
+                    />
+                  </label>
+                </Tooltip>
+              ) : (
+                <label className="label absolute pl-1 z-10 right-0 top-6 -mt-px text-xs">
+                  <input
+                    type="checkbox"
+                    checked={toggleChecked ?? true}
+                    onChange={(e) => onToggleChange(e.target.checked)}
+                    className="toggle toggle-neutral toggle-xs -mr-2"
+                    disabled={toggleDisabled}
+                  />
+                </label>
+              )
             )}
             <div className="flex items-center gap-2">
                 {Flag && <Flag className="h-3 w-4 rounded-sm flag" />}

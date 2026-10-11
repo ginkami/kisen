@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { BsPlus } from 'react-icons/bs'
 import { ConfirmModal } from '../ConfirmModal.tsx'
+import { Tooltip } from '../Tooltip'
 import { promotionStatus, type Promotion } from '../../domain/promotion.ts'
 import {
   createPromotion,
@@ -182,15 +183,16 @@ export function PromotionSection({ tournamentId }: PromotionSectionProps) {
             >
               <div className="flex items-center justify-between">
                 <span className={statusClass(status)}>{statusLabel(status)}</span>
-                <button
-                  type="button"
-                  onClick={() => setPendingRemoveId(promotion.id)}
-                  className="btn btn-xs btn-circle btn-accent tooltip"
-                  data-tip={t('tournament.edit.promotion.delete')}
-                  aria-label={t('tournament.edit.promotion.delete')}
-                >
-                  ×
-                </button>
+                <Tooltip content={t('tournament.edit.promotion.delete')}>
+                  <button
+                    type="button"
+                    onClick={() => setPendingRemoveId(promotion.id)}
+                    className="btn btn-xs btn-circle btn-accent"
+                    aria-label={t('tournament.edit.promotion.delete')}
+                  >
+                    ×
+                  </button>
+                </Tooltip>
               </div>
 
               <div className="form-control">

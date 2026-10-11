@@ -11,6 +11,7 @@ import {
 } from '../pairings/pairingsModel.ts'
 import type { Game, Participant } from '../../../domain/tournament.ts'
 import type { SupportedLocale } from '../../../domain/locale.ts'
+import { Tooltip } from '../../../components/Tooltip'
 
 interface TournamentResultsSectionProps {
   games: Game[]
@@ -111,9 +112,9 @@ export function TournamentResultsSection({
       <>
         <td className="p-0 hidden sm:table-cell">
           {Flag && (
-            <div className="tooltip tooltip-top" data-tip={getCountryName(nat, locale)}>
+            <Tooltip content={getCountryName(nat, locale)}>
               <Flag className="h-3 w-4 rounded-sm ml-1 mt-1" />
-            </div>
+            </Tooltip>
           )}
         </td>
         <td className="p-0 hidden sm:table-cell">
@@ -124,9 +125,9 @@ export function TournamentResultsSection({
             >
               {rank}
               {title && (
-                <span className="tooltip tooltip-right" data-tip={title}>
+                <Tooltip placement="right" content={title}>
                   <PiCrownSimple className="h-3 w-3" />
-                </span>
+                </Tooltip>
               )}
             </span>
           )}

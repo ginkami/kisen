@@ -5,6 +5,7 @@ import { ConfirmModal } from '../ConfirmModal.tsx'
 import { LocaleTabs } from './LocaleTabs.tsx'
 import { rankToColor } from './crosstable/crosstableModel.ts'
 import { ParticipantRow } from './ParticipantRow.tsx'
+import { Tooltip } from '../Tooltip'
 import type { SupportedLocale } from '../../domain/locale.ts'
 import type { ParticipantRow as ParticipantRowType } from '../../hooks/useTournamentForm.ts'
 
@@ -95,42 +96,46 @@ export function ParticipantsSection({
 
         {onSort && participants.length >= 2 && (
           <div className="flex gap-1">
-            <button
-              type="button"
-              className="btn btn-sm btn-ghost tooltip"
-              data-tip={t('tournament.edit.participants.sortByName')}
-              aria-label={t('tournament.edit.participants.sortByName')}
-              onClick={() => onSort('name', 'asc')}
-            >
-              <BsSortAlphaDown className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              className="btn btn-sm btn-ghost tooltip"
-              data-tip={t('tournament.edit.participants.sortByName')}
-              aria-label={t('tournament.edit.participants.sortByName')}
-              onClick={() => onSort('name', 'desc')}
-            >
-              <BsSortAlphaDownAlt className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              className="btn btn-sm btn-ghost tooltip"
-              data-tip={t('tournament.edit.participants.sortByRating')}
-              aria-label={t('tournament.edit.participants.sortByRating')}
-              onClick={() => onSort('rating', 'asc')}
-            >
-              <BsSortNumericDown className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              className="btn btn-sm btn-ghost tooltip"
-              data-tip={t('tournament.edit.participants.sortByRating')}
-              aria-label={t('tournament.edit.participants.sortByRating')}
-              onClick={() => onSort('rating', 'desc')}
-            >
-              <BsSortNumericDownAlt className="h-4 w-4" />
-            </button>
+            <Tooltip content={t('tournament.edit.participants.sortByName')}>
+              <button
+                type="button"
+                className="btn btn-sm btn-ghost"
+                aria-label={t('tournament.edit.participants.sortByName')}
+                onClick={() => onSort('name', 'asc')}
+              >
+                <BsSortAlphaDown className="h-4 w-4" />
+              </button>
+            </Tooltip>
+            <Tooltip content={t('tournament.edit.participants.sortByName')}>
+              <button
+                type="button"
+                className="btn btn-sm btn-ghost"
+                aria-label={t('tournament.edit.participants.sortByName')}
+                onClick={() => onSort('name', 'desc')}
+              >
+                <BsSortAlphaDownAlt className="h-4 w-4" />
+              </button>
+            </Tooltip>
+            <Tooltip content={t('tournament.edit.participants.sortByRating')}>
+              <button
+                type="button"
+                className="btn btn-sm btn-ghost"
+                aria-label={t('tournament.edit.participants.sortByRating')}
+                onClick={() => onSort('rating', 'asc')}
+              >
+                <BsSortNumericDown className="h-4 w-4" />
+              </button>
+            </Tooltip>
+            <Tooltip content={t('tournament.edit.participants.sortByRating')}>
+              <button
+                type="button"
+                className="btn btn-sm btn-ghost"
+                aria-label={t('tournament.edit.participants.sortByRating')}
+                onClick={() => onSort('rating', 'desc')}
+              >
+                <BsSortNumericDownAlt className="h-4 w-4" />
+              </button>
+            </Tooltip>
           </div>
         )}
 
@@ -167,31 +172,33 @@ export function ParticipantsSection({
                 </div>
                 <div className="flex justify-between items-center gap-1">
                   {row.rowId !== 'empty-placeholder' && (
+                    <Tooltip placement="left" content={t('tournament.edit.participants.remove')}>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault()
+                          setPendingRemoveRowId(row.rowId)
+                        }}
+                        className="btn btn-sm btn-circle btn-accent"
+                        aria-label={t('tournament.edit.participants.remove')}
+                      >
+                        <BsX className="h-4 w-4 text-primary-content" />
+                      </button>
+                    </Tooltip>
+                  )}
+                  <Tooltip placement="left" content={t('tournament.edit.participants.add')}>
                     <button
                       type="button"
                       onClick={(e) => {
                         e.preventDefault()
-                        setPendingRemoveRowId(row.rowId)
+                        handleAddAfter(row.rowId === 'empty-placeholder' ? undefined : row.rowId)
                       }}
-                      className="btn btn-sm btn-circle btn-accent tooltip tooltip-left"
-                      data-tip={t('tournament.edit.participants.remove')}
-                      aria-label={t('tournament.edit.participants.remove')}
+                      className="btn btn-sm btn-circle btn-success"
+                      aria-label={t('tournament.edit.participants.add')}
                     >
-                      <BsX className="h-4 w-4 text-primary-content" />
+                      <BsPlus className="h-4 w-4 text-primary-content" />
                     </button>
-                  )}
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.preventDefault()
-                      handleAddAfter(row.rowId === 'empty-placeholder' ? undefined : row.rowId)
-                    }}
-                    className="btn btn-sm btn-circle btn-success tooltip tooltip-left"
-                    data-tip={t('tournament.edit.participants.add')}
-                    aria-label={t('tournament.edit.participants.add')}
-                  >
-                    <BsPlus className="h-4 w-4 text-primary-content" />
-                  </button>
+                  </Tooltip>
                 </div>
               </summary>
               <div className="collapse-content flex items-start gap-2">

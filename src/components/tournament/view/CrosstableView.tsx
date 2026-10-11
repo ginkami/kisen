@@ -8,6 +8,7 @@ import type { Game, Participant } from '../../../domain/tournament.ts'
 import type { TieBreak } from '../../../domain/tieBreak.ts'
 import type { SupportedLocale } from '../../../domain/locale.ts'
 import { TableScrollProvider, StickyTableCell } from '../tablescroll';
+import { Tooltip } from '../../../components/Tooltip'
 
 const COL_NO = 28, COL_FLAG = 20, COL_RANK = 45
 const OFF_FLAG = COL_NO
@@ -118,17 +119,17 @@ export function CrosstableView({
     return (
       <>
         {Flag && (
-          <span>
+          <Tooltip content={getCountryName(nat, locale)}>
             <Flag className="h-3 w-4 rounded-sm mt-0.5" />
-          </span>
+          </Tooltip>
         )}
         {rank ? (
           <span className="badge badge-xs text-white flex items-center gap-0.5" style={{ backgroundColor: rc ?? undefined }}>
             {rank}
             {title && (
-              <span>
+              <Tooltip placement="right" content={title}>
                 <PiCrownSimple className="h-3 w-3" />
-              </span>
+              </Tooltip>
             )}
           </span>
         ) : (
@@ -166,23 +167,27 @@ export function CrosstableView({
       ? (isP1 && g.sente === 'player1') || (!isP1 && g.sente === 'player2') ? '☗' : '☖'
       : ''
     return (
-      <span className="tooltip tooltip-top">
-        <div className="grid grid-cols-[auto_auto_max-content_auto_auto_auto] z-50 gap-1 text-xs text-left tooltip-content bg-neutral text-neutral-content shadow-lg rounded-lg p-1.5">
-          <div className="contents">
-            <OpponentCard 
-              oppId={oppId} 
-              symbol={sym as '+' | '-' | '=' | '?'} 
-              handicap={g.handicap != null ? handicapForView(g.handicap as string, isP1) : null} 
-            />
+      <Tooltip
+        interactive
+        placement="top"
+        content={
+          <div className="grid grid-cols-[auto_auto_max-content_auto_auto_auto] gap-1 p-1.5 text-xs text-left">
+            <div className="contents">
+              <OpponentCard
+                oppId={oppId}
+                symbol={sym as '+' | '-' | '=' | '?'}
+                handicap={g.handicap != null ? handicapForView(g.handicap as string, isP1) : null}
+              />
+            </div>
           </div>
-        </div>
+        }
+      >
         <span className="font-mono whitespace-nowrap pl-2 inline-flex items-center gap-0.5">
           {sente && <span>{sente}</span>}
           <span className={cls}>{oppPlace}{sym}</span>
           {g.handicap != null && <span className="badge badge-xs bg-base-200">{handicapForView(g.handicap as string, isP1)}</span>}
         </span>
-
-      </span>
+      </Tooltip>
     )
   }
   if (safePublishedRounds < 1) {
@@ -209,7 +214,7 @@ export function CrosstableView({
             <th colSpan={safePublishedRounds} className="z-20 text-center p-0 pt-1 text-[80%] border-b border-b-base-200-content/30">{t('tournament.edit.pairings.title')}</th>
             {showStartingPoints && (
               <th rowSpan={2} className="z-20 text-center whitespace-nowrap p-0.5">
-                <div className="tooltip tooltip-bottom" data-tip={t('tournament.edit.crosstable.spTooltip')}>{t('tournament.edit.crosstable.sp')}</div>
+                <Tooltip placement="bottom" content={t('tournament.edit.crosstable.spTooltip')}>{t('tournament.edit.crosstable.sp')}</Tooltip>
               </th>
             )}
             {tieBreaks.map((tb, index, array) => (
@@ -218,14 +223,13 @@ export function CrosstableView({
                 rowSpan={2} 
                 className={`z-20 text-right whitespace-nowrap w-fit ${index === array.length - 1 ? 'last:rounded-tr-xl' : ''}`}
               >
-                <div 
-                  className={tb.type !== 'points' ? ' tooltip tooltip-bottom relative z-20' : ''} 
-                  {...(tb.type !== 'points' && { 'data-tip': t(`tournament.tieBreak.${tb.type}`) })}
-                >
-                  {tb.type === 'points'
-                  ? t('tournament.edit.crosstable.points')
-                  : t(`tournament.tieBreak.abbr.${tb.type}`) + (tb.type === 'buchholz_cut' ? String(tb.cutCount) : '')}
-                </div>
+                {tb.type !== 'points' ? (
+                  <Tooltip placement="bottom" content={t(`tournament.tieBreak.${tb.type}`)}>
+                    {t(`tournament.tieBreak.abbr.${tb.type}`) + (tb.type === 'buchholz_cut' ? String(tb.cutCount) : '')}
+                  </Tooltip>
+                ) : (
+                  t('tournament.edit.crosstable.points')
+                )}
               </th>
             ))}
           </tr>
@@ -252,13 +256,13 @@ export function CrosstableView({
               <tr key={s.participantId} className="hover hover:relative hover:z-30">
                 <StickyTableCell width={COL_NO} className="!z-10 bg-base-100 font-mono text-center p-0">{s.place}</StickyTableCell>
                 <StickyTableCell left={OFF_FLAG} width={COL_FLAG} className="!z-10 bg-base-100 p-0">
-                   {Flag && <div className="tooltip tooltip-top" data-tip={getCountryName(nat, locale)}><Flag className="h-3 w-4 rounded-sm mt-1" /></div>}
+                   {Flag && <Tooltip content={getCountryName(nat, locale)}><Flag className="h-3 w-4 rounded-sm mt-1" /></Tooltip>}
                 </StickyTableCell>
                 <StickyTableCell left={OFF_RANK} width={COL_RANK} className="!z-11 bg-base-100 p-0">
                   {rank && (
                     <span className="badge badge-xs text-white flex items-center gap-0.5 w-fit" style={{ backgroundColor: rc ?? undefined }}>
                       {rank}
-                      {title && <span className="tooltip tooltip-right" data-tip={title}><PiCrownSimple className="h-3 w-3" /></span>}
+                      {title && <Tooltip placement="right" content={title}><PiCrownSimple className="h-3 w-3" /></Tooltip>}
                     </span>
                   )}
                 </StickyTableCell>
@@ -266,31 +270,37 @@ export function CrosstableView({
                   {(gamesByPid.get(s.participantId) ?? []).some(
                     (e) => e.oppId != null || e.game.status === 'forfeit',
                   ) ? (
-                    // truncate stays off the td: overflow-hidden here would clip
-                    // the absolutely-positioned tooltip-content bubble
-                    <span className={`tooltip tooltip-${index + 1 > standings.length/2 ? 'top' : 'bottom'} z-50 flex`}>
+                    // The bubble is portaled to document.body, so the name can
+                    // stay `truncate` inside the cell without clipping it.
+                    <Tooltip
+                      interactive
+                      className="flex"
+                      placement={index + 1 > standings.length / 2 ? 'top' : 'bottom'}
+                      content={
+                        <div className="grid grid-cols-[auto_auto_auto_auto_auto_auto] gap-1 p-1.5 text-xs text-left">
+                          {(gamesByPid.get(s.participantId) ?? [])
+                            .filter((e) => e.oppId != null || e.game.status === 'forfeit')
+                            .map((e, i) => (
+                              <div className="contents" key={i}>
+                                <OpponentCard
+                                  oppId={e.oppId}
+                                  symbol={resultSymbolFor(e.game, s.participantId)}
+                                  handicap={e.game.handicap != null ? handicapForView(e.game.handicap as string, e.game.player2 === e.oppId) : null}
+                                />
+                              </div>
+                            ))}
+                        </div>
+                      }
+                    >
                       <span className="truncate">{loc?.familyName}, {loc?.givenName}</span>
-                      <div className="grid grid-cols-[auto_auto_auto_auto_auto_auto] text-xs text-left tooltip-content bg-neutral text-neutral-content shadow-lg rounded-lg p-1.5 gap-1">
-                        {(gamesByPid.get(s.participantId) ?? [])
-                          .filter((e) => e.oppId != null || e.game.status === 'forfeit')
-                          .map((e, i) => (
-                            <div className="contents" key={i}>
-                              <OpponentCard
-                                oppId={e.oppId}
-                                symbol={resultSymbolFor(e.game, s.participantId)}
-                                handicap={e.game.handicap != null ? handicapForView(e.game.handicap as string, e.game.player2 === e.oppId) : null} 
-                              />
-                            </div>
-                          ))}
-                      </div>
-                    </span>
+                    </Tooltip>
                   ) : (
                     <span className="truncate">{loc?.familyName}, {loc?.givenName}</span>
                   )}
                 </StickyTableCell>
 
                 <td className="whitespace-nowrap">
-                  {resDiff && ResFlag && <span className="tooltip tooltip-top mr-1" data-tip={getCountryName(res, locale)}><ResFlag className="h-3 w-3 rounded-sm inline mt-[-3px]" /></span>}
+                  {resDiff && ResFlag && <Tooltip className="mr-1" content={getCountryName(res, locale)}><ResFlag className="h-3 w-3 rounded-sm inline mt-[-3px]" /></Tooltip>}
                   {loc?.location || ''}
                 </td>
                 <td className="text-right font-mono">{p.capturedRating?.value ?? ''}</td>

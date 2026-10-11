@@ -218,6 +218,12 @@ div:has(> button[data-val='=']) + .gote-card > div  {
   }
 }
 
+/* Fade-in for @floating-ui/react tooltip bubbles (Tooltip.tsx); disabled
+   automatically via `motion-safe:` for prefers-reduced-motion users. */
+@keyframes tooltip-in {
+  from { opacity: 0; }
+}
+
 .md-section .collapse {
   margin: 0;
 }

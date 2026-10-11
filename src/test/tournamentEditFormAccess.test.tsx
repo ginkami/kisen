@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { fireEvent, render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Outlet, Route, Routes } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { describe, expect, it, vi, beforeEach } from 'vitest'
@@ -352,7 +353,7 @@ describe('Pairing tools drawer visibility', () => {
     expect(screen.getByText('tournament.edit.pairingTools.title')).toBeInTheDocument()
   })
 
-  it('shows the sticky dice tab on the crosstable tab and opens the drawer from it', () => {
+  it('shows the sticky dice tab on the crosstable tab and opens the drawer from it', async () => {
     authState.firebaseUser = makeFirebaseUser('creator-1')
     tournamentFormState.tournament = makeTournament({ status: 'ongoing' })
     renderForm()
@@ -360,7 +361,8 @@ describe('Pairing tools drawer visibility', () => {
     fireEvent.click(screen.getByRole('tab', { name: 'tournament.edit.tabs.crosstable' }))
 
     const stickyTab = screen.getByRole('button', { name: 'tournament.edit.pairingTools.open' })
-    expect(stickyTab).toHaveAttribute('data-tip', 'tournament.edit.pairingTools.open')
+    await userEvent.hover(stickyTab)
+    expect(await screen.findByRole('tooltip')).toHaveTextContent('tournament.edit.pairingTools.open')
     fireEvent.click(stickyTab)
 
     expect(screen.getByText('tournament.edit.pairingTools.title')).toBeInTheDocument()

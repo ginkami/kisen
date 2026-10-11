@@ -9,6 +9,7 @@ import { createByeGame, createForfeitGame, generatePairings, PairingError } from
 import { generateKnockoutRoundGames } from './pairings/knockoutEngine.ts'
 import { AlertModal } from '../AlertModal.tsx'
 import { ConfirmModal } from '../ConfirmModal.tsx'
+import { Tooltip } from '../Tooltip'
 
 interface PairingToolsDrawerProps {
   isOpen: boolean
@@ -224,26 +225,28 @@ export function PairingToolsDrawer({
       <div className="flex h-[calc(100%-4rem)] flex-col items-center px-4 pb-4">
         {/* Undo / Redo row */}
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={onUndo}
-            disabled={!canUndo}
-            className="btn btn-circle btn-ghost btn-sm tooltip tooltip-left"
-            data-tip={t('tournament.edit.pairingTools.undo')}
-            aria-label={t('tournament.edit.pairingTools.undo')}
-          >
-            <BsArrowCounterclockwise className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            onClick={onRedo}
-            disabled={!canRedo}
-            className="btn btn-circle btn-ghost btn-sm tooltip tooltip-left"
-            data-tip={t('tournament.edit.pairingTools.redo')}
-            aria-label={t('tournament.edit.pairingTools.redo')}
-          >
-            <BsArrowClockwise className="h-4 w-4" />
-          </button>
+          <Tooltip placement="left" content={t('tournament.edit.pairingTools.undo')}>
+            <button
+              type="button"
+              onClick={onUndo}
+              disabled={!canUndo}
+              className="btn btn-circle btn-ghost btn-sm"
+              aria-label={t('tournament.edit.pairingTools.undo')}
+            >
+              <BsArrowCounterclockwise className="h-4 w-4" />
+            </button>
+          </Tooltip>
+          <Tooltip placement="left" content={t('tournament.edit.pairingTools.redo')}>
+            <button
+              type="button"
+              onClick={onRedo}
+              disabled={!canRedo}
+              className="btn btn-circle btn-ghost btn-sm"
+              aria-label={t('tournament.edit.pairingTools.redo')}
+            >
+              <BsArrowClockwise className="h-4 w-4" />
+            </button>
+          </Tooltip>
         </div>
 
         {/* Generate pairings */}
