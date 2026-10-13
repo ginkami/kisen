@@ -23,6 +23,7 @@ export interface PlayerFormState {
   birthDate: string
   primaryAssociation: string | null
   secondaryAssociations: string[]
+  avatar: Uint8Array | null
 }
 
 export function createEmptyLocaleFields(): PlayerFormLocaleFields {
@@ -43,6 +44,7 @@ export function createEmptyFormState(): PlayerFormState {
     birthDate: '',
     primaryAssociation: null,
     secondaryAssociations: [],
+    avatar: null,
   }
 }
 
@@ -76,6 +78,7 @@ export function playerToFormState(player: Player): PlayerFormState {
       : '',
     primaryAssociation: player.primaryAssociation,
     secondaryAssociations: [...player.secondaryAssociations],
+    avatar: player.avatar ?? null,
   }
 }
 
@@ -116,6 +119,7 @@ export function formStateToCreateInput(
     birthDate: state.birthDate ? new Date(state.birthDate) : null,
     primaryAssociation: state.primaryAssociation,
     secondaryAssociations: state.secondaryAssociations,
+    avatar: state.avatar ?? undefined,
   }
 }
 
@@ -138,6 +142,7 @@ export function formStateToUpdateInput(
     birthDate: state.birthDate ? new Date(state.birthDate) : null,
     primaryAssociation: state.primaryAssociation,
     secondaryAssociations: state.secondaryAssociations,
+    avatar: state.avatar,
     existing: player,
   }
 }
@@ -160,4 +165,24 @@ export function validatePlayerForm(state: PlayerFormState): Record<string, strin
   }
 
   return errors
+}
+
+function bytesToBase64(bytes: Uint8Array): string {
+  let binary = ''
+  const CHUNK = 0x8000
+  for (let i = 0; i < bytes.length; i += CHUNK) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + CHUNK))
+  }
+  return btoa(binary)
+}
+
+/**
+ * JSON snapshot of the form state for dirty tracking. Binary avatar bytes are
+ * encoded as base64 so snapshots stay stable strings and avatar edits mark the
+ * form dirty (plain JSON.stringify would emit a huge numeric-key object).
+ */
+export function formStateSnapshot(state: PlayerFormState): string {
+  return JSON.stringify(state, (_key, value: unknown) =>
+    value instanceof Uint8Array ? bytesToBase64(value) : value,
+  )
 }

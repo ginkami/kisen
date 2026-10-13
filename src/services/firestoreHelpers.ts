@@ -1,4 +1,4 @@
-import { Timestamp } from 'firebase/firestore'
+import { Timestamp, type Bytes } from 'firebase/firestore'
 
 /**
  * Checks whether a value is a Firestore Timestamp in any form:
@@ -27,6 +27,22 @@ export function isTimestampLike(value: unknown): boolean {
     return true
   }
   return false
+}
+
+/**
+ * Binary leaves (domain `Uint8Array` or Firestore `Bytes`) must never be
+ * recursed into — `Object.entries` would destroy them into plain objects.
+ * `Bytes` is duck-typed (like `isTimestampLike`) so the check survives
+ * partial `firebase/firestore` module mocks in tests.
+ */
+export function isBinaryLike(value: unknown): value is Uint8Array | Bytes {
+  if (value instanceof Uint8Array) return true
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'toUint8Array' in value &&
+    typeof (value as { toUint8Array: unknown }).toUint8Array === 'function'
+  )
 }
 
 /**
@@ -63,6 +79,9 @@ export function timestampsToDates(value: unknown): unknown {
   if (value instanceof Date) {
     return value
   }
+  if (isBinaryLike(value)) {
+    return value
+  }
   if (Array.isArray(value)) {
     return value.map(timestampsToDates)
   }
@@ -80,6 +99,9 @@ export function timestampsToDates(value: unknown): unknown {
 export function datesToTimestamps(value: unknown): unknown {
   if (value instanceof Date) {
     return Timestamp.fromDate(value)
+  }
+  if (isBinaryLike(value)) {
+    return value
   }
   if (Array.isArray(value)) {
     return value.map(datesToTimestamps)
@@ -110,6 +132,9 @@ export function chunkArray<T>(items: T[], size = 500): T[][] {
 export function removeUndefined(value: unknown): unknown {
   if (value === undefined) {
     return undefined
+  }
+  if (isBinaryLike(value)) {
+    return value
   }
   if (Array.isArray(value)) {
     return value.map(removeUndefined).filter((v) => v !== undefined)

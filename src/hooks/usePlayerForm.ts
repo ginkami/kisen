@@ -13,6 +13,7 @@ import {
   formStateToCreateInput,
   formStateToUpdateInput,
   validatePlayerForm,
+  formStateSnapshot,
   type PlayerFormState,
   type PlayerFormLocaleFields,
 } from './playerFormHelpers.ts'
@@ -30,7 +31,7 @@ export function usePlayerForm(playerId: string | undefined) {
     playerId === 'new' ? createEmptyFormState() : null
   )
   const [lastSavedSnapshot, setLastSavedSnapshot] = useState<string | null>(
-    playerId === 'new' ? JSON.stringify(createEmptyFormState()) : null
+    playerId === 'new' ? formStateSnapshot(createEmptyFormState()) : null
   )
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({})
   const [initializedPlayerId, setInitializedPlayerId] = useState<string | null>(null)
@@ -54,12 +55,12 @@ export function usePlayerForm(playerId: string | undefined) {
     setInitializedPlayerId(player.id)
     const initial = playerToFormState(player)
     setFormState(initial)
-    setLastSavedSnapshot(JSON.stringify(initial))
+    setLastSavedSnapshot(formStateSnapshot(initial))
   }
 
   const isDirty = useMemo(() => {
     if (!formState || !lastSavedSnapshot) return false
-    return JSON.stringify(formState) !== lastSavedSnapshot
+    return formStateSnapshot(formState) !== lastSavedSnapshot
   }, [formState, lastSavedSnapshot])
 
   useEffect(() => {
@@ -146,7 +147,7 @@ export function usePlayerForm(playerId: string | undefined) {
       }
       const snapshot = playerToFormState(saved)
       setFormState(snapshot)
-      setLastSavedSnapshot(JSON.stringify(snapshot))
+      setLastSavedSnapshot(formStateSnapshot(snapshot))
     },
   })
 

@@ -26,4 +26,5 @@
         "UUIDv7" // (Ref: association.id)
     ]
     // ^ (Required) Может быть пустым.
+    "avatar": "Bytes" // (Optional) Аватар игрока: JPEG 700×700, качество 77. Отсутствует, если фото нет.
 }

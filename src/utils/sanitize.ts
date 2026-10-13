@@ -52,6 +52,7 @@ export function sanitizeDeep<T>(value: T): T {
   if (typeof value === 'string') return sanitizeTextInput(value) as T
   if (value === null || typeof value !== 'object') return value
   if (value instanceof Date) return value
+  if (value instanceof Uint8Array) return value
   if (Array.isArray(value)) return value.map(sanitizeDeep) as T
   const result: Record<string, unknown> = {}
   for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {

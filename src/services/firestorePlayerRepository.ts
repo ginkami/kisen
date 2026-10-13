@@ -1,4 +1,5 @@
 import {
+  Bytes,
   collection,
   doc,
   getDoc,
@@ -32,12 +33,20 @@ function withDefaultRating(data: Record<string, unknown>): Record<string, unknow
   }
 }
 
-function toFirestore(player: Player): Record<string, unknown> {
-  return removeUndefined(datesToTimestamps(player)) as Record<string, unknown>
+export function toFirestore(player: Player): Record<string, unknown> {
+  const data = removeUndefined(datesToTimestamps(player)) as Record<string, unknown>
+  if (data.avatar instanceof Uint8Array) {
+    data.avatar = Bytes.fromUint8Array(data.avatar)
+  }
+  return data
 }
 
-function fromFirestore(data: Record<string, unknown>): Player {
-  return timestampsToDates(withDefaultRating(data)) as Player
+export function fromFirestore(data: Record<string, unknown>): Player {
+  const converted = timestampsToDates(withDefaultRating(data)) as Record<string, unknown>
+  if (converted.avatar instanceof Bytes) {
+    converted.avatar = converted.avatar.toUint8Array()
+  }
+  return converted as Player
 }
 
 export class FirestorePlayerRepository implements PlayerRepository {

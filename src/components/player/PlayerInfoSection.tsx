@@ -1,5 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { sanitizeTextInput } from '../../utils/sanitize.ts'
+import { AlertModal } from '../AlertModal.tsx'
+import { AvatarCropModal } from './AvatarCropModal.tsx'
+import { inspectAvatarFile, loadAvatarImage } from './avatarInput.ts'
 import { BsPlus } from 'react-icons/bs'
 import { useTranslation } from 'react-i18next'
 import { CountrySelect } from '../tournament/CountrySelect.tsx'
@@ -40,6 +43,28 @@ export function PlayerInfoSection({
   const { t, i18n } = useTranslation()
   const [showAssociationPicker, setShowAssociationPicker] = useState(false)
 
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const sourceUrlRef = useRef<string | null>(null)
+  const [photoAlert, setPhotoAlert] = useState<{
+    reason: 'tooSmall' | 'unsupported' | 'loadFailed'
+    width?: number
+    height?: number
+  } | null>(null)
+  const [cropImage, setCropImage] = useState<HTMLImageElement | null>(null)
+
+  // Object URL for the 200×200 preview; revoked whenever the avatar changes.
+  const avatarUrl = useMemo(
+    () =>
+      formState.avatar
+        ? URL.createObjectURL(new Blob([new Uint8Array(formState.avatar)], { type: 'image/jpeg' }))
+        : null,
+    [formState.avatar],
+  )
+  useEffect(() => {
+    if (!avatarUrl) return
+    return () => URL.revokeObjectURL(avatarUrl)
+  }, [avatarUrl])
+
   const currentLocale = formState.locales[activeLocale]
   const isRatingEmpty = formState.ratingValue === '' && formState.rank === null
   const [ratingExpanded, setRatingExpanded] = useState(!isRatingEmpty)
@@ -60,6 +85,45 @@ export function PlayerInfoSection({
     )
   }
 
+  const handlePhotoFile = async (file: File | null | undefined) => {
+    if (!file) return
+    const inspection = await inspectAvatarFile(file)
+    if (!inspection.ok) {
+      setPhotoAlert({
+        reason: inspection.reason,
+        width: inspection.width,
+        height: inspection.height,
+      })
+      return
+    }
+    const url = URL.createObjectURL(file)
+    try {
+      const img = await loadAvatarImage(url)
+      if (sourceUrlRef.current) URL.revokeObjectURL(sourceUrlRef.current)
+      sourceUrlRef.current = url
+      setCropImage(img)
+    } catch {
+      URL.revokeObjectURL(url)
+      setPhotoAlert({ reason: 'loadFailed' })
+    }
+  }
+
+  const closeCrop = () => {
+    setCropImage(null)
+    if (sourceUrlRef.current) {
+      URL.revokeObjectURL(sourceUrlRef.current)
+      sourceUrlRef.current = null
+    }
+  }
+
+  const photoAlertMessage = !photoAlert
+    ? ''
+    : photoAlert.reason === 'tooSmall'
+      ? t('player.edit.photoMinSize', { width: photoAlert.width, height: photoAlert.height })
+      : photoAlert.reason === 'unsupported'
+        ? t('player.edit.photoUnsupportedType')
+        : t('player.edit.photoLoadError')
+
   return (
     <div className="card bg-base-200 shadow-sm">
       <div className="card-body gap-4">
@@ -68,89 +132,159 @@ export function PlayerInfoSection({
           <LocaleTabs locale={activeLocale} onChange={onLocaleChange} />
         </div>
 
-        {/* Required: Family name + Given name */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            {/* Required: Family name + Given name */}
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text">
+                    {t('player.edit.familyName')}
+                    <span className="text-error ml-1">*</span>
+                  </span>
+                </label>
+                <input
+                  type="text"
+                  value={currentLocale.familyName}
+                  onChange={(e) => onUpdateLocale(activeLocale, 'familyName', sanitizeTextInput(e.target.value))}
+                  className={`input input-bordered w-full ${validationErrors.familyName ? 'input-error' : ''}`}
+                />
+                {validationErrors.familyName && (
+                  <span className="text-error text-xs mt-1">{t('common.fieldRequired')}</span>
+                )}
+              </div>
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text">
+                    {t('player.edit.givenName')}
+                    <span className="text-error ml-1">*</span>
+                  </span>
+                </label>
+                <input
+                  type="text"
+                  value={currentLocale.givenName}
+                  onChange={(e) => onUpdateLocale(activeLocale, 'givenName', sanitizeTextInput(e.target.value))}
+                  className={`input input-bordered w-full ${validationErrors.givenName ? 'input-error' : ''}`}
+                />
+                {validationErrors.givenName && (
+                  <span className="text-error text-xs mt-1">{t('common.fieldRequired')}</span>
+                )}
+              </div>
+            </div>
+
+            {/* Required: Country */}
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="form-control">
+                <label className="label country">
+                  <span className="label-text">
+                    {t('player.edit.country')}
+                    <span className="text-error ml-1">*</span>
+                  </span>
+                </label>
+                <CountrySelect
+                  value={formState.nationality}
+                  onChange={(value) => onUpdateBasic('nationality', value)}
+                  lang={i18n.language === 'ru' ? 'ru' : 'en'}
+                  placeholder={t('common.noCountry')}
+                />
+                {validationErrors.nationality && (
+                  <span className="text-error text-xs mt-1">{t('common.fieldRequired')}</span>
+                )}
+              </div>
+              <ExpandableField
+                label={t('player.edit.location')}
+                value={currentLocale.location}
+                onChange={(value) => onUpdateLocale(activeLocale, 'location', value)}
+              />
+            </div>
+
+            {/* Optional: Residence + Club */}
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <ExpandableField
+                label={t('player.edit.residence')}
+                isEmpty={!formState.residence}
+              >
+                <CountrySelect
+                  value={formState.residence}
+                  onChange={(value) => onUpdateBasic('residence', value)}
+                  lang={i18n.language === 'ru' ? 'ru' : 'en'}
+                  placeholder={t('common.noCountry')}
+                />
+              </ExpandableField>
+              <ExpandableField
+                label={t('player.edit.club')}
+                value={currentLocale.club}
+                onChange={(value) => onUpdateLocale(activeLocale, 'club', value)}
+              />
+            </div>
+          </div>
           <div className="form-control">
             <label className="label">
-              <span className="label-text">
-                {t('player.edit.familyName')}
-                <span className="text-error ml-1">*</span>
-              </span>
+              <span className="label-text">{t('player.edit.photo')}</span>
             </label>
-            <input
-              type="text"
-              value={currentLocale.familyName}
-              onChange={(e) => onUpdateLocale(activeLocale, 'familyName', sanitizeTextInput(e.target.value))}
-              className={`input input-bordered w-full ${validationErrors.familyName ? 'input-error' : ''}`}
-            />
-            {validationErrors.familyName && (
-              <span className="text-error text-xs mt-1">{t('common.fieldRequired')}</span>
+            {formState.avatar && avatarUrl && (
+              <img
+                src={avatarUrl}
+                alt={t('player.edit.photo')}
+                className="h-[200px] w-[200px] rounded-lg object-cover"
+              />
             )}
-          </div>
-          <div className="form-control">
-            <label className="label">
-              <span className="label-text">
-                {t('player.edit.givenName')}
-                <span className="text-error ml-1">*</span>
-              </span>
-            </label>
+            <div className="mt-2 flex gap-2">
+              <button
+                type="button"
+                className="btn btn-sm btn-outline"
+                onClick={() => fileInputRef.current?.click()}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => {
+                  e.preventDefault()
+                  void handlePhotoFile(e.dataTransfer.files?.[0])
+                }}
+              >
+                {formState.avatar ? t('player.edit.photoChange') : t('player.edit.photoAdd')}
+              </button>
+              {formState.avatar && (
+                <button
+                  type="button"
+                  className="btn btn-sm btn-ghost text-error"
+                  onClick={() => onUpdateBasic('avatar', null)}
+                >
+                  {t('player.edit.photoDelete')}
+                </button>
+              )}
+            </div>
             <input
-              type="text"
-              value={currentLocale.givenName}
-              onChange={(e) => onUpdateLocale(activeLocale, 'givenName', sanitizeTextInput(e.target.value))}
-              className={`input input-bordered w-full ${validationErrors.givenName ? 'input-error' : ''}`}
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className="hidden"
+              onChange={(e) => {
+                void handlePhotoFile(e.target.files?.[0])
+                e.target.value = ''
+              }}
             />
-            {validationErrors.givenName && (
-              <span className="text-error text-xs mt-1">{t('common.fieldRequired')}</span>
-            )}
           </div>
+          {photoAlert && (
+            <AlertModal
+              isOpen
+              title={t('player.edit.photo')}
+              message={photoAlertMessage}
+              confirmText={t('common.confirm')}
+              onClose={() => setPhotoAlert(null)}
+            />
+          )}
+          {cropImage && (
+            <AvatarCropModal
+              isOpen
+              image={cropImage}
+              onClose={closeCrop}
+              onApply={(bytes) => {
+                onUpdateBasic('avatar', bytes)
+                closeCrop()
+              }}
+            />
+          )}
         </div>
 
-        {/* Required: Country */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div className="form-control">
-            <label className="label country">
-              <span className="label-text">
-                {t('player.edit.country')}
-                <span className="text-error ml-1">*</span>
-              </span>
-            </label>
-            <CountrySelect
-              value={formState.nationality}
-              onChange={(value) => onUpdateBasic('nationality', value)}
-              lang={i18n.language === 'ru' ? 'ru' : 'en'}
-              placeholder={t('common.noCountry')}
-            />
-            {validationErrors.nationality && (
-              <span className="text-error text-xs mt-1">{t('common.fieldRequired')}</span>
-            )}
-          </div>
-          <ExpandableField
-            label={t('player.edit.location')}
-            value={currentLocale.location}
-            onChange={(value) => onUpdateLocale(activeLocale, 'location', value)}
-          />
-        </div>
-
-        {/* Optional: Residence + Club */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <ExpandableField
-            label={t('player.edit.residence')}
-            isEmpty={!formState.residence}
-          >
-            <CountrySelect
-              value={formState.residence}
-              onChange={(value) => onUpdateBasic('residence', value)}
-              lang={i18n.language === 'ru' ? 'ru' : 'en'}
-              placeholder={t('common.noCountry')}
-            />
-          </ExpandableField>
-          <ExpandableField
-            label={t('player.edit.club')}
-            value={currentLocale.club}
-            onChange={(value) => onUpdateLocale(activeLocale, 'club', value)}
-          />
-        </div>
 
         {/* Optional: Rating/Rank/Title — grouped */}
         {!ratingExpanded ? (

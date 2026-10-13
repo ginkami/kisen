@@ -30,6 +30,8 @@ export const playerSchema = z.object({
   birthDate: z.date().nullable(),
   primaryAssociation: z.string().uuid().nullable(),
   secondaryAssociations: z.array(z.string().uuid()).default([]),
+  /** Avatar as JPEG bytes (700×700, quality 77); absent when the player has no photo. */
+  avatar: z.custom<Uint8Array>((value) => value instanceof Uint8Array).optional(),
 })
 
 export type Player = z.infer<typeof playerSchema>

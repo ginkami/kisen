@@ -20,6 +20,8 @@ export interface CreatePlayerInput {
   birthDate?: Player['birthDate']
   primaryAssociation?: string | null
   secondaryAssociations?: string[]
+  /** Avatar as JPEG bytes (700×700, quality 77). */
+  avatar?: Uint8Array
 }
 
 export interface UpdatePlayerInput {
@@ -32,6 +34,8 @@ export interface UpdatePlayerInput {
   birthDate?: Player['birthDate']
   primaryAssociation?: string | null
   secondaryAssociations?: string[]
+  /** Avatar bytes to set; `null` clears the photo; `undefined` keeps the stored value. */
+  avatar?: Uint8Array | null
   existing?: Player
 }
 
@@ -202,6 +206,7 @@ export class PlayerService {
       birthDate: input.birthDate ?? null,
       primaryAssociation: input.primaryAssociation ?? null,
       secondaryAssociations: input.secondaryAssociations ?? [],
+      avatar: input.avatar,
     }
 
     const sanitized = sanitizeDeep(player)
@@ -229,6 +234,7 @@ export class PlayerService {
           : existing.primaryAssociation,
       secondaryAssociations:
         input.secondaryAssociations ?? existing.secondaryAssociations,
+      avatar: input.avatar !== undefined ? input.avatar ?? undefined : existing.avatar,
     }
 
     const sanitized = sanitizeDeep(updated)
